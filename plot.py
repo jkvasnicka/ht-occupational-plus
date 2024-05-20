@@ -1,6 +1,7 @@
 '''
 '''
 import matplotlib.pyplot as plt
+_default_figsize = plt.rcParams['figure.figsize']
 
 def chemical_counts(counts, title, xlabel, ylabel):
     """
@@ -14,7 +15,7 @@ def chemical_counts(counts, title, xlabel, ylabel):
     ylabel (str): Label for the y-axis.
     """
     fig, ax = plt.subplots(
-        figsize=(6, 10) # Consider adjusting size based on number of categories
+        figsize=_default_figsize[::-1] # Consider adjusting size based on number of categories
     )
 
     # Sort the counts for better visualization
