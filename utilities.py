@@ -97,7 +97,7 @@ def subsectors_from_naics(naics_codes):
 def sectors_from_subsectors(subsectors):
     return list(set(extract_sector(sub) for sub in subsectors))
 
-def create_binary_data(category_series, by=None, agg_func='max'):
+def create_binary_data(category_series, by=None, agg_func='max', drop_columns=None):
 
     flattened_categories = [
         item for sublist in category_series 
@@ -113,7 +113,12 @@ def create_binary_data(category_series, by=None, agg_func='max'):
     
     binary_data = pd.DataFrame(new_columns, index=category_series.index)
     
-    return aggregate_data(binary_data, by=by, agg_func=agg_func)
+    binary_data = aggregate_data(binary_data, by=by, agg_func=agg_func)
+
+    if drop_columns:
+        binary_data = binary_data.drop(drop_columns, axis=1)
+
+    return binary_data
 
 def create_continuous_data(string_data, by=None, kwargs_for_col=None):
     '''
