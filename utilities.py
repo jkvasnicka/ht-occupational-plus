@@ -86,7 +86,7 @@ def extract_naics_codes(row):
     return list(set(naics for naics in codes if naics))
 
 def extract_subsector(naics):
-    return naics[:4]
+    return naics[:3]
 
 def extract_sector(naics):
     return naics[:2]
