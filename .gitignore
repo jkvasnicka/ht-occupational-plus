@@ -1,5 +1,6 @@
 Scratch
 Input/Raw/OSHA
+Input/Processed
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
