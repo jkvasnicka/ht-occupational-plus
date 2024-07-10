@@ -7,6 +7,23 @@ import os
 import chardet
 import pandas as pd
 
+#region: load_osha_data_temp
+def load_osha_data_temp(osha_file, do_overwrite=True):
+    '''
+    Temporary function for quickly loading and cleaning a pre-assembled
+    OSHA dataframe.
+
+    This bypasses loading individual dataframes for each year.
+    '''
+    osha_data = pd.read_csv(osha_file)
+    osha_data = final_cleaning(osha_data)
+
+    if do_overwrite:
+        osha_data.to_csv(osha_file)
+
+    return osha_data
+#endregion
+
 #region load_osha_data
 def load_osha_data(osha_dir, rename_mapper):
     '''
