@@ -49,6 +49,7 @@ def load_osha_data(osha_dir, rename_mapper):
                 year_data['YEAR'] = year
                 osha_data.append(year_data)
     osha_data = pd.concat(osha_data, ignore_index=True)
+    osha_data = final_cleaning(osha_data)
 
     return osha_data
 #endregion
@@ -188,4 +189,30 @@ def strip_trailing_commas(df):
     df = df.rename(columns_with_trailing_commas, axis=1)
     
     return df
+#endregion
+
+#region: final_cleaning
+def final_cleaning(osha_data):
+    '''
+    Perform final cleaning steps.
+
+    Parameters
+    ----------
+    osha_data : pd.DataFrame
+        The DataFrame to clean.
+
+    Returns
+    -------
+    pd.DataFrame
+        The cleaned DataFrame.
+
+    Notes
+    -----
+    This code was transcribed from an R script by Delphine Bosson-Rieutort, 
+    based on scripts from Jérôme Lavoué.
+    '''
+    # NOTE: Some of this may be unnecessary.
+    osha_data = osha_data.astype(str)  # 'character' in R
+    osha_data = osha_data.reindex(sorted(osha_data.columns), axis=1)
+    return osha_data
 #endregion
