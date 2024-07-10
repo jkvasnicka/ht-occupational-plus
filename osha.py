@@ -28,7 +28,7 @@ def load_osha_data(osha_dir, rename_mapper):
     pd.DataFrame
         The concatenated DataFrame.
     '''
-    data_for_year = {}  # initialize
+    osha_data = []  # initialize
     for root, _, files in os.walk(osha_dir):
         for file in files:
 
@@ -39,20 +39,16 @@ def load_osha_data(osha_dir, rename_mapper):
                 year = parts[0].split('_')[-1]
                 print(f'Loading {year} data...')
                 if extension == 'csv':
-                    data_for_year[year] = load_csv_data(
+                    year_data = load_csv_data(
                         root, file, rename_mapper
                         )
                 elif extension == 'xml':
-                    data_for_year[year] = load_xml_data(
+                    year_data = load_xml_data(
                         root, file, rename_mapper
                         )
-
-    osha_data = pd.concat(data_for_year)
-    # Pivot the MultiIndex "year" level to a new column
-    osha_data = osha_data.reset_index(level=0).rename(
-        {'level_0': 'YEAR'}, 
-        axis=1
-        )
+                year_data['YEAR'] = year
+                osha_data.append(year_data)
+    osha_data = pd.concat(osha_data, ignore_index=True)
 
     return osha_data
 #endregion
