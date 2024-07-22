@@ -15,8 +15,32 @@ def clean_cehd_data(database):
 
     database = remove_blanks(database)
     database = remove_nonpersonal(database)
+    database = exclude_few_samples(database)
     
     return database
+#endregion
+
+#region: exclude_few_samples
+def exclude_few_samples(database):
+    '''
+    Exclude substances with few samples or non-chemical IMIS codes.
+    '''
+    ## Exclude substances with few samples
+    subst = database['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
+    subst.columns = ['code', 'n']
+    where_enough_samples = subst['n'] >= 100
+    subst = subst[where_enough_samples]
+
+    ## Remove non-chemical substance codes
+    # FIXME: Remove hardcoding
+    non_chemical_codes = [
+        'G301', 'G302', 'Q115', 'T110', 'M125', 'Q116', 'Q100', 'S325'
+        ]
+    where_non_chemical = subst['code'].isin(non_chemical_codes)
+    subst = subst[~where_non_chemical]
+
+    sub_list_all = list(subst['code'])
+    return database[database['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)]
 #endregion
 
 #region: remove_nonpersonal
