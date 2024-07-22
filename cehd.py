@@ -7,6 +7,43 @@ The original R script was translated to Python.
 import pandas as pd
 import numpy as np
 
+#region: clean_cehd_data
+def clean_cehd_data(database):
+    '''
+    '''
+    database = pre_clean(database)
+
+    database = remove_blanks(database)
+
+    return database
+#endregion
+
+#region: remove_blanks
+def remove_blanks(database):
+    '''
+    Remove blanks from the 'BLANK_USED' variable 
+    
+    Other blanks identified later by 'QUALIFIER'.
+    '''
+    database = database.copy()
+    not_blank = database['BLANK_USED'] == 'N'
+    return database.loc[not_blank]
+#endregion
+
+# NOTE: This may not be needed
+#region: initialize_elimination_log
+def initialize_elimination_log(database):
+    '''
+    Initialize a dataframe to function as a log or tracker for the records 
+    eliminated during the data cleaning process.
+
+    This log is named 'reasons' in the R script.
+    '''
+    return pd.DataFrame(
+        index=pd.RangeIndex(min(database['YEAR']), max(database['YEAR'])+1)
+    )
+#endregion
+
 #region: pre_clean
 def pre_clean(database):
     '''
