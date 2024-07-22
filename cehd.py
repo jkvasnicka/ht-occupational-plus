@@ -14,8 +14,19 @@ def clean_cehd_data(database):
     database = pre_clean(database)
 
     database = remove_blanks(database)
-
+    database = remove_nonpersonal(database)
+    
     return database
+#endregion
+
+#region: remove_nonpersonal
+def remove_nonpersonal(database):
+    '''
+    Exclude all samples that are not designated as 'P'.
+    '''
+    database = database.copy()
+    not_blank = database['SAMPLE_TYPE'] != 'P'
+    return database.loc[~not_blank]
 #endregion
 
 #region: remove_blanks
