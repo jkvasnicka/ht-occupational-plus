@@ -35,10 +35,16 @@ def pre_clean(database):
         )
     database['FIELD_NUMBER'] = as_character(database['FIELD_NUMBER'])
 
+    # NOTE: Seems unnecessary to go from one type to another
     database['IMIS_SUBSTANCE_CODE'] = factor(
         database['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
     )
+    database['IMIS_SUBSTANCE_CODE'] = as_character(
+        database['IMIS_SUBSTANCE_CODE']
+        )
+    
     database['INSPECTION_NUMBER'] = factor(database['INSPECTION_NUMBER'])
+    database['INSPECTION_NUMBER'] = as_character(database['INSPECTION_NUMBER'])
 
     database['INSTRUMENT_TYPE'] = as_character(database['INSTRUMENT_TYPE'])
     database['LAB_NUMBER'] = factor(database['LAB_NUMBER'])
@@ -60,6 +66,8 @@ def pre_clean(database):
         database['SAMPLE_WEIGHT'], errors='coerce'
         )
     database['SAMPLING_NUMBER'] = factor(database['SAMPLING_NUMBER'])
+    database['SAMPLING_NUMBER'] = as_character(database['SAMPLING_NUMBER'])
+
     database['SIC_CODE'] = factor(database['SIC_CODE'])
     database['STATE'] = factor(database['STATE'])
     database['SUBSTANCE'] = as_character(database['SUBSTANCE'])
@@ -79,6 +87,17 @@ def pre_clean(database):
 
     database['YEAR'] = factor(database['DATE_SAMPLED'].dt.year)
 
+    database = trim_white_spaces(database)
+
+    return database
+#endregion
+
+#region: trim_white_spaces
+def trim_white_spaces(database):
+    '''
+    '''
+    database['INSPECTION_NUMBER'] = database['INSPECTION_NUMBER'].str.strip()
+    database['SAMPLING_NUMBER'] = database['INSPECTION_NUMBER'].str.strip()
     return database
 #endregion
 
