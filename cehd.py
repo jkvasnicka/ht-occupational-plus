@@ -123,7 +123,8 @@ def pre_clean(database):
 
     database['NAICS_CODE'] = (
         as_character(database['NAICS_CODE'])
-        .apply(lambda x: x if len(x) >= 6 else np.nan)
+        .apply(
+            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan)
     )
 
     database['OFFICE_ID'] = factor(database['OFFICE_ID'])
@@ -180,7 +181,7 @@ def as_character(column):
     
     This may not account for all differences.
     '''
-    return column.astype(str) # .str.replace('"', '""').str.strip()
+    return column.apply(lambda x : str(x) if pd.notna(x) else np.nan)
 #endregion
 
 #region: factor
