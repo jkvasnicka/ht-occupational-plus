@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 #region: clean_cehd_data
-def clean_cehd_data(database):
+def clean_cehd_data(database, path_settings):
     '''
     '''
     database = pre_clean(database)
@@ -16,8 +16,33 @@ def clean_cehd_data(database):
     database = remove_blanks(database)
     database = remove_nonpersonal(database)
     database = exclude_few_samples(database)
-    
+
+    replace_missing_values(database, 'QUALIFIER')
+    qualif_conv_2020 = load_qualifier_conversion(
+        path_settings['qualif_conv_file']
+        )
+
     return database
+#endregion
+
+#region: replace_missing_values
+def replace_missing_values(database, column):
+    '''
+    '''
+    database[column] = database[column].fillna('raw was NA')
+#endregion
+
+#region: load_qualifier_conversion
+def load_qualifier_conversion(qualif_conv_file):
+    '''
+    '''
+    qualif_conv_2020 = pd.read_csv(qualif_conv_file, sep=';')
+    qualif_conv_2020['clean'] = as_character(qualif_conv_2020['clean'])
+    qualif_conv_2020['raw'] = as_character(qualif_conv_2020['raw'])
+    qualif_conv_2020['possible_bulk'] = as_character(
+        qualif_conv_2020['possible_bulk']
+        )
+    return qualif_conv_2020
 #endregion
 
 #region: exclude_few_samples
