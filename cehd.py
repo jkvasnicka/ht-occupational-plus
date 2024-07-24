@@ -22,6 +22,11 @@ def clean_cehd_data(database, path_settings):
         path_settings['qualif_conv_file']
         )
 
+    replace_missing_values(database, 'UNIT_OF_MEASUREMENT')
+    unit_conv_2020 = load_unit_measure_conversion(
+        path_settings['unit_conv_file']
+    )
+
     return database
 #endregion
 
@@ -32,9 +37,21 @@ def replace_missing_values(database, column):
     database[column] = database[column].fillna('raw was NA')
 #endregion
 
+#region: load_unit_measure_conversion
+def load_unit_measure_conversion(unit_conv_file):
+    '''
+    Load conversion table for the 'UNIT_OF_MEASUREMENT' column.
+    '''
+    unit_conv_2020 = pd.read_csv(unit_conv_file, sep=';')
+    unit_conv_2020['clean'] = as_character(unit_conv_2020['clean'])
+    unit_conv_2020['raw'] = as_character(unit_conv_2020['raw'])
+    return unit_conv_2020
+#endregion
+
 #region: load_qualifier_conversion
 def load_qualifier_conversion(qualif_conv_file):
     '''
+    Load conversion table for the 'QUALIFIER' column.
     '''
     qualif_conv_2020 = pd.read_csv(qualif_conv_file, sep=';')
     qualif_conv_2020['clean'] = as_character(qualif_conv_2020['clean'])
