@@ -50,12 +50,12 @@ def remove_conflicting_qualifiers(database, qualif_conv_2020):
     database = database.copy()
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-
-    conflicting_raw_values = qualif_conv_2020.loc[where_conflict, 'raw']
-
-    rows_to_exclude = database['QUALIFIER'].isin(conflicting_raw_values)
-
-    return database[~rows_to_exclude]
+    database = remove_samples_based_on_qualifier(
+        database, 
+        qualif_conv_2020, 
+        where_conflict
+        )
+    return database
 #endregion
 
 #region: remove_uninterpretable_qualifiers
@@ -66,11 +66,12 @@ def remove_uninterpretable_qualifiers(database, qualif_conv_2020):
     database = database.copy()
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    uninterpretable_raw_values = qualif_conv_2020.loc[where_eliminate, 'raw']
-
-    rows_to_exclude = database['QUALIFIER'].isin(uninterpretable_raw_values)
-
-    return database[~rows_to_exclude]
+    database = remove_samples_based_on_qualifier(
+        database, 
+        qualif_conv_2020, 
+        where_eliminate
+        )
+    return database
 #endregion
 
 #region: remove_blk_not_bulk
@@ -84,11 +85,27 @@ def remove_blk_not_bulk(database, qualif_conv_2020):
         (qualif_conv_2020['clean'] == 'BLK') 
         & (qualif_conv_2020['possible_bulk'] == 'N')
     )
-    blk_not_bulk_raw_values = qualif_conv_2020.loc[where_blk_not_bulk, 'raw']
-    rows_to_exclude = database['QUALIFIER'].isin(blk_not_bulk_raw_values)
+    database = remove_samples_based_on_qualifier(
+        database, 
+        qualif_conv_2020, 
+        where_blk_not_bulk
+        )
+    return database
+#endregion
+
+#region: remove_samples_based_on_qualifier
+def remove_samples_based_on_qualifier(database, qualif_conv_2020, condition):
+    '''
+    General function to remove samples based on QUALIFIER conditions.
+    '''
+    database = database.copy()
+
+    raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
+
+    rows_to_exclude = database['QUALIFIER'].isin(raw_values_to_exclude)
 
     return database[~rows_to_exclude]
-#endregion
+#endregion:
 
 #region: clean_unit_of_measurement
 def clean_unit_of_measurement(database, unit_conv_2020):
