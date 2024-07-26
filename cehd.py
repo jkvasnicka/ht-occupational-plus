@@ -27,6 +27,8 @@ def clean_cehd_data(database, path_settings):
         path_settings['unit_conv_file']
     )
 
+    add_censored_column(database)
+
     return database
 #endregion
 
@@ -56,6 +58,10 @@ def add_censored_column(database):
     ]
     where_censored = database['QUALIFIER'].isin(qualifier_censored_values)
     database.loc[where_censored, new_column] = 'Y'
+
+    # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
+    database['QUALIFIER'] = database['QUALIFIER'].replace('raw was NA', '')
+    database['SAMPLE_RESULT_2'] = database['SAMPLE_RESULT'].fillna(0)
 #endregion
 
 #region: replace_missing_values
