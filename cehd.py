@@ -31,6 +31,28 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_invalid_nd_samples(database, qualif_conv_2020)
 
+    database = clean_unit_of_measurement(database, unit_conv_2020)
+
+    return database
+#endregion
+
+#region: clean_unit_of_measurement
+def clean_unit_of_measurement(database, unit_conv_2020):
+    '''
+    Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
+    values.
+    '''
+    database = database.copy()
+
+    # Initialize a cleaned column
+    database['UNIT_OF_MEASUREMENT_2'] = database['UNIT_OF_MEASUREMENT']
+    
+    for clean_value in unit_conv_2020['clean'].unique():
+        where_clean_value = unit_conv_2020['clean'] == clean_value
+        raw_values = list(unit_conv_2020.loc[where_clean_value, 'raw'])
+        where_needs_clean = database['UNIT_OF_MEASUREMENT'].isin(raw_values)
+        database.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = clean_value
+
     return database
 #endregion
 
@@ -42,7 +64,7 @@ def remove_invalid_nd_samples(database, qualif_conv_2020):
     but `SAMPLE_RESULT_2` > 0 (N29).
     '''
     database = database.copy()
-    
+
     where_nd = qualif_conv_2020['clean'] == 'ND'
     nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
     condition_n08 = (
