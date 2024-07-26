@@ -17,17 +17,17 @@ def clean_cehd_data(database, path_settings):
     database = remove_nonpersonal(database)
     database = exclude_few_samples(database)
 
-    replace_missing_values(database, 'QUALIFIER')
+    database = replace_missing_values(database, 'QUALIFIER')
     qualif_conv_2020 = load_qualifier_conversion(
         path_settings['qualif_conv_file']
         )
 
-    replace_missing_values(database, 'UNIT_OF_MEASUREMENT')
+    database = replace_missing_values(database, 'UNIT_OF_MEASUREMENT')
     unit_conv_2020 = load_unit_measure_conversion(
         path_settings['unit_conv_file']
     )
 
-    add_censored_column(database)
+    database = add_censored_column(database)
 
     return database
 #endregion
@@ -38,6 +38,8 @@ def add_censored_column(database):
     Add a column indicating that the sample is censored ONLY based on the 
     'QUALIFIER' column.
     '''
+    database = database.copy()
+
     new_column = 'CENSORED'
     database[new_column] = 'N'  # initialize
     qualifier_censored_values = [
@@ -62,13 +64,17 @@ def add_censored_column(database):
     # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
     database['QUALIFIER'] = database['QUALIFIER'].replace('raw was NA', '')
     database['SAMPLE_RESULT_2'] = database['SAMPLE_RESULT'].fillna(0)
+    
+    return database
 #endregion
 
 #region: replace_missing_values
 def replace_missing_values(database, column):
     '''
     '''
+    database = database.copy()
     database[column] = database[column].fillna('raw was NA')
+    return database
 #endregion
 
 #region: load_unit_measure_conversion
@@ -101,6 +107,8 @@ def exclude_few_samples(database):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
+    database = database.copy()
+
     ## Exclude substances with few samples
     subst = database['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
     subst.columns = ['code', 'n']
