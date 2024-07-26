@@ -33,7 +33,26 @@ def clean_cehd_data(database, path_settings):
 
     database = clean_unit_of_measurement(database, unit_conv_2020)
 
+    database = remove_blk_not_bulk(database, qualif_conv_2020)
+
     return database
+#endregion
+
+#region: remove_blk_not_bulk
+def remove_blk_not_bulk(database, qualif_conv_2020):
+    '''
+    Remove samples where QUALIFIER is 'BLK' and not possible bulk.
+    '''
+    database = database.copy()
+
+    where_blk_not_bulk  = (
+        (qualif_conv_2020['clean'] == 'BLK') 
+        & (qualif_conv_2020['possible_bulk'] == 'N')
+    )
+    blk_not_bulk_raw_values = qualif_conv_2020.loc[where_blk_not_bulk, 'raw']
+    rows_to_exclude = database['QUALIFIER'].isin(blk_not_bulk_raw_values)
+
+    return database[~rows_to_exclude]
 #endregion
 
 #region: clean_unit_of_measurement
