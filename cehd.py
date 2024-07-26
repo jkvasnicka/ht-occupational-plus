@@ -30,6 +30,34 @@ def clean_cehd_data(database, path_settings):
     return database
 #endregion
 
+#region: add_censored_column
+def add_censored_column(database):
+    '''
+    Add a column indicating that the sample is censored ONLY based on the 
+    'QUALIFIER' column.
+    '''
+    new_column = 'CENSORED'
+    database[new_column] = 'N'  # initialize
+    qualifier_censored_values = [
+        '-<', 
+        '  <', 
+        ' =<', 
+        '@<', 
+        '@<=', 
+        '@=<', 
+        '<', 
+        '< =', 
+        '<@', 
+        '<=', 
+        '<= 0', 
+        '= <', 
+        '=<', 
+        '=<@'
+    ]
+    where_censored = database['QUALIFIER'].isin(qualifier_censored_values)
+    database.loc[where_censored, new_column] = 'Y'
+#endregion
+
 #region: replace_missing_values
 def replace_missing_values(database, column):
     '''
