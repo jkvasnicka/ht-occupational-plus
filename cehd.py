@@ -35,7 +35,24 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_blk_not_bulk(database, qualif_conv_2020)
 
+    database = remove_uninterpretable_qualifiers(database, qualif_conv_2020)
+
     return database
+#endregion
+
+#region: remove_uninterpretable_qualifiers
+def remove_uninterpretable_qualifiers(database, qualif_conv_2020):
+    '''
+    Remove samples with qualifiers deemed uninterpretable.
+    '''
+    database = database.copy()
+
+    where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
+    uninterpretable_raw_values = qualif_conv_2020.loc[where_eliminate, 'raw']
+
+    rows_to_exclude = database['QUALIFIER'].isin(uninterpretable_raw_values)
+
+    return database[~rows_to_exclude]
 #endregion
 
 #region: remove_blk_not_bulk
