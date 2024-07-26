@@ -29,6 +29,37 @@ def clean_cehd_data(database, path_settings):
 
     database = add_censored_column(database)
 
+    database = remove_invalid_nd_samples(database, qualif_conv_2020)
+
+    return database
+#endregion
+
+#region: remove_invalid_nd_samples
+def remove_invalid_nd_samples(database, qualif_conv_2020):
+    '''
+    Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
+    and not censored (N08), and where `QUALIFIER` suggests ND or is censored
+    but `SAMPLE_RESULT_2` > 0 (N29).
+    '''
+    database = database.copy()
+    
+    where_nd = qualif_conv_2020['clean'] == 'ND'
+    nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
+    condition_n08 = (
+        (database['SAMPLE_RESULT_2'] > 0) 
+        & (database['CENSORED'] != 'Y') 
+        & (database['QUALIFIER'].isin(nd_qualifiers))
+    )
+    database = database[~condition_n08]  # N08
+
+    condition_n29 = (
+        (database['SAMPLE_RESULT_2'] > 0) 
+        & ((database['CENSORED'] == 'Y') 
+           | (database['QUALIFIER'].isin(nd_qualifiers)))
+    )
+    
+    database = database[~condition_n29]  # N29
+
     return database
 #endregion
 
@@ -64,7 +95,7 @@ def add_censored_column(database):
     # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
     database['QUALIFIER'] = database['QUALIFIER'].replace('raw was NA', '')
     database['SAMPLE_RESULT_2'] = database['SAMPLE_RESULT'].fillna(0)
-    
+
     return database
 #endregion
 
