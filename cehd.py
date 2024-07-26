@@ -37,7 +37,25 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_uninterpretable_qualifiers(database, qualif_conv_2020)
 
+    database = remove_conflicting_qualifiers(database, qualif_conv_2020)
+
     return database
+#endregion
+
+#region: remove_conflicting_qualifiers
+def remove_conflicting_qualifiers(database, qualif_conv_2020):
+    '''
+    Remove samples with qualifiers conflicting with sample type.
+    '''
+    database = database.copy()
+
+    where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
+
+    conflicting_raw_values = qualif_conv_2020.loc[where_conflict, 'raw']
+
+    rows_to_exclude = database['QUALIFIER'].isin(conflicting_raw_values)
+
+    return database[~rows_to_exclude]
 #endregion
 
 #region: remove_uninterpretable_qualifiers
