@@ -47,7 +47,31 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_yttrium_substance_conflict(database)
 
+    database = remove_approximate_measures(database)
+
     return database
+#endregion
+
+#region: remove_approximate_measures
+def remove_approximate_measures(database):
+    '''
+    Remove samples where the QUALIFIER indicates an approximate measure.
+    '''
+    database = database.copy()
+    
+    approximate_qualifiers = [
+        '@', 
+        ' @', 
+        '@<', 
+        '@=<', 
+        '@<=', 
+        '<@', 
+        '=<@', 
+        'EST'
+        ]
+    rows_to_exclude = database['QUALIFIER'].isin(approximate_qualifiers)
+    
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_yttrium_substance_conflict
