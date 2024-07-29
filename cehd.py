@@ -51,7 +51,26 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_qualifier_unit_mismatch(database)
 
+    database = remove_invalid_unit_f_samples(database)
+
     return database
+#endregion
+
+#region: remove_invalid_unit_f_samples
+def remove_invalid_unit_f_samples(database):
+    '''
+    Remove records with specific substance codes that should not have "F" as
+    the unit of measurement.
+    '''
+    # These codes should not have "F" as the unit of measurement
+    invalid_substance_codes = ['1073', '2270', '2470', '9135']
+    
+    where_invalid_units = (
+        (database['UNIT_OF_MEASUREMENT_2'] == 'F') &
+        (database['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
+    )
+    
+    return database.loc[~where_invalid_units]
 #endregion
 
 #region: remove_qualifier_unit_mismatch
