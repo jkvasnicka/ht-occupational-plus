@@ -43,13 +43,31 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_combustion_related_samples(database)
 
-    database = remove_fibers_not_relevant(database)
+    database = remove_fibers_substance_conflict(database)
+
+    database = remove_yttrium_substance_conflict(database)
 
     return database
 #endregion
 
-#region: remove_fibers_not_relevant
-def remove_fibers_not_relevant(database):
+#region: remove_yttrium_substance_conflict
+def remove_yttrium_substance_conflict(database):
+    '''
+    Remove samples where the qualifier 'Y' is used but the substance code is
+    not 9135.
+    '''
+    database = database.copy()
+
+    rows_to_exclude = (
+        (database['QUALIFIER'] == 'Y') 
+        & (database['IMIS_SUBSTANCE_CODE'] != '9135')
+    )
+
+    return database.loc[~rows_to_exclude]
+#endregion
+
+#region: remove_fibers_substance_conflict
+def remove_fibers_substance_conflict(database):
     '''
     Remove samples where the qualifier suggests fibers (F) but the substance
     code is not 9020.
