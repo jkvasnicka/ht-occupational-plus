@@ -49,7 +49,27 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_approximate_measures(database)
 
+    database = remove_qualifier_unit_mismatch(database)
+
     return database
+#endregion
+
+#region: remove_qualifier_unit_mismatch
+def remove_qualifier_unit_mismatch(database):
+    '''
+    Remove records with inconsistent qualifier and unit of measurement.
+    '''
+    database = database.copy()
+
+    condition_inconsistent_units = (
+        (database['UNIT_OF_MEASUREMENT_2'] != '%') 
+        & (database['QUALIFIER'] == '%')
+    ) | (
+        (database['UNIT_OF_MEASUREMENT_2'] != 'M') 
+        & (database['QUALIFIER'] == 'M')
+    )
+
+    return database.loc[~condition_inconsistent_units]
 #endregion
 
 #region: remove_approximate_measures
