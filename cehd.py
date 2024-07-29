@@ -41,7 +41,22 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_blk_possible_bulk_not_blank(database, qualif_conv_2020)
 
+    database = remove_combustion_related_samples(database)
+
     return database
+#endregion
+
+#region: remove_combustion_related_samples
+def remove_combustion_related_samples(database):
+    '''
+    Remove samples with qualifiers related to combustion.
+    '''
+    database = database.copy()
+
+    combustion_qualifiers = ['COMB', 'COMD', 'com', 'comb']
+    rows_to_exclude = database['QUALIFIER'].isin(combustion_qualifiers)
+
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_blk_possible_bulk_not_blank
