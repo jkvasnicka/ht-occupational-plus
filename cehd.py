@@ -53,13 +53,29 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_invalid_unit_f_samples(database)
 
+    database = remove_empty_unit_non_null_result(database)
+
     return database
+#endregion
+
+#region: remove_empty_unit_non_null_result
+def remove_empty_unit_non_null_result(database):
+    '''
+    Remove samples where the unit of measurement is empty and the sample 
+    result is not null.
+    '''
+    rows_to_exclude = (
+        (database['UNIT_OF_MEASUREMENT_2'] == '') &
+        (database['SAMPLE_RESULT_2'] > 0)
+    )
+    
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_invalid_unit_f_samples
 def remove_invalid_unit_f_samples(database):
     '''
-    Remove records with specific substance codes that should not have "F" as
+    Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
     '''
     # These codes should not have "F" as the unit of measurement
@@ -76,7 +92,7 @@ def remove_invalid_unit_f_samples(database):
 #region: remove_qualifier_unit_mismatch
 def remove_qualifier_unit_mismatch(database):
     '''
-    Remove records with inconsistent qualifier and unit of measurement.
+    Remove samples with inconsistent qualifier and unit of measurement.
     '''
     database = database.copy()
 
@@ -427,7 +443,7 @@ def remove_blanks(database):
 #region: initialize_elimination_log
 def initialize_elimination_log(database):
     '''
-    Initialize a dataframe to function as a log or tracker for the records 
+    Initialize a dataframe to function as a log or tracker for the samples 
     eliminated during the data cleaning process.
 
     This log is named 'reasons' in the R script.
