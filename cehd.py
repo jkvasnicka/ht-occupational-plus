@@ -57,6 +57,21 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_percent_greater_than_100(database)
 
+    database = create_detection_indicator(database)
+
+    return database
+#endregion
+
+#region: create_detection_indicator
+def create_detection_indicator(database):
+    '''
+    Create a new column 'QUALIFIER_2' to indicate detection status.
+    '''
+    database = database.copy()
+
+    database['QUALIFIER_2'] = 'detected'  # initialize
+    database.loc[database['SAMPLE_RESULT_2'] == 0, 'QUALIFIER_2'] = 'ND'
+
     return database
 #endregion
 
