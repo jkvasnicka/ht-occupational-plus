@@ -55,7 +55,23 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_empty_unit_non_null_result(database)
 
+    database = remove_percent_greater_than_100(database)
+
     return database
+#endregion
+
+#region: remove_percent_greater_than_100
+def remove_percent_greater_than_100(database):
+    '''
+    Remove records where the unit of measurement is '%' and the sample result
+    is greater than 100.
+    '''
+    rows_to_exclude = (
+        (database['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (database['SAMPLE_RESULT_2'] > 100.)
+    )
+    
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_empty_unit_non_null_result
