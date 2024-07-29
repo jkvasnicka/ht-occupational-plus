@@ -59,7 +59,39 @@ def clean_cehd_data(database, path_settings):
 
     database = create_detection_indicator(database)
 
+    database = remove_invalid_units_for_top_substances(database)
+    
     return database
+#endregion
+
+# TODO: Remove hardcoding?
+#region: remove_invalid_units_for_top_substances
+def remove_invalid_units_for_top_substances(database):
+    '''
+    Remove samples where the unit of measurement is invalid for the top 
+    substances.
+
+    This cleaning step ensures that only records with valid units are kept for
+    the top 29 substances with the most records, as per the 2011 cleanup list
+    (with 9010 replaced by S103 in the 2020 cleanup).
+    '''
+    database = database.copy()
+
+    top_substances = [
+        '0040', '0230', '0260', '0360', '0430', '0491', '0685', 
+        '0720', '0731', '1073', '1290', '1520', '1560', '1591', 
+        '1620', '1730', '1790', '1840', '2270', '2280', '2460', 
+        '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
+        ]
+
+    valid_units = ['', 'F', 'P', 'M']
+    
+    rows_to_exclude = (
+        database['IMIS_SUBSTANCE_CODE'].isin(top_substances) & 
+        ~database['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+    )
+    
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: create_detection_indicator
