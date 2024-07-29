@@ -39,7 +39,33 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_conflicting_qualifiers(database, qualif_conv_2020)
 
+    database = remove_blk_possible_bulk_not_blank(database, qualif_conv_2020)
+
     return database
+#endregion
+
+#region: remove_blk_possible_bulk_not_blank
+def remove_blk_possible_bulk_not_blank(database, qualif_conv_2020):
+    '''
+    Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
+    is 'N'.
+    '''
+    database = database.copy()
+
+    condition_blk_possible_bulk = (
+        (qualif_conv_2020['clean'] == 'BLK')
+        & (qualif_conv_2020['possible_bulk'] == 'Y')
+    )
+    rows_to_exclude = rows_to_exclude_based_on_qualifier(
+        database, 
+        qualif_conv_2020, 
+        condition_blk_possible_bulk
+        )
+
+    # Further filter rows where BLANK_USED is 'N'
+    rows_to_exclude = rows_to_exclude & (database['BLANK_USED'] == 'N')
+
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_conflicting_qualifiers
@@ -100,12 +126,24 @@ def remove_samples_based_on_qualifier(database, qualif_conv_2020, condition):
     '''
     database = database.copy()
 
-    raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
-
-    rows_to_exclude = database['QUALIFIER'].isin(raw_values_to_exclude)
-
-    return database[~rows_to_exclude]
+    rows_to_exclude = rows_to_exclude_based_on_qualifier(
+        database, 
+        qualif_conv_2020, 
+        condition
+        )
+    return database.loc[~rows_to_exclude]
 #endregion:
+
+#region: rows_to_exclude_based_on_qualifier
+def rows_to_exclude_based_on_qualifier(database, qualif_conv_2020, condition):
+    '''
+    General function to remove samples based on QUALIFIER conditions.
+    '''
+    database = database.copy()
+    
+    raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
+    return database['QUALIFIER'].isin(raw_values_to_exclude)
+#endregion
 
 #region: clean_unit_of_measurement
 def clean_unit_of_measurement(database, unit_conv_2020):
