@@ -59,38 +59,72 @@ def clean_cehd_data(database, path_settings):
 
     database = create_detection_indicator(database)
 
-    database = remove_invalid_units_for_top_substances(database)
+    database = remove_invalid_units_for_all_substances(database)
     
     return database
 #endregion
 
 # TODO: Remove hardcoding?
-#region: remove_invalid_units_for_top_substances
-def remove_invalid_units_for_top_substances(database):
+#region: remove_invalid_units_for_all_substances
+def remove_invalid_units_for_all_substances(database):
     '''
-    Remove samples where the unit of measurement is invalid for the top 
-    substances.
-
-    This cleaning step ensures that only records with valid units are kept for
-    the top 29 substances with the most records, as per the 2011 cleanup list
-    (with 9010 replaced by S103 in the 2020 cleanup).
+    For each list of substance codes, remove samples where the unit of
+    measurement is invalid.
     '''
-    database = database.copy()
-
     top_substances = [
         '0040', '0230', '0260', '0360', '0430', '0491', '0685', 
         '0720', '0731', '1073', '1290', '1520', '1560', '1591', 
         '1620', '1730', '1790', '1840', '2270', '2280', '2460', 
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
-        ]
+    ]
+    valid_units_n31 = ['', 'F', 'P', 'M']
+    database = remove_invalid_units_for_substances(
+        database, 
+        top_substances, 
+        valid_units_n31
+        )
 
-    valid_units = ['', 'F', 'P', 'M']
-    
-    rows_to_exclude = (
-        database['IMIS_SUBSTANCE_CODE'].isin(top_substances) & 
-        ~database['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+    valid_units_n32 = ['', '%', 'M']
+    database = remove_invalid_units_for_substances(
+        database, 
+        ['9010'], 
+        valid_units_n32
+        )
+
+    where_other_substances = (
+        ~database['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
+        )
+    other_substances = list(
+        database.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
+        )
+    valid_units_n33 = ['', '%', 'M', 'P', 'F']
+    database = remove_invalid_units_for_substances(
+        database, 
+        other_substances, 
+        valid_units_n33
+        )
+
+    return database
+#endregion
+
+#region: remove_invalid_units_for_substances
+def remove_invalid_units_for_substances(
+        database, 
+        substance_codes, 
+        valid_units
+        ):
+    '''
+    Remove samples where the unit of measurement is invalid for given
+    substances.
+    '''
+    database = database.copy()
+
+    where_in_substance_codes = (
+        database['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
     )
-    
+    where_invalid_units = ~database['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+
+    rows_to_exclude = where_in_substance_codes & where_invalid_units
     return database.loc[~rows_to_exclude]
 #endregion
 
