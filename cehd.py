@@ -74,8 +74,31 @@ def clean_cehd_data(database, path_settings):
     database = remove_samples_with_null_time_sampled(database)
 
     database = remove_negative_sample_results(database)
+
+    # database = remove_missing_sample_number(database)
     
     return database
+#endregion
+
+#region: remove_missing_sample_number
+def remove_missing_sample_number(database):
+    '''
+    Remove samples that have a missing or null sampling number.
+    '''
+    database = database.copy()
+
+    # NOTE: This deviates from the R script but may be needed to handle mixed 
+    # dtypes like strings. 
+    database['SAMPLING_NUMBER'] = pd.to_numeric(
+        database['SAMPLING_NUMBER'], 
+        errors='coerce'
+        )
+    rows_to_exclude = (
+        database['SAMPLING_NUMBER'].isna() 
+        | (database['SAMPLING_NUMBER'] == 0.)
+    )
+
+    return database[~rows_to_exclude]
 #endregion
 
 #region: remove_negative_sample_results
@@ -662,6 +685,7 @@ def initialize_elimination_log(database):
     )
 #endregion
 
+# TODO: Double check whether these are all relevant
 #region: pre_clean
 def pre_clean(database):
     '''
