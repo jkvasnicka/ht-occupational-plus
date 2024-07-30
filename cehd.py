@@ -68,8 +68,20 @@ def clean_cehd_data(database, path_settings):
     database = convert_percent_to_mass_concentration(database)
 
     database = remove_samples_with_missing_office_id(database)
+
+    database = remove_samples_with_missing_time_sampled(database)
     
     return database
+#endregion
+
+#region: remove_samples_with_missing_time_sampled
+def remove_samples_with_missing_time_sampled(database):
+    '''
+    Remove samples that have a missing value for the time sampled variable.
+    '''
+    database = database.copy()
+    rows_to_exclude = database['TIME_SAMPLED'].isna()
+    return database[~rows_to_exclude]
 #endregion
 
 #region: remove_samples_with_missing_office_id
