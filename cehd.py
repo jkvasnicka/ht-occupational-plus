@@ -66,8 +66,20 @@ def clean_cehd_data(database, path_settings):
     database = remove_invalid_units_for_all_substances(database)
 
     database = convert_percent_to_mass_concentration(database)
+
+    database = remove_samples_with_missing_office_id(database)
     
     return database
+#endregion
+
+#region: remove_samples_with_missing_office_id
+def remove_samples_with_missing_office_id(database):
+    '''
+    Remove samples that have a missing value for the office ID.
+    '''
+    database = database.copy()
+    rows_to_exclude = database['OFFICE_ID'].isna()
+    return database[~rows_to_exclude]
 #endregion
 
 #region: convert_percent_to_mass_concentration
@@ -208,7 +220,7 @@ def create_detection_indicator(database):
 #region: remove_percent_greater_than_100
 def remove_percent_greater_than_100(database):
     '''
-    Remove records where the unit of measurement is '%' and the sample result
+    Remove samples where the unit of measurement is '%' and the sample result
     is greater than 100.
     '''
     rows_to_exclude = (
