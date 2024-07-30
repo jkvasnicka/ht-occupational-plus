@@ -72,8 +72,20 @@ def clean_cehd_data(database, path_settings):
     database = remove_samples_with_missing_time_sampled(database)
 
     database = remove_samples_with_null_time_sampled(database)
+
+    database = remove_negative_sample_results(database)
     
     return database
+#endregion
+
+#region: remove_negative_sample_results
+def remove_negative_sample_results(database):
+    '''
+    Remove samples with a sample result less than zero.
+    '''
+    database = database.copy()
+    rows_to_exclude = database['SAMPLE_RESULT_3'] < 0.
+    return database[~rows_to_exclude]
 #endregion
 
 #region: remove_samples_with_null_time_sampled
