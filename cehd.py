@@ -7,6 +7,10 @@ The original R script was translated to Python.
 import pandas as pd
 import numpy as np
 
+# Constants
+MILLIGRAMS_PER_GRAM = 1000
+LITERS_PER_CUBIC_METER = 1000
+
 #region: clean_cehd_data
 def clean_cehd_data(database, path_settings):
     '''
@@ -60,8 +64,68 @@ def clean_cehd_data(database, path_settings):
     database = create_detection_indicator(database)
 
     database = remove_invalid_units_for_all_substances(database)
+
+    database = convert_percent_to_mass_concentration(database)
     
     return database
+#endregion
+
+#region: convert_percent_to_mass_concentration
+def convert_percent_to_mass_concentration(database):
+    '''
+    Convert sample results from percentage concentration to mass concentration 
+    (mg/m³).
+    '''
+    database = database.copy()
+
+    database = remove_samples_with_null_weight(database)
+
+    where_to_convert = (
+        (database['SAMPLE_WEIGHT_2'] != 0) 
+        & (database['UNIT_OF_MEASUREMENT_2'] == '%') 
+        & (database['SAMPLE_RESULT_2'] > 0) 
+        & database['SAMPLE_WEIGHT_2'].notna() 
+        & database['AIR_VOLUME_SAMPLED'].notna() 
+        & (database['AIR_VOLUME_SAMPLED'] > 0)
+    )
+
+    sample_result = database.loc[where_to_convert, 'SAMPLE_RESULT_2']
+    sample_weight = database.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
+    air_volume_sampled = database.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
+
+    conversion_factor = MILLIGRAMS_PER_GRAM * LITERS_PER_CUBIC_METER
+    converted_result = (
+        (sample_result * sample_weight * conversion_factor) 
+        / air_volume_sampled
+    )
+
+    # Assign the converted results back to the dataframe
+    database['SAMPLE_RESULT_3'] = database['SAMPLE_RESULT_2']
+    database.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
+
+    database.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = 'M.from.Perc'
+
+    return database
+#endregion
+
+#region: remove_samples_with_null_weight
+def remove_samples_with_null_weight(database):
+    '''
+    Remove samples where unit of measurement is percentage ('%'), the sample 
+    result is non-null, but the sample weight is null.
+    '''
+    database = database.copy()
+
+    # TODO: Is this step necessary?
+    database['SAMPLE_WEIGHT_2'] = database['SAMPLE_WEIGHT'].fillna(0)
+
+    rows_to_exclude = (
+        (database['SAMPLE_WEIGHT_2'] == 0) &
+        (database['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (database['SAMPLE_RESULT_2'] > 0)
+    )
+
+    return database.loc[~rows_to_exclude]
 #endregion
 
 # TODO: Remove hardcoding?
