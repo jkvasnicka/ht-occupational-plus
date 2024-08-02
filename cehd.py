@@ -7,10 +7,6 @@ The original R script was translated to Python.
 import pandas as pd
 import numpy as np
 
-# Constants
-MILLIGRAMS_PER_GRAM = 1000
-LITERS_PER_CUBIC_METER = 1000
-
 #region: clean_cehd_data
 def clean_cehd_data(database, path_settings):
     '''
@@ -141,6 +137,7 @@ def remove_samples_with_missing_office_id(database):
     return database[~rows_to_exclude]
 #endregion
 
+# FIXME: Double check conversion factor. Unclear.
 #region: convert_percent_to_mass_concentration
 def convert_percent_to_mass_concentration(database):
     '''
@@ -164,7 +161,8 @@ def convert_percent_to_mass_concentration(database):
     sample_weight = database.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
     air_volume_sampled = database.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
 
-    conversion_factor = MILLIGRAMS_PER_GRAM * LITERS_PER_CUBIC_METER
+    conversion_factor = 10.
+
     converted_result = (
         (sample_result * sample_weight * conversion_factor) 
         / air_volume_sampled
