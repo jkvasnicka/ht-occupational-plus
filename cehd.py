@@ -823,12 +823,26 @@ def compare_columns(df1, df2):
     '''
     Helper function to check for discrepancies between dataframes.
     '''
-    diff_columns = []
-    for column in df1.columns:
-        if column in df2.columns:
-            if not df1[column].equals(df2[column]):
-                diff_columns.append(column)
-        else:
-            print(f"Column {column} is not present in both dataframes.")
-    return diff_columns
+    discrepancies = {}
+
+    if any(df1.columns != df2.columns):
+        raise ValueError('The columns are not identical')
+    if any(df1.index != df2.index):
+        raise ValueError('The indexes are not identical')
+    
+    for col in df1.columns.intersection(df2.columns):
+
+        # Convert to str to avoid issues related to dtypes
+        col1, col2 = df1[col].astype('str'), df2[col].astype('str')
+
+        where_both_not_nan = ~(col1.isna() & col2.isna())
+        where_discrepancy = (col1 != col2) & where_both_not_nan
+        
+        if any(where_discrepancy):
+            discrepancies[col] = (
+                col1.loc[where_discrepancy], 
+                col2.loc[where_discrepancy]
+                )
+
+    return discrepancies
 #endregion
