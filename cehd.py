@@ -35,9 +35,9 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_blk_not_bulk(database, qualif_conv_2020)
 
-    database = remove_uninterpretable_qualifiers(database, qualif_conv_2020)
+    database = remove_uninterpretable_qualifier(database, qualif_conv_2020)
 
-    database = remove_conflicting_qualifiers(database, qualif_conv_2020)
+    database = remove_conflicting_qualifier(database, qualif_conv_2020)
 
     database = remove_blk_possible_bulk_not_blank(database, qualif_conv_2020)
 
@@ -47,7 +47,7 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_yttrium_substance_conflict(database)
 
-    database = remove_approximate_measures(database)
+    database = remove_approximate_measure(database)
 
     database = remove_qualifier_unit_mismatch(database)
 
@@ -59,7 +59,7 @@ def clean_cehd_data(database, path_settings):
 
     database = create_detection_indicator(database)
 
-    database = remove_invalid_units_for_all_substances(database)
+    database = remove_invalid_unit_for_all_substances(database)
 
     database = convert_percent_to_mass_concentration(database)
 
@@ -69,7 +69,7 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_null_time_sampled(database)
 
-    database = remove_negative_sample_results(database)
+    database = remove_negative_sample_result(database)
 
     database = remove_missing_sample_number(database)
 
@@ -118,8 +118,8 @@ def remove_missing_sample_number(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_negative_sample_results
-def remove_negative_sample_results(database):
+#region: remove_negative_sample_result
+def remove_negative_sample_result(database):
     '''
     Remove samples with a sample result less than zero.
     '''
@@ -219,8 +219,8 @@ def remove_null_weight(database):
 #endregion
 
 # TODO: Remove hardcoding?
-#region: remove_invalid_units_for_all_substances
-def remove_invalid_units_for_all_substances(database):
+#region: remove_invalid_unit_for_all_substances
+def remove_invalid_unit_for_all_substances(database):
     '''
     For each list of substance codes, remove samples where the unit of
     measurement is invalid.
@@ -232,14 +232,14 @@ def remove_invalid_units_for_all_substances(database):
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
     ]
     valid_units_n31 = ['', 'F', 'P', 'M']
-    database = remove_invalid_units_for_substances(
+    database = remove_invalid_unit_for_substances(
         database, 
         top_substances, 
         valid_units_n31
         )
 
     valid_units_n32 = ['', '%', 'M']
-    database = remove_invalid_units_for_substances(
+    database = remove_invalid_unit_for_substances(
         database, 
         ['9010'], 
         valid_units_n32
@@ -252,7 +252,7 @@ def remove_invalid_units_for_all_substances(database):
         database.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
         )
     valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    database = remove_invalid_units_for_substances(
+    database = remove_invalid_unit_for_substances(
         database, 
         other_substances, 
         valid_units_n33
@@ -261,8 +261,8 @@ def remove_invalid_units_for_all_substances(database):
     return database
 #endregion
 
-#region: remove_invalid_units_for_substances
-def remove_invalid_units_for_substances(
+#region: remove_invalid_unit_for_substances
+def remove_invalid_unit_for_substances(
         database, 
         substance_codes, 
         valid_units
@@ -358,8 +358,8 @@ def remove_qualifier_unit_mismatch(database):
     return database.loc[~condition_inconsistent_units]
 #endregion
 
-#region: remove_approximate_measures
-def remove_approximate_measures(database):
+#region: remove_approximate_measure
+def remove_approximate_measure(database):
     '''
     Remove samples where the QUALIFIER indicates an approximate measure.
     '''
@@ -447,8 +447,8 @@ def remove_blk_possible_bulk_not_blank(database, qualif_conv_2020):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_conflicting_qualifiers
-def remove_conflicting_qualifiers(database, qualif_conv_2020):
+#region: remove_conflicting_qualifier
+def remove_conflicting_qualifier(database, qualif_conv_2020):
     '''
     Remove samples with qualifiers conflicting with sample type.
     '''
@@ -463,8 +463,8 @@ def remove_conflicting_qualifiers(database, qualif_conv_2020):
     return database
 #endregion
 
-#region: remove_uninterpretable_qualifiers
-def remove_uninterpretable_qualifiers(database, qualif_conv_2020):
+#region: remove_uninterpretable_qualifier
+def remove_uninterpretable_qualifier(database, qualif_conv_2020):
     '''
     Remove samples with qualifiers deemed uninterpretable.
     '''
