@@ -74,8 +74,20 @@ def clean_cehd_data(database, path_settings):
     database = remove_missing_sample_number(database)
 
     database = remove_missing_volume(database)
+
+    database = remove_zero_volume_sampled(database)
     
     return database
+#endregion
+
+#region: remove_zero_volume_sampled
+def remove_zero_volume_sampled(database):
+    '''
+    Remove samples that have an air volume sampled of zero.
+    '''
+    database = database.copy()
+    rows_to_exclude = database['AIR_VOLUME_SAMPLED'] == 0.
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_volume
