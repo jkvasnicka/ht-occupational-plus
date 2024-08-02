@@ -767,17 +767,9 @@ def pre_clean(database):
 
     database['YEAR'] = factor(database['DATE_SAMPLED'].dt.year)
 
-    database = trim_white_spaces(database)
-
-    return database
-#endregion
-
-#region: trim_white_spaces
-def trim_white_spaces(database):
-    '''
-    '''
     database['INSPECTION_NUMBER'] = database['INSPECTION_NUMBER'].str.strip()
-    database['SAMPLING_NUMBER'] = database['INSPECTION_NUMBER'].str.strip()
+    database['SAMPLING_NUMBER'] = database['SAMPLING_NUMBER'].str.strip()
+
     return database
 #endregion
 
@@ -837,7 +829,7 @@ def compare_columns(df1, df2):
 
         where_both_not_nan = ~(col1.isna() & col2.isna())
         where_discrepancy = (col1 != col2) & where_both_not_nan
-        
+
         if any(where_discrepancy):
             discrepancies[col] = (
                 col1.loc[where_discrepancy], 
