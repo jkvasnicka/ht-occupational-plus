@@ -63,6 +63,7 @@ def clean_cehd_data(database, path_settings):
 
     database = convert_percent_to_mass_concentration(database)
 
+    # TODO: Use consistent naming convention
     database = remove_samples_with_missing_office_id(database)
 
     database = remove_samples_with_missing_time_sampled(database)
@@ -71,27 +72,28 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_negative_sample_results(database)
 
-    # database = remove_missing_sample_number(database)
+    database = remove_missing_sample_number(database)
     
     return database
 #endregion
 
+# NOTE: Inconsistency
 #region: remove_missing_sample_number
 def remove_missing_sample_number(database):
     '''
     Remove samples that have a missing or null sampling number.
+    
+    Note:
+    - In the original R script, '0' and '0.0' were treated as distinct values 
+      because they were stored as strings. However, in Python, when converting 
+      to numeric , both '0' and '0.0' are treated as numeric zero (0.0) and 
+      thus identified as null values by this function.
     '''
     database = database.copy()
-
-    # NOTE: This deviates from the R script but may be needed to handle mixed 
-    # dtypes like strings. 
-    database['SAMPLING_NUMBER'] = pd.to_numeric(
-        database['SAMPLING_NUMBER'], 
-        errors='coerce'
-        )
+    
     rows_to_exclude = (
         database['SAMPLING_NUMBER'].isna() 
-        | (database['SAMPLING_NUMBER'] == 0.)
+        | (pd.to_numeric(database['SAMPLING_NUMBER'], errors='coerce') == 0.)
     )
 
     return database[~rows_to_exclude]
