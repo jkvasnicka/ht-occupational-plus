@@ -15,7 +15,7 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_blanks(database)
     database = remove_nonpersonal(database)
-    database = exclude_few_samples(database)
+    database = exclude_few(database)
 
     database = replace_missing_values(database, 'QUALIFIER')
     qualif_conv_2020 = load_qualifier_conversion(
@@ -29,7 +29,7 @@ def clean_cehd_data(database, path_settings):
 
     database = add_censored_column(database)
 
-    database = remove_invalid_nd_samples(database, qualif_conv_2020)
+    database = remove_invalid_nd(database, qualif_conv_2020)
 
     database = clean_unit_of_measurement(database, unit_conv_2020)
 
@@ -41,7 +41,7 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_blk_possible_bulk_not_blank(database, qualif_conv_2020)
 
-    database = remove_combustion_related_samples(database)
+    database = remove_combustion_related(database)
 
     database = remove_fibers_substance_conflict(database)
 
@@ -51,7 +51,7 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_qualifier_unit_mismatch(database)
 
-    database = remove_invalid_unit_f_samples(database)
+    database = remove_invalid_unit_f(database)
 
     database = remove_empty_unit_non_null_result(database)
 
@@ -63,24 +63,23 @@ def clean_cehd_data(database, path_settings):
 
     database = convert_percent_to_mass_concentration(database)
 
-    # TODO: Use consistent naming convention
-    database = remove_samples_with_missing_office_id(database)
+    database = remove_missing_office_id(database)
 
-    database = remove_samples_with_missing_time_sampled(database)
+    database = remove_missing_time_sampled(database)
 
-    database = remove_samples_with_null_time_sampled(database)
+    database = remove_null_time_sampled(database)
 
     database = remove_negative_sample_results(database)
 
     database = remove_missing_sample_number(database)
 
-    database = remove_samples_with_missing_volume(database)
+    database = remove_missing_volume(database)
     
     return database
 #endregion
 
-#region: remove_samples_with_missing_volume
-def remove_samples_with_missing_volume(database):
+#region: remove_missing_volume
+def remove_missing_volume(database):
     '''
     Remove samples that have a missing or empty volume sampled variable.
 
@@ -129,8 +128,8 @@ def remove_negative_sample_results(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_samples_with_null_time_sampled
-def remove_samples_with_null_time_sampled(database):
+#region: remove_null_time_sampled
+def remove_null_time_sampled(database):
     '''
     Remove samples that have a null time sampled variable.
     '''
@@ -139,8 +138,8 @@ def remove_samples_with_null_time_sampled(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_samples_with_missing_time_sampled
-def remove_samples_with_missing_time_sampled(database):
+#region: remove_missing_time_sampled
+def remove_missing_time_sampled(database):
     '''
     Remove samples that have a missing value for the time sampled variable.
     '''
@@ -149,8 +148,8 @@ def remove_samples_with_missing_time_sampled(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_samples_with_missing_office_id
-def remove_samples_with_missing_office_id(database):
+#region: remove_missing_office_id
+def remove_missing_office_id(database):
     '''
     Remove samples that have a missing value for the office ID.
     '''
@@ -168,7 +167,7 @@ def convert_percent_to_mass_concentration(database):
     '''
     database = database.copy()
 
-    database = remove_samples_with_null_weight(database)
+    database = remove_null_weight(database)
 
     where_to_convert = (
         (database['SAMPLE_WEIGHT_2'] != 0) 
@@ -199,8 +198,8 @@ def convert_percent_to_mass_concentration(database):
     return database
 #endregion
 
-#region: remove_samples_with_null_weight
-def remove_samples_with_null_weight(database):
+#region: remove_null_weight
+def remove_null_weight(database):
     '''
     Remove samples where unit of measurement is percentage ('%'), the sample 
     result is non-null, but the sample weight is null.
@@ -324,8 +323,8 @@ def remove_empty_unit_non_null_result(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_invalid_unit_f_samples
-def remove_invalid_unit_f_samples(database):
+#region: remove_invalid_unit_f
+def remove_invalid_unit_f(database):
     '''
     Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
@@ -411,8 +410,8 @@ def remove_fibers_substance_conflict(database):
     return database.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_combustion_related_samples
-def remove_combustion_related_samples(database):
+#region: remove_combustion_related
+def remove_combustion_related(database):
     '''
     Remove samples with qualifiers related to combustion.
     '''
@@ -456,7 +455,7 @@ def remove_conflicting_qualifiers(database, qualif_conv_2020):
     database = database.copy()
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-    database = remove_samples_based_on_qualifier(
+    database = remove_based_on_qualifier(
         database, 
         qualif_conv_2020, 
         where_conflict
@@ -472,7 +471,7 @@ def remove_uninterpretable_qualifiers(database, qualif_conv_2020):
     database = database.copy()
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    database = remove_samples_based_on_qualifier(
+    database = remove_based_on_qualifier(
         database, 
         qualif_conv_2020, 
         where_eliminate
@@ -491,7 +490,7 @@ def remove_blk_not_bulk(database, qualif_conv_2020):
         (qualif_conv_2020['clean'] == 'BLK') 
         & (qualif_conv_2020['possible_bulk'] == 'N')
     )
-    database = remove_samples_based_on_qualifier(
+    database = remove_based_on_qualifier(
         database, 
         qualif_conv_2020, 
         where_blk_not_bulk
@@ -499,8 +498,8 @@ def remove_blk_not_bulk(database, qualif_conv_2020):
     return database
 #endregion
 
-#region: remove_samples_based_on_qualifier
-def remove_samples_based_on_qualifier(database, qualif_conv_2020, condition):
+#region: remove_based_on_qualifier
+def remove_based_on_qualifier(database, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
@@ -545,8 +544,8 @@ def clean_unit_of_measurement(database, unit_conv_2020):
     return database
 #endregion
 
-#region: remove_invalid_nd_samples
-def remove_invalid_nd_samples(database, qualif_conv_2020):
+#region: remove_invalid_nd
+def remove_invalid_nd(database, qualif_conv_2020):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
@@ -644,8 +643,8 @@ def load_qualifier_conversion(qualif_conv_file):
     return qualif_conv_2020
 #endregion
 
-#region: exclude_few_samples
-def exclude_few_samples(database):
+#region: exclude_few
+def exclude_few(database):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
@@ -654,8 +653,8 @@ def exclude_few_samples(database):
     ## Exclude substances with few samples
     subst = database['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
     subst.columns = ['code', 'n']
-    where_enough_samples = subst['n'] >= 100
-    subst = subst[where_enough_samples]
+    where_enough = subst['n'] >= 100
+    subst = subst[where_enough]
 
     ## Remove non-chemical substance codes
     # FIXME: Remove hardcoding
