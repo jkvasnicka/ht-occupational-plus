@@ -94,7 +94,7 @@ def remove_samples_with_missing_volume(database):
         | (database['AIR_VOLUME_SAMPLED'] == '')
     )
 
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 # NOTE: Inconsistency
@@ -116,7 +116,7 @@ def remove_missing_sample_number(database):
         | (pd.to_numeric(database['SAMPLING_NUMBER'], errors='coerce') == 0.)
     )
 
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_negative_sample_results
@@ -126,7 +126,7 @@ def remove_negative_sample_results(database):
     '''
     database = database.copy()
     rows_to_exclude = database['SAMPLE_RESULT_3'] < 0.
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_samples_with_null_time_sampled
@@ -136,7 +136,7 @@ def remove_samples_with_null_time_sampled(database):
     '''
     database = database.copy()
     rows_to_exclude = database['TIME_SAMPLED'] == 0.
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_samples_with_missing_time_sampled
@@ -146,7 +146,7 @@ def remove_samples_with_missing_time_sampled(database):
     '''
     database = database.copy()
     rows_to_exclude = database['TIME_SAMPLED'].isna()
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_samples_with_missing_office_id
@@ -156,7 +156,7 @@ def remove_samples_with_missing_office_id(database):
     '''
     database = database.copy()
     rows_to_exclude = database['OFFICE_ID'].isna()
-    return database[~rows_to_exclude]
+    return database.loc[~rows_to_exclude]
 #endregion
 
 # FIXME: Double check conversion factor. Unclear.
@@ -561,7 +561,7 @@ def remove_invalid_nd_samples(database, qualif_conv_2020):
         & (database['CENSORED'] != 'Y') 
         & (database['QUALIFIER'].isin(nd_qualifiers))
     )
-    database = database[~condition_n08]  # N08
+    database = database.loc[~condition_n08]  # N08
 
     condition_n29 = (
         (database['SAMPLE_RESULT_2'] > 0) 
@@ -569,7 +569,7 @@ def remove_invalid_nd_samples(database, qualif_conv_2020):
            | (database['QUALIFIER'].isin(nd_qualifiers)))
     )
     
-    database = database[~condition_n29]  # N29
+    database = database.loc[~condition_n29]  # N29
 
     return database
 #endregion
