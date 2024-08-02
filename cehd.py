@@ -73,8 +73,28 @@ def clean_cehd_data(database, path_settings):
     database = remove_negative_sample_results(database)
 
     database = remove_missing_sample_number(database)
+
+    database = remove_samples_with_missing_volume(database)
     
     return database
+#endregion
+
+#region: remove_samples_with_missing_volume
+def remove_samples_with_missing_volume(database):
+    '''
+    Remove samples that have a missing or empty volume sampled variable.
+
+    This function identifies and removes samples where the 'AIR_VOLUME_SAMPLED'
+    column is either missing (NaN) or an empty string ('').
+    '''
+    database = database.copy()
+    
+    rows_to_exclude = (
+        database['AIR_VOLUME_SAMPLED'].isna() 
+        | (database['AIR_VOLUME_SAMPLED'] == '')
+    )
+
+    return database[~rows_to_exclude]
 #endregion
 
 # NOTE: Inconsistency
