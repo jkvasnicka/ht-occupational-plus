@@ -76,8 +76,23 @@ def clean_cehd_data(database, path_settings):
     database = remove_missing_volume(database)
 
     database = remove_zero_volume_sampled(database)
+
+    database = remove_empty_instrument_type(database)
     
     return database
+#endregion
+
+#region: remove_empty_instrument_type
+def remove_empty_instrument_type(database):
+    '''
+    Remove samples where instrument type is an empty string.
+    '''
+    database = database.copy()
+    rows_to_exclude = (
+        (database['INSTRUMENT_TYPE'] == '') 
+        & database['INSTRUMENT_TYPE'].notna()
+    )
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_zero_volume_sampled
