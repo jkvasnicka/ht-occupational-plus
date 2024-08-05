@@ -78,18 +78,64 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_zero_volume_sampled(database)
 
-    database = clean_instrument_type(database)
+    database = clean_instrument_type(database, path_settings['it_directory'])
     
     return database
 #endregion
 
 #region: clean_instrument_type
-def clean_instrument_type(database):
+def clean_instrument_type(database, it_directory):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
     database = handle_missing_instrument_type(database)
+    table_for_subs = load_instrument_type_tables(it_directory)
+    database = apply_instrument_type_tables(database, table_for_subs)
     return database
+#endregion
+
+#region: apply_instrument_type_tables
+def apply_instrument_type_tables(database, table_for_subs):
+    '''
+    Clean instrument type for specific substance codes using conversion
+    tables.
+    '''
+    database = database.copy()
+
+    for subs_code, it_table in table_for_subs.items():
+        # For each clean values, get the corresponding raw value(s)
+        for clean_value in it_table['clean'].unique():
+            where_clean_value = it_table['clean'] == clean_value
+            raw_values_to_clean = list(
+                it_table.loc[where_clean_value, 'raw'].astype('str')
+                )
+            
+            where_to_clean = (
+                (database['IMIS_SUBSTANCE_CODE'] == subs_code) 
+                & (database['YEAR'].astype(int) < 2010)
+                & (database['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
+                )
+            database.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
+
+    return database
+#endregion
+
+#region: load_instrument_type_tables
+def load_instrument_type_tables(it_directory):
+    '''
+    Load IT tables for each substance code.
+    '''
+    csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
+    table_for_subs = {}
+
+    for file in csv_files:
+        # Extract the substance code from the filename
+        subs_code = file[2:6]
+        # Missing values are replaced with '' like R's read.csv
+        df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
+        table_for_subs[subs_code] = df
+
+    return table_for_subs
 #endregion
 
 #region: handle_missing_instrument_type
