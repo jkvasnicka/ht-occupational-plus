@@ -6,6 +6,7 @@ The original R script was translated to Python.
 '''
 import pandas as pd
 import numpy as np
+import os
 
 #region: clean_cehd_data
 def clean_cehd_data(database, path_settings):
@@ -77,8 +78,37 @@ def clean_cehd_data(database, path_settings):
 
     database = remove_zero_volume_sampled(database)
 
-    database = remove_empty_instrument_type(database)
+    database = clean_instrument_type(database)
     
+    return database
+#endregion
+
+#region: clean_instrument_type
+def clean_instrument_type(database):
+    '''
+    Comprehensive function to handle the cleaning of instrument type.
+    '''
+    database = handle_missing_instrument_type(database)
+    return database
+#endregion
+
+#region: handle_missing_instrument_type
+def handle_missing_instrument_type(database):
+    '''
+    Handle missing instrument type and perform initial population and cleanup.
+    '''
+    database = remove_empty_instrument_type(database)
+    where_nan = database['INSTRUMENT_TYPE'].isna()
+    database.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
+
+    database['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
+
+    # Copy raw instrument type for 1984-2011
+    where_1984_2011 = database['YEAR'].astype(int) < 2012
+    database.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
+        database.loc[where_1984_2011, 'INSTRUMENT_TYPE']
+    )
+
     return database
 #endregion
 
