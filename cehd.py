@@ -91,7 +91,20 @@ def clean_instrument_type(database, it_directory):
     database = handle_missing_instrument_type(database)
     table_for_subs = load_instrument_type_tables(it_directory)
     database = apply_instrument_type_tables(database, table_for_subs)
+    database = remove_missing_instrument_type(database)
     return database
+#endregion
+
+#region: remove_missing_instrument_type
+def remove_missing_instrument_type(database):
+    '''
+    Final cleanup for 'INSTRUMENT_TYPE_2'.
+    '''
+    database = database.copy()
+    where_empty = database['INSTRUMENT_TYPE_2'] == ''
+    database.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
+    rows_to_exclude = database['INSTRUMENT_TYPE_2'] == 'eliminate'
+    return database.loc[~rows_to_exclude]
 #endregion
 
 #region: apply_instrument_type_tables
