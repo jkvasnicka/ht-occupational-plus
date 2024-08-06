@@ -91,64 +91,8 @@ def clean_instrument_type(database, it_directory):
     database = handle_missing_instrument_type(database)
     table_for_subs = load_instrument_type_tables(it_directory)
     database = apply_instrument_type_tables(database, table_for_subs)
-    database = remove_missing_instrument_type(database)
+    database = handle_remaining_missing_instrument_type(database)
     return database
-#endregion
-
-#region: remove_missing_instrument_type
-def remove_missing_instrument_type(database):
-    '''
-    Final cleanup for 'INSTRUMENT_TYPE_2'.
-    '''
-    database = database.copy()
-    where_empty = database['INSTRUMENT_TYPE_2'] == ''
-    database.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
-    rows_to_exclude = database['INSTRUMENT_TYPE_2'] == 'eliminate'
-    return database.loc[~rows_to_exclude]
-#endregion
-
-#region: apply_instrument_type_tables
-def apply_instrument_type_tables(database, table_for_subs):
-    '''
-    Clean instrument type for specific substance codes using conversion
-    tables.
-    '''
-    database = database.copy()
-
-    for subs_code, it_table in table_for_subs.items():
-        # For each clean values, get the corresponding raw value(s)
-        for clean_value in it_table['clean'].unique():
-            where_clean_value = it_table['clean'] == clean_value
-            raw_values_to_clean = list(
-                it_table.loc[where_clean_value, 'raw'].astype('str')
-                )
-            
-            where_to_clean = (
-                (database['IMIS_SUBSTANCE_CODE'] == subs_code) 
-                & (database['YEAR'].astype(int) < 2010)
-                & (database['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
-                )
-            database.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
-
-    return database
-#endregion
-
-#region: load_instrument_type_tables
-def load_instrument_type_tables(it_directory):
-    '''
-    Load IT tables for each substance code.
-    '''
-    csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
-    table_for_subs = {}
-
-    for file in csv_files:
-        # Extract the substance code from the filename
-        subs_code = file[2:6]
-        # Missing values are replaced with '' like R's read.csv
-        df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
-        table_for_subs[subs_code] = df
-
-    return table_for_subs
 #endregion
 
 #region: handle_missing_instrument_type
@@ -181,6 +125,65 @@ def remove_empty_instrument_type(database):
         (database['INSTRUMENT_TYPE'] == '') 
         & database['INSTRUMENT_TYPE'].notna()
     )
+    return database.loc[~rows_to_exclude]
+#endregion
+
+#region: load_instrument_type_tables
+def load_instrument_type_tables(it_directory):
+    '''
+    Load IT tables for each substance code.
+    '''
+    csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
+    table_for_subs = {}
+
+    for file in csv_files:
+        # Extract the substance code from the filename
+        subs_code = file[2:6]
+        # Missing values are replaced with '' like R's read.csv
+        df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
+        table_for_subs[subs_code] = df
+
+    return table_for_subs
+#endregion
+
+#region: apply_instrument_type_tables
+def apply_instrument_type_tables(database, table_for_subs):
+    '''
+    Clean instrument type for specific substance codes using conversion
+    tables.
+    '''
+    database = database.copy()
+
+    for subs_code, it_table in table_for_subs.items():
+        # For each clean values, get the corresponding raw value(s)
+        for clean_value in it_table['clean'].unique():
+            where_clean_value = it_table['clean'] == clean_value
+            raw_values_to_clean = list(
+                it_table.loc[where_clean_value, 'raw'].astype('str')
+                )
+            
+            where_to_clean = (
+                (database['IMIS_SUBSTANCE_CODE'] == subs_code) 
+                & (database['YEAR'].astype(int) < 2010)
+                & (database['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
+                )
+            database.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
+
+    return database
+#endregion
+
+#region: handle_remaining_missing_instrument_type
+def handle_remaining_missing_instrument_type(database):
+    '''
+    Final cleanup for 'INSTRUMENT_TYPE_2'.
+
+    Sets empty strings to 'eliminate' and removes all samples designated as 
+    'eliminate', including those set through conversion tables.
+    '''
+    database = database.copy()
+    where_empty = database['INSTRUMENT_TYPE_2'] == ''
+    database.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
+    rows_to_exclude = database['INSTRUMENT_TYPE_2'] == 'eliminate'
     return database.loc[~rows_to_exclude]
 #endregion
 
