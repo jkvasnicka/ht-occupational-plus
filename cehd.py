@@ -79,8 +79,131 @@ def clean_cehd_data(database, path_settings):
     database = remove_zero_volume_sampled(database)
 
     database = clean_instrument_type(database, path_settings['it_directory'])
+
+    database = clean_duplicates(database)
     
     return database
+#endregion
+
+#region: clean_duplicates
+def clean_duplicates(database):
+    '''
+    Clean the dataset by identifying and removing duplicate samples.
+    '''
+    database = create_hash(database)
+    bla = identify_potential_duplicates(database)
+    false_duplicate_hashes = identify_false_duplicates(database, bla)
+    return remove_true_duplicates(database, false_duplicate_hashes, bla)
+#endregion
+
+#region: create_hash
+def create_hash(database):
+    '''
+    Create a unique HASH variable to identify potential duplicates.
+    '''
+    database = database.copy()
+    database['HASH'] = (
+        database['INSPECTION_NUMBER'].astype(str) + '-' +
+        database['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
+        database['SAMPLING_NUMBER'].astype(str) + '-' +
+        database['FIELD_NUMBER'].astype(str)
+    )
+    return database
+#endregion
+
+#region: identify_potential_duplicates
+def identify_potential_duplicates(database):
+    '''
+    Identify and return a DataFrame of potential duplicate records based on 
+    the HASH variable.
+    '''
+    database = database.copy()
+
+    bla = database['HASH'].value_counts().reset_index()
+    bla.columns = ['name', 'n']
+    bla = bla[bla['n'] > 1]
+    bla['name'] = bla['name'].astype(str)
+
+    # Match the values for 'code' and 'sub'
+    bla['code'] = bla['name'].map(
+        dict(zip(database['HASH'], database['IMIS_SUBSTANCE_CODE']))
+    )
+    bla['sub'] = bla['name'].map(
+        dict(zip(database['HASH'], database['SUBSTANCE']))
+    )
+
+    # Ensure the order matches
+    return bla.sort_values(by='name').reset_index(drop=True)
+#endregion
+
+#region: identify_false_duplicates
+def identify_false_duplicates(database, bla):
+    '''
+    Identify false duplicates by comparing additional variables (CONCAT).
+    
+    False duplicates are identified where the CONCAT variable varies 
+    for the same HASH.
+    '''
+    # Create a new hash variable to identify false duplicates
+    database['CONCAT'] = (
+        database['LAB_NUMBER'].astype(str) + '-' +
+        database['STATE'].astype(str) + '-' +
+        database['ZIP_CODE'].astype(str) + '-' +
+        database['YEAR'].astype(str) + '-' +
+        database['TIME_SAMPLED'].astype(str) + '-' +
+        database['SAMPLE_WEIGHT_2'].astype(str)
+    )
+
+    # Identify samples where CONCAT is the same
+    concat_counts = database.groupby('HASH')['CONCAT'].nunique()
+    concatdiff_hashes = concat_counts.loc[concat_counts > 1].index
+    bla['concatdiff'] = bla['name'].isin(concatdiff_hashes)
+
+    # False duplicates occur where CONCAT varies
+    return bla['name'].loc[bla['concatdiff']].to_numpy()
+#endregion
+
+# FIXME: The original R code
+#region: remove_true_duplicates
+def remove_true_duplicates(database, false_duplicate_hashes, bla):
+    '''
+    Remove true duplicates from the dataset, retaining only one sample per 
+    duplicate.
+
+    Notes
+    -----
+    The original R code hardcoded 'max_rows' to 6083, which resulted in the 
+    R code inadvertently creating additional rows with NaN. This Python code
+    addresses this issue by correctly defining 'max_rows' based on the length.
+    '''
+    database = database.copy()
+
+    restrictM = database['HASH'].isin(false_duplicate_hashes)
+
+    database_1 = database.loc[~restrictM]
+
+    #### N: true duplicates ####
+    # Separate the DB into the OK and remaining problematic
+    database_1_ok = database_1.loc[~database_1['HASH'].isin(bla['name'])]
+    database_1_nonok = database_1.loc[database_1['HASH'].isin(bla['name'])]
+
+    # TODO: Why just 9010?
+    # Majority is 9010 (e.g. duplicates of "M" and "M.from.Perc" cases)
+    # Only 9010 treated, remaining cases are deleted
+    where_subs_9010 = database_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
+    database_1_nonok_9010 = database_1_nonok.loc[where_subs_9010]
+    database_1_nonok_9010 = database_1_nonok_9010.sort_values(by='HASH')
+
+    # TODO: Why keep every second sample?
+    # One out of 2 sample is retained
+    max_rows = len(database_1_nonok_9010)
+    indices = range(0, max_rows, 2)
+    database_1_nonok_9010 = database_1_nonok_9010.iloc[indices]
+
+    return pd.concat(
+        [database_1_ok, database_1_nonok_9010], 
+        ignore_index=True
+        )
 #endregion
 
 #region: clean_instrument_type
