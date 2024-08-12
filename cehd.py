@@ -13,8 +13,7 @@ CLEANING_STEPS = [
     'remove_blanks',
     'remove_nonpersonal',
     'exclude_few',
-    'replace_missing_qualifier',
-    'replace_missing_unit_of_measurement',
+    'replace_missing_values',
     'add_censored_column',
     'remove_invalid_nd',
     'clean_unit_of_measurement',
@@ -836,22 +835,15 @@ def add_censored_column(cehd_data, **kwargs):
     return cehd_data
 #endregion
 
-#region: replace_missing_qualifier
-def replace_missing_qualifier(cehd_data, **kwargs):
-    return _replace_missing_values(cehd_data, 'QUALIFIER')
-#endregion
-
-#region: replace_missing_unit_of_measurement
-def replace_missing_unit_of_measurement(cehd_data, **kwargs):
-    return _replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
-#endregion
-
-#region: _replace_missing_values
-def _replace_missing_values(cehd_data, column):
+#region: replace_missing_values
+def replace_missing_values(cehd_data, **kwargs):
     '''
     '''
     cehd_data = cehd_data.copy()
-    cehd_data[column] = cehd_data[column].fillna('raw was NA')
+
+    for column in ['QUALIFIER', 'UNIT_OF_MEASUREMENT']:
+        cehd_data[column] = cehd_data[column].fillna('raw was NA')
+
     return cehd_data
 #endregion
 
