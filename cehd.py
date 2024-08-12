@@ -58,13 +58,13 @@ def clean_cehd_data(cehd_data, path_settings):
     )
 
     for step_name in CLEANING_STEPS:
-        cehd_data = apply_cleaning_step(cehd_data, step_name, kwargs)
+        cehd_data = _apply_cleaning_step(cehd_data, step_name, kwargs)
     
     return cehd_data
 #endregion
 
-#region: apply_cleaning_step
-def apply_cleaning_step(cehd_data, step_name, kwargs):
+#region: _apply_cleaning_step
+def _apply_cleaning_step(cehd_data, step_name, kwargs):
     '''
     '''
     return globals()[step_name](cehd_data, **kwargs)
@@ -75,14 +75,14 @@ def clean_duplicates(cehd_data, **kwargs):
     '''
     Clean the dataset by identifying and removing duplicate samples.
     '''
-    cehd_data = create_hash(cehd_data)
-    bla = identify_potential_duplicates(cehd_data)
-    false_duplicate_hashes = identify_false_duplicates(cehd_data, bla)
-    return remove_true_duplicates(cehd_data, false_duplicate_hashes, bla)
+    cehd_data = _create_hash(cehd_data)
+    bla = _identify_potential_duplicates(cehd_data)
+    false_duplicate_hashes = _identify_false_duplicates(cehd_data, bla)
+    return _remove_true_duplicates(cehd_data, false_duplicate_hashes, bla)
 #endregion
 
-#region: create_hash
-def create_hash(cehd_data):
+#region: _create_hash
+def _create_hash(cehd_data):
     '''
     Create a unique HASH variable to identify potential duplicates.
     '''
@@ -96,8 +96,8 @@ def create_hash(cehd_data):
     return cehd_data
 #endregion
 
-#region: identify_potential_duplicates
-def identify_potential_duplicates(cehd_data):
+#region: _identify_potential_duplicates
+def _identify_potential_duplicates(cehd_data):
     '''
     Identify and return a DataFrame of potential duplicate records based on 
     the HASH variable.
@@ -121,8 +121,8 @@ def identify_potential_duplicates(cehd_data):
     return bla.sort_values(by='name').reset_index(drop=True)
 #endregion
 
-#region: identify_false_duplicates
-def identify_false_duplicates(cehd_data, bla):
+#region: _identify_false_duplicates
+def _identify_false_duplicates(cehd_data, bla):
     '''
     Identify false duplicates by comparing additional variables (CONCAT).
     
@@ -149,8 +149,8 @@ def identify_false_duplicates(cehd_data, bla):
 #endregion
 
 # FIXME: The original R code
-#region: remove_true_duplicates
-def remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
+#region: _remove_true_duplicates
+def _remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
     '''
     Remove true duplicates from the dataset, retaining only one sample per 
     duplicate.
@@ -196,19 +196,19 @@ def clean_instrument_type(cehd_data, it_directory, **kwargs):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
-    cehd_data = handle_missing_instrument_type(cehd_data)
+    cehd_data = _handle_missing_instrument_type(cehd_data)
     table_for_subs = load_instrument_type_tables(it_directory)
-    cehd_data = apply_instrument_type_tables(cehd_data, table_for_subs)
-    cehd_data = handle_remaining_missing_instrument_type(cehd_data)
+    cehd_data = _apply_instrument_type_tables(cehd_data, table_for_subs)
+    cehd_data = _handle_remaining_missing_instrument_type(cehd_data)
     return cehd_data
 #endregion
 
-#region: handle_missing_instrument_type
-def handle_missing_instrument_type(cehd_data):
+#region: _handle_missing_instrument_type
+def _handle_missing_instrument_type(cehd_data):
     '''
     Handle missing instrument type and perform initial population and cleanup.
     '''
-    cehd_data = remove_empty_instrument_type(cehd_data)
+    cehd_data = _remove_empty_instrument_type(cehd_data)
     where_nan = cehd_data['INSTRUMENT_TYPE'].isna()
     cehd_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
 
@@ -223,8 +223,8 @@ def handle_missing_instrument_type(cehd_data):
     return cehd_data
 #endregion
 
-#region: remove_empty_instrument_type
-def remove_empty_instrument_type(cehd_data):
+#region: _remove_empty_instrument_type
+def _remove_empty_instrument_type(cehd_data):
     '''
     Remove samples where instrument type is an empty string.
     '''
@@ -254,8 +254,8 @@ def load_instrument_type_tables(it_directory):
     return table_for_subs
 #endregion
 
-#region: apply_instrument_type_tables
-def apply_instrument_type_tables(cehd_data, table_for_subs):
+#region: _apply_instrument_type_tables
+def _apply_instrument_type_tables(cehd_data, table_for_subs):
     '''
     Clean instrument type for specific substance codes using conversion
     tables.
@@ -280,8 +280,8 @@ def apply_instrument_type_tables(cehd_data, table_for_subs):
     return cehd_data
 #endregion
 
-#region: handle_remaining_missing_instrument_type
-def handle_remaining_missing_instrument_type(cehd_data):
+#region: _handle_remaining_missing_instrument_type
+def _handle_remaining_missing_instrument_type(cehd_data):
     '''
     Final cleanup for 'INSTRUMENT_TYPE_2'.
 
@@ -459,14 +459,14 @@ def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
     ]
     valid_units_n31 = ['', 'F', 'P', 'M']
-    cehd_data = remove_invalid_unit_for_substances(
+    cehd_data = _remove_invalid_unit_for_substances(
         cehd_data, 
         top_substances, 
         valid_units_n31
         )
 
     valid_units_n32 = ['', '%', 'M']
-    cehd_data = remove_invalid_unit_for_substances(
+    cehd_data = _remove_invalid_unit_for_substances(
         cehd_data, 
         ['9010'], 
         valid_units_n32
@@ -479,7 +479,7 @@ def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
         cehd_data.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
         )
     valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    cehd_data = remove_invalid_unit_for_substances(
+    cehd_data = _remove_invalid_unit_for_substances(
         cehd_data, 
         other_substances, 
         valid_units_n33
@@ -488,8 +488,8 @@ def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
     return cehd_data
 #endregion
 
-#region: remove_invalid_unit_for_substances
-def remove_invalid_unit_for_substances(
+#region: _remove_invalid_unit_for_substances
+def _remove_invalid_unit_for_substances(
         cehd_data, 
         substance_codes, 
         valid_units
@@ -662,7 +662,7 @@ def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020, **kwargs):
         (qualif_conv_2020['clean'] == 'BLK')
         & (qualif_conv_2020['possible_bulk'] == 'Y')
     )
-    rows_to_exclude = rows_to_exclude_based_on_qualifier(
+    rows_to_exclude = _rows_to_exclude_based_on_qualifier(
         cehd_data, 
         qualif_conv_2020, 
         condition_blk_possible_bulk
@@ -682,7 +682,7 @@ def remove_conflicting_qualifier(cehd_data, qualif_conv_2020, **kwargs):
     cehd_data = cehd_data.copy()
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-    cehd_data = remove_based_on_qualifier(
+    cehd_data = _remove_based_on_qualifier(
         cehd_data, 
         qualif_conv_2020, 
         where_conflict
@@ -698,7 +698,7 @@ def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020, **kwargs):
     cehd_data = cehd_data.copy()
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    cehd_data = remove_based_on_qualifier(
+    cehd_data = _remove_based_on_qualifier(
         cehd_data, 
         qualif_conv_2020, 
         where_eliminate
@@ -717,7 +717,7 @@ def remove_blk_not_bulk(cehd_data, qualif_conv_2020, **kwargs):
         (qualif_conv_2020['clean'] == 'BLK') 
         & (qualif_conv_2020['possible_bulk'] == 'N')
     )
-    cehd_data = remove_based_on_qualifier(
+    cehd_data = _remove_based_on_qualifier(
         cehd_data, 
         qualif_conv_2020, 
         where_blk_not_bulk
@@ -725,14 +725,14 @@ def remove_blk_not_bulk(cehd_data, qualif_conv_2020, **kwargs):
     return cehd_data
 #endregion
 
-#region: remove_based_on_qualifier
-def remove_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
+#region: _remove_based_on_qualifier
+def _remove_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
     cehd_data = cehd_data.copy()
 
-    rows_to_exclude = rows_to_exclude_based_on_qualifier(
+    rows_to_exclude = _rows_to_exclude_based_on_qualifier(
         cehd_data, 
         qualif_conv_2020, 
         condition
@@ -740,8 +740,8 @@ def remove_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
     return cehd_data.loc[~rows_to_exclude]
 #endregion:
 
-#region: rows_to_exclude_based_on_qualifier
-def rows_to_exclude_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
+#region: _rows_to_exclude_based_on_qualifier
+def _rows_to_exclude_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
@@ -838,16 +838,16 @@ def add_censored_column(cehd_data, **kwargs):
 
 #region: replace_missing_qualifier
 def replace_missing_qualifier(cehd_data, **kwargs):
-    return replace_missing_values(cehd_data, 'QUALIFIER')
+    return _replace_missing_values(cehd_data, 'QUALIFIER')
 #endregion
 
 #region: replace_missing_unit_of_measurement
 def replace_missing_unit_of_measurement(cehd_data, **kwargs):
-    return replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
+    return _replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
 #endregion
 
-#region: replace_missing_values
-def replace_missing_values(cehd_data, column):
+#region: _replace_missing_values
+def _replace_missing_values(cehd_data, column):
     '''
     '''
     cehd_data = cehd_data.copy()
