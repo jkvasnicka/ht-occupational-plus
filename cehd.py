@@ -12,74 +12,46 @@ import os
 def clean_cehd_data(cehd_data, path_settings):
     '''
     '''
-    cehd_data = pre_clean(cehd_data)
-
-    cehd_data = remove_blanks(cehd_data)
-    cehd_data = remove_nonpersonal(cehd_data)
-    cehd_data = exclude_few(cehd_data)
-
-    cehd_data = replace_missing_values(cehd_data, 'QUALIFIER')
     qualif_conv_2020 = load_qualifier_conversion(
         path_settings['qualif_conv_file']
         )
-
-    cehd_data = replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
     unit_conv_2020 = load_unit_measure_conversion(
         path_settings['unit_conv_file']
     )
 
+    # TODO: Maybe iterate over a list of these functions with **kwargs
+    cehd_data = pre_clean(cehd_data)
+    cehd_data = remove_blanks(cehd_data)
+    cehd_data = remove_nonpersonal(cehd_data)
+    cehd_data = exclude_few(cehd_data)
+    cehd_data = replace_missing_values(cehd_data, 'QUALIFIER')
+    cehd_data = replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
     cehd_data = add_censored_column(cehd_data)
-
     cehd_data = remove_invalid_nd(cehd_data, qualif_conv_2020)
-
     cehd_data = clean_unit_of_measurement(cehd_data, unit_conv_2020)
-
     cehd_data = remove_blk_not_bulk(cehd_data, qualif_conv_2020)
-
     cehd_data = remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020)
-
     cehd_data = remove_conflicting_qualifier(cehd_data, qualif_conv_2020)
-
     cehd_data = remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020)
-
     cehd_data = remove_combustion_related(cehd_data)
-
     cehd_data = remove_fibers_substance_conflict(cehd_data)
-
     cehd_data = remove_yttrium_substance_conflict(cehd_data)
-
     cehd_data = remove_approximate_measure(cehd_data)
-
     cehd_data = remove_qualifier_unit_mismatch(cehd_data)
-
     cehd_data = remove_invalid_unit_f(cehd_data)
-
     cehd_data = remove_empty_unit_non_null_result(cehd_data)
-
     cehd_data = remove_percent_greater_than_100(cehd_data)
-
     cehd_data = create_detection_indicator(cehd_data)
-
     cehd_data = remove_invalid_unit_for_all_substances(cehd_data)
-
     cehd_data = convert_percent_to_mass_concentration(cehd_data)
-
     cehd_data = remove_missing_office_id(cehd_data)
-
     cehd_data = remove_missing_time_sampled(cehd_data)
-
     cehd_data = remove_null_time_sampled(cehd_data)
-
     cehd_data = remove_negative_sample_result(cehd_data)
-
     cehd_data = remove_missing_sample_number(cehd_data)
-
     cehd_data = remove_missing_volume(cehd_data)
-
     cehd_data = remove_zero_volume_sampled(cehd_data)
-
     cehd_data = clean_instrument_type(cehd_data, path_settings['it_directory'])
-
     cehd_data = clean_duplicates(cehd_data)
     
     return cehd_data
