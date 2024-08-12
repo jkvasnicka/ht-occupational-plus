@@ -8,57 +8,70 @@ import pandas as pd
 import numpy as np
 import os
 
+CLEANING_STEPS = [
+    'pre_clean',
+    'remove_blanks',
+    'remove_nonpersonal',
+    'exclude_few',
+    'replace_missing_qualifier',
+    'replace_missing_unit_of_measurement',
+    'add_censored_column',
+    'remove_invalid_nd',
+    'clean_unit_of_measurement',
+    'remove_blk_not_bulk',
+    'remove_uninterpretable_qualifier',
+    'remove_conflicting_qualifier',
+    'remove_blk_possible_bulk_not_blank',
+    'remove_combustion_related',
+    'remove_fibers_substance_conflict',
+    'remove_yttrium_substance_conflict',
+    'remove_approximate_measure',
+    'remove_qualifier_unit_mismatch',
+    'remove_invalid_unit_f',
+    'remove_empty_unit_non_null_result',
+    'remove_percent_greater_than_100',
+    'create_detection_indicator',
+    'remove_invalid_unit_for_all_substances',
+    'convert_percent_to_mass_concentration',
+    'remove_missing_office_id',
+    'remove_missing_time_sampled',
+    'remove_null_time_sampled',
+    'remove_negative_sample_result',
+    'remove_missing_sample_number',
+    'remove_missing_volume',
+    'remove_zero_volume_sampled',
+    'clean_instrument_type',
+    'clean_duplicates'
+]
+
 #region: clean_cehd_data
 def clean_cehd_data(cehd_data, path_settings):
     '''
     '''
-    qualif_conv_2020 = load_qualifier_conversion(
+    # Define key-word arguments for flexible argument passing
+    kwargs = path_settings.copy()
+    kwargs['qualif_conv_2020'] = load_qualifier_conversion(
         path_settings['qualif_conv_file']
         )
-    unit_conv_2020 = load_unit_measure_conversion(
+    kwargs['unit_conv_2020'] = load_unit_measure_conversion(
         path_settings['unit_conv_file']
     )
 
-    # TODO: Maybe iterate over a list of these functions with **kwargs
-    cehd_data = pre_clean(cehd_data)
-    cehd_data = remove_blanks(cehd_data)
-    cehd_data = remove_nonpersonal(cehd_data)
-    cehd_data = exclude_few(cehd_data)
-    cehd_data = replace_missing_values(cehd_data, 'QUALIFIER')
-    cehd_data = replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
-    cehd_data = add_censored_column(cehd_data)
-    cehd_data = remove_invalid_nd(cehd_data, qualif_conv_2020)
-    cehd_data = clean_unit_of_measurement(cehd_data, unit_conv_2020)
-    cehd_data = remove_blk_not_bulk(cehd_data, qualif_conv_2020)
-    cehd_data = remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020)
-    cehd_data = remove_conflicting_qualifier(cehd_data, qualif_conv_2020)
-    cehd_data = remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020)
-    cehd_data = remove_combustion_related(cehd_data)
-    cehd_data = remove_fibers_substance_conflict(cehd_data)
-    cehd_data = remove_yttrium_substance_conflict(cehd_data)
-    cehd_data = remove_approximate_measure(cehd_data)
-    cehd_data = remove_qualifier_unit_mismatch(cehd_data)
-    cehd_data = remove_invalid_unit_f(cehd_data)
-    cehd_data = remove_empty_unit_non_null_result(cehd_data)
-    cehd_data = remove_percent_greater_than_100(cehd_data)
-    cehd_data = create_detection_indicator(cehd_data)
-    cehd_data = remove_invalid_unit_for_all_substances(cehd_data)
-    cehd_data = convert_percent_to_mass_concentration(cehd_data)
-    cehd_data = remove_missing_office_id(cehd_data)
-    cehd_data = remove_missing_time_sampled(cehd_data)
-    cehd_data = remove_null_time_sampled(cehd_data)
-    cehd_data = remove_negative_sample_result(cehd_data)
-    cehd_data = remove_missing_sample_number(cehd_data)
-    cehd_data = remove_missing_volume(cehd_data)
-    cehd_data = remove_zero_volume_sampled(cehd_data)
-    cehd_data = clean_instrument_type(cehd_data, path_settings['it_directory'])
-    cehd_data = clean_duplicates(cehd_data)
+    for step_name in CLEANING_STEPS:
+        cehd_data = apply_cleaning_step(cehd_data, step_name, kwargs)
     
     return cehd_data
 #endregion
 
+#region: apply_cleaning_step
+def apply_cleaning_step(cehd_data, step_name, kwargs):
+    '''
+    '''
+    return globals()[step_name](cehd_data, **kwargs)
+#endregion
+
 #region: clean_duplicates
-def clean_duplicates(cehd_data):
+def clean_duplicates(cehd_data, **kwargs):
     '''
     Clean the dataset by identifying and removing duplicate samples.
     '''
@@ -179,7 +192,7 @@ def remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
 #endregion
 
 #region: clean_instrument_type
-def clean_instrument_type(cehd_data, it_directory):
+def clean_instrument_type(cehd_data, it_directory, **kwargs):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
@@ -283,7 +296,7 @@ def handle_remaining_missing_instrument_type(cehd_data):
 #endregion
 
 #region: remove_zero_volume_sampled
-def remove_zero_volume_sampled(cehd_data):
+def remove_zero_volume_sampled(cehd_data, **kwargs):
     '''
     Remove samples that have an air volume sampled of zero.
     '''
@@ -293,7 +306,7 @@ def remove_zero_volume_sampled(cehd_data):
 #endregion
 
 #region: remove_missing_volume
-def remove_missing_volume(cehd_data):
+def remove_missing_volume(cehd_data, **kwargs):
     '''
     Remove samples that have a missing or empty volume sampled variable.
 
@@ -312,7 +325,7 @@ def remove_missing_volume(cehd_data):
 
 # NOTE: Inconsistency
 #region: remove_missing_sample_number
-def remove_missing_sample_number(cehd_data):
+def remove_missing_sample_number(cehd_data, **kwargs):
     '''
     Remove samples that have a missing or null sampling number.
     
@@ -333,7 +346,7 @@ def remove_missing_sample_number(cehd_data):
 #endregion
 
 #region: remove_negative_sample_result
-def remove_negative_sample_result(cehd_data):
+def remove_negative_sample_result(cehd_data, **kwargs):
     '''
     Remove samples with a sample result less than zero.
     '''
@@ -343,7 +356,7 @@ def remove_negative_sample_result(cehd_data):
 #endregion
 
 #region: remove_null_time_sampled
-def remove_null_time_sampled(cehd_data):
+def remove_null_time_sampled(cehd_data, **kwargs):
     '''
     Remove samples that have a null time sampled variable.
     '''
@@ -353,7 +366,7 @@ def remove_null_time_sampled(cehd_data):
 #endregion
 
 #region: remove_missing_time_sampled
-def remove_missing_time_sampled(cehd_data):
+def remove_missing_time_sampled(cehd_data, **kwargs):
     '''
     Remove samples that have a missing value for the time sampled variable.
     '''
@@ -363,7 +376,7 @@ def remove_missing_time_sampled(cehd_data):
 #endregion
 
 #region: remove_missing_office_id
-def remove_missing_office_id(cehd_data):
+def remove_missing_office_id(cehd_data, **kwargs):
     '''
     Remove samples that have a missing value for the office ID.
     '''
@@ -374,7 +387,7 @@ def remove_missing_office_id(cehd_data):
 
 # FIXME: Double check conversion factor. Unclear.
 #region: convert_percent_to_mass_concentration
-def convert_percent_to_mass_concentration(cehd_data):
+def convert_percent_to_mass_concentration(cehd_data, **kwargs):
     '''
     Convert sample results from percentage concentration to mass concentration 
     (mg/m³).
@@ -434,7 +447,7 @@ def remove_null_weight(cehd_data):
 
 # TODO: Remove hardcoding?
 #region: remove_invalid_unit_for_all_substances
-def remove_invalid_unit_for_all_substances(cehd_data):
+def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
     '''
     For each list of substance codes, remove samples where the unit of
     measurement is invalid.
@@ -497,7 +510,7 @@ def remove_invalid_unit_for_substances(
 #endregion
 
 #region: create_detection_indicator
-def create_detection_indicator(cehd_data):
+def create_detection_indicator(cehd_data, **kwargs):
     '''
     Create a new column 'QUALIFIER_2' to indicate detection status.
     '''
@@ -510,7 +523,7 @@ def create_detection_indicator(cehd_data):
 #endregion
 
 #region: remove_percent_greater_than_100
-def remove_percent_greater_than_100(cehd_data):
+def remove_percent_greater_than_100(cehd_data, **kwargs):
     '''
     Remove samples where the unit of measurement is '%' and the sample result
     is greater than 100.
@@ -524,7 +537,7 @@ def remove_percent_greater_than_100(cehd_data):
 #endregion
 
 #region: remove_empty_unit_non_null_result
-def remove_empty_unit_non_null_result(cehd_data):
+def remove_empty_unit_non_null_result(cehd_data, **kwargs):
     '''
     Remove samples where the unit of measurement is empty and the sample 
     result is not null.
@@ -538,7 +551,7 @@ def remove_empty_unit_non_null_result(cehd_data):
 #endregion
 
 #region: remove_invalid_unit_f
-def remove_invalid_unit_f(cehd_data):
+def remove_invalid_unit_f(cehd_data, **kwargs):
     '''
     Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
@@ -555,7 +568,7 @@ def remove_invalid_unit_f(cehd_data):
 #endregion
 
 #region: remove_qualifier_unit_mismatch
-def remove_qualifier_unit_mismatch(cehd_data):
+def remove_qualifier_unit_mismatch(cehd_data, **kwargs):
     '''
     Remove samples with inconsistent qualifier and unit of measurement.
     '''
@@ -573,7 +586,7 @@ def remove_qualifier_unit_mismatch(cehd_data):
 #endregion
 
 #region: remove_approximate_measure
-def remove_approximate_measure(cehd_data):
+def remove_approximate_measure(cehd_data, **kwargs):
     '''
     Remove samples where the QUALIFIER indicates an approximate measure.
     '''
@@ -595,7 +608,7 @@ def remove_approximate_measure(cehd_data):
 #endregion
 
 #region: remove_yttrium_substance_conflict
-def remove_yttrium_substance_conflict(cehd_data):
+def remove_yttrium_substance_conflict(cehd_data, **kwargs):
     '''
     Remove samples where the qualifier 'Y' is used but the substance code is
     not 9135.
@@ -611,7 +624,7 @@ def remove_yttrium_substance_conflict(cehd_data):
 #endregion
 
 #region: remove_fibers_substance_conflict
-def remove_fibers_substance_conflict(cehd_data):
+def remove_fibers_substance_conflict(cehd_data, **kwargs):
     '''
     Remove samples where the qualifier suggests fibers (F) but the substance
     code is not 9020.
@@ -625,7 +638,7 @@ def remove_fibers_substance_conflict(cehd_data):
 #endregion
 
 #region: remove_combustion_related
-def remove_combustion_related(cehd_data):
+def remove_combustion_related(cehd_data, **kwargs):
     '''
     Remove samples with qualifiers related to combustion.
     '''
@@ -638,7 +651,7 @@ def remove_combustion_related(cehd_data):
 #endregion
 
 #region: remove_blk_possible_bulk_not_blank
-def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020):
+def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
     is 'N'.
@@ -662,7 +675,7 @@ def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020):
 #endregion
 
 #region: remove_conflicting_qualifier
-def remove_conflicting_qualifier(cehd_data, qualif_conv_2020):
+def remove_conflicting_qualifier(cehd_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples with qualifiers conflicting with sample type.
     '''
@@ -678,7 +691,7 @@ def remove_conflicting_qualifier(cehd_data, qualif_conv_2020):
 #endregion
 
 #region: remove_uninterpretable_qualifier
-def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020):
+def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples with qualifiers deemed uninterpretable.
     '''
@@ -694,7 +707,7 @@ def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020):
 #endregion
 
 #region: remove_blk_not_bulk
-def remove_blk_not_bulk(cehd_data, qualif_conv_2020):
+def remove_blk_not_bulk(cehd_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where QUALIFIER is 'BLK' and not possible bulk.
     '''
@@ -739,7 +752,7 @@ def rows_to_exclude_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
 #endregion
 
 #region: clean_unit_of_measurement
-def clean_unit_of_measurement(cehd_data, unit_conv_2020):
+def clean_unit_of_measurement(cehd_data, unit_conv_2020, **kwargs):
     '''
     Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
     values.
@@ -759,7 +772,7 @@ def clean_unit_of_measurement(cehd_data, unit_conv_2020):
 #endregion
 
 #region: remove_invalid_nd
-def remove_invalid_nd(cehd_data, qualif_conv_2020):
+def remove_invalid_nd(cehd_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
@@ -788,7 +801,7 @@ def remove_invalid_nd(cehd_data, qualif_conv_2020):
 #endregion
 
 #region: add_censored_column
-def add_censored_column(cehd_data):
+def add_censored_column(cehd_data, **kwargs):
     '''
     Add a column indicating that the sample is censored ONLY based on the 
     'QUALIFIER' column.
@@ -821,6 +834,16 @@ def add_censored_column(cehd_data):
     cehd_data['SAMPLE_RESULT_2'] = cehd_data['SAMPLE_RESULT'].fillna(0)
 
     return cehd_data
+#endregion
+
+#region: replace_missing_qualifier
+def replace_missing_qualifier(cehd_data, **kwargs):
+    return replace_missing_values(cehd_data, 'QUALIFIER')
+#endregion
+
+#region: replace_missing_unit_of_measurement
+def replace_missing_unit_of_measurement(cehd_data, **kwargs):
+    return replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
 #endregion
 
 #region: replace_missing_values
@@ -858,7 +881,7 @@ def load_qualifier_conversion(qualif_conv_file):
 #endregion
 
 #region: exclude_few
-def exclude_few(cehd_data):
+def exclude_few(cehd_data, **kwargs):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
@@ -883,7 +906,7 @@ def exclude_few(cehd_data):
 #endregion
 
 #region: remove_nonpersonal
-def remove_nonpersonal(cehd_data):
+def remove_nonpersonal(cehd_data, **kwargs):
     '''
     Exclude all samples that are not designated as 'P'.
     '''
@@ -893,7 +916,7 @@ def remove_nonpersonal(cehd_data):
 #endregion
 
 #region: remove_blanks
-def remove_blanks(cehd_data):
+def remove_blanks(cehd_data, **kwargs):
     '''
     Remove blanks from the 'BLANK_USED' variable 
     
@@ -920,7 +943,7 @@ def initialize_elimination_log(cehd_data):
 
 # TODO: Double check whether these are all relevant
 #region: pre_clean
-def pre_clean(cehd_data):
+def pre_clean(cehd_data, **kwargs):
     '''
     '''
     cehd_data = cehd_data.copy()
