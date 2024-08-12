@@ -9,127 +9,127 @@ import numpy as np
 import os
 
 #region: clean_cehd_data
-def clean_cehd_data(database, path_settings):
+def clean_cehd_data(cehd_data, path_settings):
     '''
     '''
-    database = pre_clean(database)
+    cehd_data = pre_clean(cehd_data)
 
-    database = remove_blanks(database)
-    database = remove_nonpersonal(database)
-    database = exclude_few(database)
+    cehd_data = remove_blanks(cehd_data)
+    cehd_data = remove_nonpersonal(cehd_data)
+    cehd_data = exclude_few(cehd_data)
 
-    database = replace_missing_values(database, 'QUALIFIER')
+    cehd_data = replace_missing_values(cehd_data, 'QUALIFIER')
     qualif_conv_2020 = load_qualifier_conversion(
         path_settings['qualif_conv_file']
         )
 
-    database = replace_missing_values(database, 'UNIT_OF_MEASUREMENT')
+    cehd_data = replace_missing_values(cehd_data, 'UNIT_OF_MEASUREMENT')
     unit_conv_2020 = load_unit_measure_conversion(
         path_settings['unit_conv_file']
     )
 
-    database = add_censored_column(database)
+    cehd_data = add_censored_column(cehd_data)
 
-    database = remove_invalid_nd(database, qualif_conv_2020)
+    cehd_data = remove_invalid_nd(cehd_data, qualif_conv_2020)
 
-    database = clean_unit_of_measurement(database, unit_conv_2020)
+    cehd_data = clean_unit_of_measurement(cehd_data, unit_conv_2020)
 
-    database = remove_blk_not_bulk(database, qualif_conv_2020)
+    cehd_data = remove_blk_not_bulk(cehd_data, qualif_conv_2020)
 
-    database = remove_uninterpretable_qualifier(database, qualif_conv_2020)
+    cehd_data = remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020)
 
-    database = remove_conflicting_qualifier(database, qualif_conv_2020)
+    cehd_data = remove_conflicting_qualifier(cehd_data, qualif_conv_2020)
 
-    database = remove_blk_possible_bulk_not_blank(database, qualif_conv_2020)
+    cehd_data = remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020)
 
-    database = remove_combustion_related(database)
+    cehd_data = remove_combustion_related(cehd_data)
 
-    database = remove_fibers_substance_conflict(database)
+    cehd_data = remove_fibers_substance_conflict(cehd_data)
 
-    database = remove_yttrium_substance_conflict(database)
+    cehd_data = remove_yttrium_substance_conflict(cehd_data)
 
-    database = remove_approximate_measure(database)
+    cehd_data = remove_approximate_measure(cehd_data)
 
-    database = remove_qualifier_unit_mismatch(database)
+    cehd_data = remove_qualifier_unit_mismatch(cehd_data)
 
-    database = remove_invalid_unit_f(database)
+    cehd_data = remove_invalid_unit_f(cehd_data)
 
-    database = remove_empty_unit_non_null_result(database)
+    cehd_data = remove_empty_unit_non_null_result(cehd_data)
 
-    database = remove_percent_greater_than_100(database)
+    cehd_data = remove_percent_greater_than_100(cehd_data)
 
-    database = create_detection_indicator(database)
+    cehd_data = create_detection_indicator(cehd_data)
 
-    database = remove_invalid_unit_for_all_substances(database)
+    cehd_data = remove_invalid_unit_for_all_substances(cehd_data)
 
-    database = convert_percent_to_mass_concentration(database)
+    cehd_data = convert_percent_to_mass_concentration(cehd_data)
 
-    database = remove_missing_office_id(database)
+    cehd_data = remove_missing_office_id(cehd_data)
 
-    database = remove_missing_time_sampled(database)
+    cehd_data = remove_missing_time_sampled(cehd_data)
 
-    database = remove_null_time_sampled(database)
+    cehd_data = remove_null_time_sampled(cehd_data)
 
-    database = remove_negative_sample_result(database)
+    cehd_data = remove_negative_sample_result(cehd_data)
 
-    database = remove_missing_sample_number(database)
+    cehd_data = remove_missing_sample_number(cehd_data)
 
-    database = remove_missing_volume(database)
+    cehd_data = remove_missing_volume(cehd_data)
 
-    database = remove_zero_volume_sampled(database)
+    cehd_data = remove_zero_volume_sampled(cehd_data)
 
-    database = clean_instrument_type(database, path_settings['it_directory'])
+    cehd_data = clean_instrument_type(cehd_data, path_settings['it_directory'])
 
-    database = clean_duplicates(database)
+    cehd_data = clean_duplicates(cehd_data)
     
-    return database
+    return cehd_data
 #endregion
 
 #region: clean_duplicates
-def clean_duplicates(database):
+def clean_duplicates(cehd_data):
     '''
     Clean the dataset by identifying and removing duplicate samples.
     '''
-    database = create_hash(database)
-    bla = identify_potential_duplicates(database)
-    false_duplicate_hashes = identify_false_duplicates(database, bla)
-    return remove_true_duplicates(database, false_duplicate_hashes, bla)
+    cehd_data = create_hash(cehd_data)
+    bla = identify_potential_duplicates(cehd_data)
+    false_duplicate_hashes = identify_false_duplicates(cehd_data, bla)
+    return remove_true_duplicates(cehd_data, false_duplicate_hashes, bla)
 #endregion
 
 #region: create_hash
-def create_hash(database):
+def create_hash(cehd_data):
     '''
     Create a unique HASH variable to identify potential duplicates.
     '''
-    database = database.copy()
-    database['HASH'] = (
-        database['INSPECTION_NUMBER'].astype(str) + '-' +
-        database['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
-        database['SAMPLING_NUMBER'].astype(str) + '-' +
-        database['FIELD_NUMBER'].astype(str)
+    cehd_data = cehd_data.copy()
+    cehd_data['HASH'] = (
+        cehd_data['INSPECTION_NUMBER'].astype(str) + '-' +
+        cehd_data['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
+        cehd_data['SAMPLING_NUMBER'].astype(str) + '-' +
+        cehd_data['FIELD_NUMBER'].astype(str)
     )
-    return database
+    return cehd_data
 #endregion
 
 #region: identify_potential_duplicates
-def identify_potential_duplicates(database):
+def identify_potential_duplicates(cehd_data):
     '''
     Identify and return a DataFrame of potential duplicate records based on 
     the HASH variable.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
-    bla = database['HASH'].value_counts().reset_index()
+    bla = cehd_data['HASH'].value_counts().reset_index()
     bla.columns = ['name', 'n']
     bla = bla[bla['n'] > 1]
     bla['name'] = bla['name'].astype(str)
 
     # Match the values for 'code' and 'sub'
     bla['code'] = bla['name'].map(
-        dict(zip(database['HASH'], database['IMIS_SUBSTANCE_CODE']))
+        dict(zip(cehd_data['HASH'], cehd_data['IMIS_SUBSTANCE_CODE']))
     )
     bla['sub'] = bla['name'].map(
-        dict(zip(database['HASH'], database['SUBSTANCE']))
+        dict(zip(cehd_data['HASH'], cehd_data['SUBSTANCE']))
     )
 
     # Ensure the order matches
@@ -137,7 +137,7 @@ def identify_potential_duplicates(database):
 #endregion
 
 #region: identify_false_duplicates
-def identify_false_duplicates(database, bla):
+def identify_false_duplicates(cehd_data, bla):
     '''
     Identify false duplicates by comparing additional variables (CONCAT).
     
@@ -145,17 +145,17 @@ def identify_false_duplicates(database, bla):
     for the same HASH.
     '''
     # Create a new hash variable to identify false duplicates
-    database['CONCAT'] = (
-        database['LAB_NUMBER'].astype(str) + '-' +
-        database['STATE'].astype(str) + '-' +
-        database['ZIP_CODE'].astype(str) + '-' +
-        database['YEAR'].astype(str) + '-' +
-        database['TIME_SAMPLED'].astype(str) + '-' +
-        database['SAMPLE_WEIGHT_2'].astype(str)
+    cehd_data['CONCAT'] = (
+        cehd_data['LAB_NUMBER'].astype(str) + '-' +
+        cehd_data['STATE'].astype(str) + '-' +
+        cehd_data['ZIP_CODE'].astype(str) + '-' +
+        cehd_data['YEAR'].astype(str) + '-' +
+        cehd_data['TIME_SAMPLED'].astype(str) + '-' +
+        cehd_data['SAMPLE_WEIGHT_2'].astype(str)
     )
 
     # Identify samples where CONCAT is the same
-    concat_counts = database.groupby('HASH')['CONCAT'].nunique()
+    concat_counts = cehd_data.groupby('HASH')['CONCAT'].nunique()
     concatdiff_hashes = concat_counts.loc[concat_counts > 1].index
     bla['concatdiff'] = bla['name'].isin(concatdiff_hashes)
 
@@ -165,7 +165,7 @@ def identify_false_duplicates(database, bla):
 
 # FIXME: The original R code
 #region: remove_true_duplicates
-def remove_true_duplicates(database, false_duplicate_hashes, bla):
+def remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
     '''
     Remove true duplicates from the dataset, retaining only one sample per 
     duplicate.
@@ -176,79 +176,79 @@ def remove_true_duplicates(database, false_duplicate_hashes, bla):
     R code inadvertently creating additional rows with NaN. This Python code
     addresses this issue by correctly defining 'max_rows' based on the length.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
-    restrictM = database['HASH'].isin(false_duplicate_hashes)
+    restrictM = cehd_data['HASH'].isin(false_duplicate_hashes)
 
-    database_1 = database.loc[~restrictM]
+    cehd_data_1 = cehd_data.loc[~restrictM]
 
     #### N: true duplicates ####
     # Separate the DB into the OK and remaining problematic
-    database_1_ok = database_1.loc[~database_1['HASH'].isin(bla['name'])]
-    database_1_nonok = database_1.loc[database_1['HASH'].isin(bla['name'])]
+    cehd_data_1_ok = cehd_data_1.loc[~cehd_data_1['HASH'].isin(bla['name'])]
+    cehd_data_1_nonok = cehd_data_1.loc[cehd_data_1['HASH'].isin(bla['name'])]
 
     # TODO: Why just 9010?
     # Majority is 9010 (e.g. duplicates of "M" and "M.from.Perc" cases)
     # Only 9010 treated, remaining cases are deleted
-    where_subs_9010 = database_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
-    database_1_nonok_9010 = database_1_nonok.loc[where_subs_9010]
-    database_1_nonok_9010 = database_1_nonok_9010.sort_values(by='HASH')
+    where_subs_9010 = cehd_data_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
+    cehd_data_1_nonok_9010 = cehd_data_1_nonok.loc[where_subs_9010]
+    cehd_data_1_nonok_9010 = cehd_data_1_nonok_9010.sort_values(by='HASH')
 
     # TODO: Why keep every second sample?
     # One out of 2 sample is retained
-    max_rows = len(database_1_nonok_9010)
+    max_rows = len(cehd_data_1_nonok_9010)
     indices = range(0, max_rows, 2)
-    database_1_nonok_9010 = database_1_nonok_9010.iloc[indices]
+    cehd_data_1_nonok_9010 = cehd_data_1_nonok_9010.iloc[indices]
 
     return pd.concat(
-        [database_1_ok, database_1_nonok_9010], 
+        [cehd_data_1_ok, cehd_data_1_nonok_9010], 
         ignore_index=True
         )
 #endregion
 
 #region: clean_instrument_type
-def clean_instrument_type(database, it_directory):
+def clean_instrument_type(cehd_data, it_directory):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
-    database = handle_missing_instrument_type(database)
+    cehd_data = handle_missing_instrument_type(cehd_data)
     table_for_subs = load_instrument_type_tables(it_directory)
-    database = apply_instrument_type_tables(database, table_for_subs)
-    database = handle_remaining_missing_instrument_type(database)
-    return database
+    cehd_data = apply_instrument_type_tables(cehd_data, table_for_subs)
+    cehd_data = handle_remaining_missing_instrument_type(cehd_data)
+    return cehd_data
 #endregion
 
 #region: handle_missing_instrument_type
-def handle_missing_instrument_type(database):
+def handle_missing_instrument_type(cehd_data):
     '''
     Handle missing instrument type and perform initial population and cleanup.
     '''
-    database = remove_empty_instrument_type(database)
-    where_nan = database['INSTRUMENT_TYPE'].isna()
-    database.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
+    cehd_data = remove_empty_instrument_type(cehd_data)
+    where_nan = cehd_data['INSTRUMENT_TYPE'].isna()
+    cehd_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
 
-    database['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
+    cehd_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
 
     # Copy raw instrument type for 1984-2011
-    where_1984_2011 = database['YEAR'].astype(int) < 2012
-    database.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
-        database.loc[where_1984_2011, 'INSTRUMENT_TYPE']
+    where_1984_2011 = cehd_data['YEAR'].astype(int) < 2012
+    cehd_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
+        cehd_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
     )
 
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_empty_instrument_type
-def remove_empty_instrument_type(database):
+def remove_empty_instrument_type(cehd_data):
     '''
     Remove samples where instrument type is an empty string.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     rows_to_exclude = (
-        (database['INSTRUMENT_TYPE'] == '') 
-        & database['INSTRUMENT_TYPE'].notna()
+        (cehd_data['INSTRUMENT_TYPE'] == '') 
+        & cehd_data['INSTRUMENT_TYPE'].notna()
     )
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: load_instrument_type_tables
@@ -270,12 +270,12 @@ def load_instrument_type_tables(it_directory):
 #endregion
 
 #region: apply_instrument_type_tables
-def apply_instrument_type_tables(database, table_for_subs):
+def apply_instrument_type_tables(cehd_data, table_for_subs):
     '''
     Clean instrument type for specific substance codes using conversion
     tables.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     for subs_code, it_table in table_for_subs.items():
         # For each clean values, get the corresponding raw value(s)
@@ -286,61 +286,61 @@ def apply_instrument_type_tables(database, table_for_subs):
                 )
             
             where_to_clean = (
-                (database['IMIS_SUBSTANCE_CODE'] == subs_code) 
-                & (database['YEAR'].astype(int) < 2010)
-                & (database['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
+                (cehd_data['IMIS_SUBSTANCE_CODE'] == subs_code) 
+                & (cehd_data['YEAR'].astype(int) < 2010)
+                & (cehd_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
                 )
-            database.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
+            cehd_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
 
-    return database
+    return cehd_data
 #endregion
 
 #region: handle_remaining_missing_instrument_type
-def handle_remaining_missing_instrument_type(database):
+def handle_remaining_missing_instrument_type(cehd_data):
     '''
     Final cleanup for 'INSTRUMENT_TYPE_2'.
 
     Sets empty strings to 'eliminate' and removes all samples designated as 
     'eliminate', including those set through conversion tables.
     '''
-    database = database.copy()
-    where_empty = database['INSTRUMENT_TYPE_2'] == ''
-    database.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
-    rows_to_exclude = database['INSTRUMENT_TYPE_2'] == 'eliminate'
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    where_empty = cehd_data['INSTRUMENT_TYPE_2'] == ''
+    cehd_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
+    rows_to_exclude = cehd_data['INSTRUMENT_TYPE_2'] == 'eliminate'
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_zero_volume_sampled
-def remove_zero_volume_sampled(database):
+def remove_zero_volume_sampled(cehd_data):
     '''
     Remove samples that have an air volume sampled of zero.
     '''
-    database = database.copy()
-    rows_to_exclude = database['AIR_VOLUME_SAMPLED'] == 0.
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    rows_to_exclude = cehd_data['AIR_VOLUME_SAMPLED'] == 0.
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_volume
-def remove_missing_volume(database):
+def remove_missing_volume(cehd_data):
     '''
     Remove samples that have a missing or empty volume sampled variable.
 
     This function identifies and removes samples where the 'AIR_VOLUME_SAMPLED'
     column is either missing (NaN) or an empty string ('').
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     
     rows_to_exclude = (
-        database['AIR_VOLUME_SAMPLED'].isna() 
-        | (database['AIR_VOLUME_SAMPLED'] == '')
+        cehd_data['AIR_VOLUME_SAMPLED'].isna() 
+        | (cehd_data['AIR_VOLUME_SAMPLED'] == '')
     )
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 # NOTE: Inconsistency
 #region: remove_missing_sample_number
-def remove_missing_sample_number(database):
+def remove_missing_sample_number(cehd_data):
     '''
     Remove samples that have a missing or null sampling number.
     
@@ -350,79 +350,79 @@ def remove_missing_sample_number(database):
       to numeric , both '0' and '0.0' are treated as numeric zero (0.0) and 
       thus identified as null values by this function.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     
     rows_to_exclude = (
-        database['SAMPLING_NUMBER'].isna() 
-        | (pd.to_numeric(database['SAMPLING_NUMBER'], errors='coerce') == 0.)
+        cehd_data['SAMPLING_NUMBER'].isna() 
+        | (pd.to_numeric(cehd_data['SAMPLING_NUMBER'], errors='coerce') == 0.)
     )
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_negative_sample_result
-def remove_negative_sample_result(database):
+def remove_negative_sample_result(cehd_data):
     '''
     Remove samples with a sample result less than zero.
     '''
-    database = database.copy()
-    rows_to_exclude = database['SAMPLE_RESULT_3'] < 0.
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    rows_to_exclude = cehd_data['SAMPLE_RESULT_3'] < 0.
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_null_time_sampled
-def remove_null_time_sampled(database):
+def remove_null_time_sampled(cehd_data):
     '''
     Remove samples that have a null time sampled variable.
     '''
-    database = database.copy()
-    rows_to_exclude = database['TIME_SAMPLED'] == 0.
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    rows_to_exclude = cehd_data['TIME_SAMPLED'] == 0.
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_time_sampled
-def remove_missing_time_sampled(database):
+def remove_missing_time_sampled(cehd_data):
     '''
     Remove samples that have a missing value for the time sampled variable.
     '''
-    database = database.copy()
-    rows_to_exclude = database['TIME_SAMPLED'].isna()
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    rows_to_exclude = cehd_data['TIME_SAMPLED'].isna()
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_office_id
-def remove_missing_office_id(database):
+def remove_missing_office_id(cehd_data):
     '''
     Remove samples that have a missing value for the office ID.
     '''
-    database = database.copy()
-    rows_to_exclude = database['OFFICE_ID'].isna()
-    return database.loc[~rows_to_exclude]
+    cehd_data = cehd_data.copy()
+    rows_to_exclude = cehd_data['OFFICE_ID'].isna()
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 # FIXME: Double check conversion factor. Unclear.
 #region: convert_percent_to_mass_concentration
-def convert_percent_to_mass_concentration(database):
+def convert_percent_to_mass_concentration(cehd_data):
     '''
     Convert sample results from percentage concentration to mass concentration 
     (mg/m³).
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
-    database = remove_null_weight(database)
+    cehd_data = remove_null_weight(cehd_data)
 
     where_to_convert = (
-        (database['SAMPLE_WEIGHT_2'] != 0) 
-        & (database['UNIT_OF_MEASUREMENT_2'] == '%') 
-        & (database['SAMPLE_RESULT_2'] > 0) 
-        & database['SAMPLE_WEIGHT_2'].notna() 
-        & database['AIR_VOLUME_SAMPLED'].notna() 
-        & (database['AIR_VOLUME_SAMPLED'] > 0)
+        (cehd_data['SAMPLE_WEIGHT_2'] != 0) 
+        & (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') 
+        & (cehd_data['SAMPLE_RESULT_2'] > 0) 
+        & cehd_data['SAMPLE_WEIGHT_2'].notna() 
+        & cehd_data['AIR_VOLUME_SAMPLED'].notna() 
+        & (cehd_data['AIR_VOLUME_SAMPLED'] > 0)
     )
 
-    sample_result = database.loc[where_to_convert, 'SAMPLE_RESULT_2']
-    sample_weight = database.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
-    air_volume_sampled = database.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
+    sample_result = cehd_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
+    sample_weight = cehd_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
+    air_volume_sampled = cehd_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
 
     conversion_factor = 10.
 
@@ -432,37 +432,37 @@ def convert_percent_to_mass_concentration(database):
     )
 
     # Assign the converted results back to the dataframe
-    database['SAMPLE_RESULT_3'] = database['SAMPLE_RESULT_2']
-    database.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
+    cehd_data['SAMPLE_RESULT_3'] = cehd_data['SAMPLE_RESULT_2']
+    cehd_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
 
-    database.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = 'M.from.Perc'
+    cehd_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = 'M.from.Perc'
 
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_null_weight
-def remove_null_weight(database):
+def remove_null_weight(cehd_data):
     '''
     Remove samples where unit of measurement is percentage ('%'), the sample 
     result is non-null, but the sample weight is null.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     # TODO: Is this step necessary?
-    database['SAMPLE_WEIGHT_2'] = database['SAMPLE_WEIGHT'].fillna(0)
+    cehd_data['SAMPLE_WEIGHT_2'] = cehd_data['SAMPLE_WEIGHT'].fillna(0)
 
     rows_to_exclude = (
-        (database['SAMPLE_WEIGHT_2'] == 0) &
-        (database['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (database['SAMPLE_RESULT_2'] > 0)
+        (cehd_data['SAMPLE_WEIGHT_2'] == 0) &
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (cehd_data['SAMPLE_RESULT_2'] > 0)
     )
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 # TODO: Remove hardcoding?
 #region: remove_invalid_unit_for_all_substances
-def remove_invalid_unit_for_all_substances(database):
+def remove_invalid_unit_for_all_substances(cehd_data):
     '''
     For each list of substance codes, remove samples where the unit of
     measurement is invalid.
@@ -474,38 +474,38 @@ def remove_invalid_unit_for_all_substances(database):
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
     ]
     valid_units_n31 = ['', 'F', 'P', 'M']
-    database = remove_invalid_unit_for_substances(
-        database, 
+    cehd_data = remove_invalid_unit_for_substances(
+        cehd_data, 
         top_substances, 
         valid_units_n31
         )
 
     valid_units_n32 = ['', '%', 'M']
-    database = remove_invalid_unit_for_substances(
-        database, 
+    cehd_data = remove_invalid_unit_for_substances(
+        cehd_data, 
         ['9010'], 
         valid_units_n32
         )
 
     where_other_substances = (
-        ~database['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
+        ~cehd_data['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
         )
     other_substances = list(
-        database.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
+        cehd_data.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
         )
     valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    database = remove_invalid_unit_for_substances(
-        database, 
+    cehd_data = remove_invalid_unit_for_substances(
+        cehd_data, 
         other_substances, 
         valid_units_n33
         )
 
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_invalid_unit_for_substances
 def remove_invalid_unit_for_substances(
-        database, 
+        cehd_data, 
         substance_codes, 
         valid_units
         ):
@@ -513,60 +513,60 @@ def remove_invalid_unit_for_substances(
     Remove samples where the unit of measurement is invalid for given
     substances.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     where_in_substance_codes = (
-        database['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
+        cehd_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
     )
-    where_invalid_units = ~database['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+    where_invalid_units = ~cehd_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
 
     rows_to_exclude = where_in_substance_codes & where_invalid_units
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: create_detection_indicator
-def create_detection_indicator(database):
+def create_detection_indicator(cehd_data):
     '''
     Create a new column 'QUALIFIER_2' to indicate detection status.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
-    database['QUALIFIER_2'] = 'detected'  # initialize
-    database.loc[database['SAMPLE_RESULT_2'] == 0, 'QUALIFIER_2'] = 'ND'
+    cehd_data['QUALIFIER_2'] = 'detected'  # initialize
+    cehd_data.loc[cehd_data['SAMPLE_RESULT_2'] == 0, 'QUALIFIER_2'] = 'ND'
 
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_percent_greater_than_100
-def remove_percent_greater_than_100(database):
+def remove_percent_greater_than_100(cehd_data):
     '''
     Remove samples where the unit of measurement is '%' and the sample result
     is greater than 100.
     '''
     rows_to_exclude = (
-        (database['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (database['SAMPLE_RESULT_2'] > 100.)
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (cehd_data['SAMPLE_RESULT_2'] > 100.)
     )
     
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_empty_unit_non_null_result
-def remove_empty_unit_non_null_result(database):
+def remove_empty_unit_non_null_result(cehd_data):
     '''
     Remove samples where the unit of measurement is empty and the sample 
     result is not null.
     '''
     rows_to_exclude = (
-        (database['UNIT_OF_MEASUREMENT_2'] == '') &
-        (database['SAMPLE_RESULT_2'] > 0)
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '') &
+        (cehd_data['SAMPLE_RESULT_2'] > 0)
     )
     
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_invalid_unit_f
-def remove_invalid_unit_f(database):
+def remove_invalid_unit_f(cehd_data):
     '''
     Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
@@ -575,37 +575,37 @@ def remove_invalid_unit_f(database):
     invalid_substance_codes = ['1073', '2270', '2470', '9135']
     
     where_invalid_units = (
-        (database['UNIT_OF_MEASUREMENT_2'] == 'F') &
-        (database['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
+        (cehd_data['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
     )
     
-    return database.loc[~where_invalid_units]
+    return cehd_data.loc[~where_invalid_units]
 #endregion
 
 #region: remove_qualifier_unit_mismatch
-def remove_qualifier_unit_mismatch(database):
+def remove_qualifier_unit_mismatch(cehd_data):
     '''
     Remove samples with inconsistent qualifier and unit of measurement.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     condition_inconsistent_units = (
-        (database['UNIT_OF_MEASUREMENT_2'] != '%') 
-        & (database['QUALIFIER'] == '%')
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] != '%') 
+        & (cehd_data['QUALIFIER'] == '%')
     ) | (
-        (database['UNIT_OF_MEASUREMENT_2'] != 'M') 
-        & (database['QUALIFIER'] == 'M')
+        (cehd_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
+        & (cehd_data['QUALIFIER'] == 'M')
     )
 
-    return database.loc[~condition_inconsistent_units]
+    return cehd_data.loc[~condition_inconsistent_units]
 #endregion
 
 #region: remove_approximate_measure
-def remove_approximate_measure(database):
+def remove_approximate_measure(cehd_data):
     '''
     Remove samples where the QUALIFIER indicates an approximate measure.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     
     approximate_qualifiers = [
         '@', 
@@ -617,214 +617,214 @@ def remove_approximate_measure(database):
         '=<@', 
         'EST'
         ]
-    rows_to_exclude = database['QUALIFIER'].isin(approximate_qualifiers)
+    rows_to_exclude = cehd_data['QUALIFIER'].isin(approximate_qualifiers)
     
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_yttrium_substance_conflict
-def remove_yttrium_substance_conflict(database):
+def remove_yttrium_substance_conflict(cehd_data):
     '''
     Remove samples where the qualifier 'Y' is used but the substance code is
     not 9135.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     rows_to_exclude = (
-        (database['QUALIFIER'] == 'Y') 
-        & (database['IMIS_SUBSTANCE_CODE'] != '9135')
+        (cehd_data['QUALIFIER'] == 'Y') 
+        & (cehd_data['IMIS_SUBSTANCE_CODE'] != '9135')
     )
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_fibers_substance_conflict
-def remove_fibers_substance_conflict(database):
+def remove_fibers_substance_conflict(cehd_data):
     '''
     Remove samples where the qualifier suggests fibers (F) but the substance
     code is not 9020.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     rows_to_exclude = (
-        (database['QUALIFIER'] == 'F') 
-        & (database['IMIS_SUBSTANCE_CODE'] != '9020')
+        (cehd_data['QUALIFIER'] == 'F') 
+        & (cehd_data['IMIS_SUBSTANCE_CODE'] != '9020')
     )
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_combustion_related
-def remove_combustion_related(database):
+def remove_combustion_related(cehd_data):
     '''
     Remove samples with qualifiers related to combustion.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     combustion_qualifiers = ['COMB', 'COMD', 'com', 'comb']
-    rows_to_exclude = database['QUALIFIER'].isin(combustion_qualifiers)
+    rows_to_exclude = cehd_data['QUALIFIER'].isin(combustion_qualifiers)
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_blk_possible_bulk_not_blank
-def remove_blk_possible_bulk_not_blank(database, qualif_conv_2020):
+def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020):
     '''
     Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
     is 'N'.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     condition_blk_possible_bulk = (
         (qualif_conv_2020['clean'] == 'BLK')
         & (qualif_conv_2020['possible_bulk'] == 'Y')
     )
     rows_to_exclude = rows_to_exclude_based_on_qualifier(
-        database, 
+        cehd_data, 
         qualif_conv_2020, 
         condition_blk_possible_bulk
         )
 
     # Further filter rows where BLANK_USED is 'N'
-    rows_to_exclude = rows_to_exclude & (database['BLANK_USED'] == 'N')
+    rows_to_exclude = rows_to_exclude & (cehd_data['BLANK_USED'] == 'N')
 
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_conflicting_qualifier
-def remove_conflicting_qualifier(database, qualif_conv_2020):
+def remove_conflicting_qualifier(cehd_data, qualif_conv_2020):
     '''
     Remove samples with qualifiers conflicting with sample type.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-    database = remove_based_on_qualifier(
-        database, 
+    cehd_data = remove_based_on_qualifier(
+        cehd_data, 
         qualif_conv_2020, 
         where_conflict
         )
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_uninterpretable_qualifier
-def remove_uninterpretable_qualifier(database, qualif_conv_2020):
+def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020):
     '''
     Remove samples with qualifiers deemed uninterpretable.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    database = remove_based_on_qualifier(
-        database, 
+    cehd_data = remove_based_on_qualifier(
+        cehd_data, 
         qualif_conv_2020, 
         where_eliminate
         )
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_blk_not_bulk
-def remove_blk_not_bulk(database, qualif_conv_2020):
+def remove_blk_not_bulk(cehd_data, qualif_conv_2020):
     '''
     Remove samples where QUALIFIER is 'BLK' and not possible bulk.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     where_blk_not_bulk  = (
         (qualif_conv_2020['clean'] == 'BLK') 
         & (qualif_conv_2020['possible_bulk'] == 'N')
     )
-    database = remove_based_on_qualifier(
-        database, 
+    cehd_data = remove_based_on_qualifier(
+        cehd_data, 
         qualif_conv_2020, 
         where_blk_not_bulk
         )
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_based_on_qualifier
-def remove_based_on_qualifier(database, qualif_conv_2020, condition):
+def remove_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     rows_to_exclude = rows_to_exclude_based_on_qualifier(
-        database, 
+        cehd_data, 
         qualif_conv_2020, 
         condition
         )
-    return database.loc[~rows_to_exclude]
+    return cehd_data.loc[~rows_to_exclude]
 #endregion:
 
 #region: rows_to_exclude_based_on_qualifier
-def rows_to_exclude_based_on_qualifier(database, qualif_conv_2020, condition):
+def rows_to_exclude_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
     
     raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
-    return database['QUALIFIER'].isin(raw_values_to_exclude)
+    return cehd_data['QUALIFIER'].isin(raw_values_to_exclude)
 #endregion
 
 #region: clean_unit_of_measurement
-def clean_unit_of_measurement(database, unit_conv_2020):
+def clean_unit_of_measurement(cehd_data, unit_conv_2020):
     '''
     Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
     values.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     # Initialize a cleaned column
-    database['UNIT_OF_MEASUREMENT_2'] = database['UNIT_OF_MEASUREMENT']
+    cehd_data['UNIT_OF_MEASUREMENT_2'] = cehd_data['UNIT_OF_MEASUREMENT']
     
     for clean_value in unit_conv_2020['clean'].unique():
         where_clean_value = unit_conv_2020['clean'] == clean_value
         raw_values = list(unit_conv_2020.loc[where_clean_value, 'raw'])
-        where_needs_clean = database['UNIT_OF_MEASUREMENT'].isin(raw_values)
-        database.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = clean_value
+        where_needs_clean = cehd_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
+        cehd_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = clean_value
 
-    return database
+    return cehd_data
 #endregion
 
 #region: remove_invalid_nd
-def remove_invalid_nd(database, qualif_conv_2020):
+def remove_invalid_nd(cehd_data, qualif_conv_2020):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
     but `SAMPLE_RESULT_2` > 0 (N29).
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     where_nd = qualif_conv_2020['clean'] == 'ND'
     nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
     condition_n08 = (
-        (database['SAMPLE_RESULT_2'] > 0) 
-        & (database['CENSORED'] != 'Y') 
-        & (database['QUALIFIER'].isin(nd_qualifiers))
+        (cehd_data['SAMPLE_RESULT_2'] > 0) 
+        & (cehd_data['CENSORED'] != 'Y') 
+        & (cehd_data['QUALIFIER'].isin(nd_qualifiers))
     )
-    database = database.loc[~condition_n08]  # N08
+    cehd_data = cehd_data.loc[~condition_n08]  # N08
 
     condition_n29 = (
-        (database['SAMPLE_RESULT_2'] > 0) 
-        & ((database['CENSORED'] == 'Y') 
-           | (database['QUALIFIER'].isin(nd_qualifiers)))
+        (cehd_data['SAMPLE_RESULT_2'] > 0) 
+        & ((cehd_data['CENSORED'] == 'Y') 
+           | (cehd_data['QUALIFIER'].isin(nd_qualifiers)))
     )
     
-    database = database.loc[~condition_n29]  # N29
+    cehd_data = cehd_data.loc[~condition_n29]  # N29
 
-    return database
+    return cehd_data
 #endregion
 
 #region: add_censored_column
-def add_censored_column(database):
+def add_censored_column(cehd_data):
     '''
     Add a column indicating that the sample is censored ONLY based on the 
     'QUALIFIER' column.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     new_column = 'CENSORED'
-    database[new_column] = 'N'  # initialize
+    cehd_data[new_column] = 'N'  # initialize
     qualifier_censored_values = [
         '-<', 
         '  <', 
@@ -841,23 +841,23 @@ def add_censored_column(database):
         '=<', 
         '=<@'
     ]
-    where_censored = database['QUALIFIER'].isin(qualifier_censored_values)
-    database.loc[where_censored, new_column] = 'Y'
+    where_censored = cehd_data['QUALIFIER'].isin(qualifier_censored_values)
+    cehd_data.loc[where_censored, new_column] = 'Y'
 
     # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
-    database['QUALIFIER'] = database['QUALIFIER'].replace('raw was NA', '')
-    database['SAMPLE_RESULT_2'] = database['SAMPLE_RESULT'].fillna(0)
+    cehd_data['QUALIFIER'] = cehd_data['QUALIFIER'].replace('raw was NA', '')
+    cehd_data['SAMPLE_RESULT_2'] = cehd_data['SAMPLE_RESULT'].fillna(0)
 
-    return database
+    return cehd_data
 #endregion
 
 #region: replace_missing_values
-def replace_missing_values(database, column):
+def replace_missing_values(cehd_data, column):
     '''
     '''
-    database = database.copy()
-    database[column] = database[column].fillna('raw was NA')
-    return database
+    cehd_data = cehd_data.copy()
+    cehd_data[column] = cehd_data[column].fillna('raw was NA')
+    return cehd_data
 #endregion
 
 #region: load_unit_measure_conversion
@@ -886,14 +886,14 @@ def load_qualifier_conversion(qualif_conv_file):
 #endregion
 
 #region: exclude_few
-def exclude_few(database):
+def exclude_few(cehd_data):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
 
     ## Exclude substances with few samples
-    subst = database['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
+    subst = cehd_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
     subst.columns = ['code', 'n']
     where_enough = subst['n'] >= 100
     subst = subst[where_enough]
@@ -907,34 +907,34 @@ def exclude_few(database):
     subst = subst[~where_non_chemical]
 
     sub_list_all = list(subst['code'])
-    return database[database['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)]
+    return cehd_data[cehd_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)]
 #endregion
 
 #region: remove_nonpersonal
-def remove_nonpersonal(database):
+def remove_nonpersonal(cehd_data):
     '''
     Exclude all samples that are not designated as 'P'.
     '''
-    database = database.copy()
-    not_blank = database['SAMPLE_TYPE'] != 'P'
-    return database.loc[~not_blank]
+    cehd_data = cehd_data.copy()
+    not_blank = cehd_data['SAMPLE_TYPE'] != 'P'
+    return cehd_data.loc[~not_blank]
 #endregion
 
 #region: remove_blanks
-def remove_blanks(database):
+def remove_blanks(cehd_data):
     '''
     Remove blanks from the 'BLANK_USED' variable 
     
     Other blanks identified later by 'QUALIFIER'.
     '''
-    database = database.copy()
-    not_blank = database['BLANK_USED'] == 'N'
-    return database.loc[not_blank]
+    cehd_data = cehd_data.copy()
+    not_blank = cehd_data['BLANK_USED'] == 'N'
+    return cehd_data.loc[not_blank]
 #endregion
 
 # NOTE: This may not be needed
 #region: initialize_elimination_log
-def initialize_elimination_log(database):
+def initialize_elimination_log(cehd_data):
     '''
     Initialize a dataframe to function as a log or tracker for the samples 
     eliminated during the data cleaning process.
@@ -942,96 +942,96 @@ def initialize_elimination_log(database):
     This log is named 'reasons' in the R script.
     '''
     return pd.DataFrame(
-        index=pd.RangeIndex(min(database['YEAR']), max(database['YEAR'])+1)
+        index=pd.RangeIndex(min(cehd_data['YEAR']), max(cehd_data['YEAR'])+1)
     )
 #endregion
 
 # TODO: Double check whether these are all relevant
 #region: pre_clean
-def pre_clean(database):
+def pre_clean(cehd_data):
     '''
     '''
-    database = database.copy()
+    cehd_data = cehd_data.copy()
         
-    database['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
-        database['AIR_VOLUME_SAMPLED'], errors='coerce'
+    cehd_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
+        cehd_data['AIR_VOLUME_SAMPLED'], errors='coerce'
         )
 
-    database['BLANK_USED'] = factor(
-        database['BLANK_USED'], categories=['Y', 'N']
+    cehd_data['BLANK_USED'] = factor(
+        cehd_data['BLANK_USED'], categories=['Y', 'N']
         )
 
-    database['CITY'] = as_character(database['CITY'])
+    cehd_data['CITY'] = as_character(cehd_data['CITY'])
 
-    database['DATE_REPORTED'] = convert_date(database['DATE_REPORTED'])
-    database['DATE_SAMPLED'] = convert_date(database['DATE_SAMPLED'])
+    cehd_data['DATE_REPORTED'] = convert_date(cehd_data['DATE_REPORTED'])
+    cehd_data['DATE_SAMPLED'] = convert_date(cehd_data['DATE_SAMPLED'])
 
-    database['EIGHT_HOUR_TWA_CALC'] = factor(
-        database['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
+    cehd_data['EIGHT_HOUR_TWA_CALC'] = factor(
+        cehd_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
         )
 
-    database['ESTABLISHMENT_NAME'] = as_character(
-        database['ESTABLISHMENT_NAME']
+    cehd_data['ESTABLISHMENT_NAME'] = as_character(
+        cehd_data['ESTABLISHMENT_NAME']
         )
-    database['FIELD_NUMBER'] = as_character(database['FIELD_NUMBER'])
+    cehd_data['FIELD_NUMBER'] = as_character(cehd_data['FIELD_NUMBER'])
 
     # NOTE: Seems unnecessary to go from one type to another
-    database['IMIS_SUBSTANCE_CODE'] = factor(
-        database['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
+    cehd_data['IMIS_SUBSTANCE_CODE'] = factor(
+        cehd_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
     )
-    database['IMIS_SUBSTANCE_CODE'] = as_character(
-        database['IMIS_SUBSTANCE_CODE']
+    cehd_data['IMIS_SUBSTANCE_CODE'] = as_character(
+        cehd_data['IMIS_SUBSTANCE_CODE']
         )
     
-    database['INSPECTION_NUMBER'] = factor(database['INSPECTION_NUMBER'])
-    database['INSPECTION_NUMBER'] = as_character(database['INSPECTION_NUMBER'])
+    cehd_data['INSPECTION_NUMBER'] = factor(cehd_data['INSPECTION_NUMBER'])
+    cehd_data['INSPECTION_NUMBER'] = as_character(cehd_data['INSPECTION_NUMBER'])
 
-    database['INSTRUMENT_TYPE'] = as_character(database['INSTRUMENT_TYPE'])
-    database['LAB_NUMBER'] = factor(database['LAB_NUMBER'])
+    cehd_data['INSTRUMENT_TYPE'] = as_character(cehd_data['INSTRUMENT_TYPE'])
+    cehd_data['LAB_NUMBER'] = factor(cehd_data['LAB_NUMBER'])
 
-    database['NAICS_CODE'] = (
-        as_character(database['NAICS_CODE'])
+    cehd_data['NAICS_CODE'] = (
+        as_character(cehd_data['NAICS_CODE'])
         .apply(
             lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan)
     )
 
-    database['OFFICE_ID'] = factor(database['OFFICE_ID'])
-    database['QUALIFIER'] = as_character(database['QUALIFIER'])
+    cehd_data['OFFICE_ID'] = factor(cehd_data['OFFICE_ID'])
+    cehd_data['QUALIFIER'] = as_character(cehd_data['QUALIFIER'])
 
-    database['SAMPLE_RESULT'] = pd.to_numeric(
-        database['SAMPLE_RESULT'], errors='coerce'
+    cehd_data['SAMPLE_RESULT'] = pd.to_numeric(
+        cehd_data['SAMPLE_RESULT'], errors='coerce'
         )
 
-    database['SAMPLE_TYPE'] = factor(database['SAMPLE_TYPE'])
-    database['SAMPLE_WEIGHT'] = pd.to_numeric(
-        database['SAMPLE_WEIGHT'], errors='coerce'
+    cehd_data['SAMPLE_TYPE'] = factor(cehd_data['SAMPLE_TYPE'])
+    cehd_data['SAMPLE_WEIGHT'] = pd.to_numeric(
+        cehd_data['SAMPLE_WEIGHT'], errors='coerce'
         )
-    database['SAMPLING_NUMBER'] = factor(database['SAMPLING_NUMBER'])
-    database['SAMPLING_NUMBER'] = as_character(database['SAMPLING_NUMBER'])
+    cehd_data['SAMPLING_NUMBER'] = factor(cehd_data['SAMPLING_NUMBER'])
+    cehd_data['SAMPLING_NUMBER'] = as_character(cehd_data['SAMPLING_NUMBER'])
 
-    database['SIC_CODE'] = factor(database['SIC_CODE'])
-    database['STATE'] = factor(database['STATE'])
-    database['SUBSTANCE'] = as_character(database['SUBSTANCE'])
+    cehd_data['SIC_CODE'] = factor(cehd_data['SIC_CODE'])
+    cehd_data['STATE'] = factor(cehd_data['STATE'])
+    cehd_data['SUBSTANCE'] = as_character(cehd_data['SUBSTANCE'])
 
-    database['TIME_SAMPLED'] = pd.to_numeric(
-        database['TIME_SAMPLED'], errors='coerce'
+    cehd_data['TIME_SAMPLED'] = pd.to_numeric(
+        cehd_data['TIME_SAMPLED'], errors='coerce'
         )
-    database['UNIT_OF_MEASUREMENT'] = as_character(
-        database['UNIT_OF_MEASUREMENT']
+    cehd_data['UNIT_OF_MEASUREMENT'] = as_character(
+        cehd_data['UNIT_OF_MEASUREMENT']
         )
 
-    database['ZIP_CODE'] = (
-        as_character(database['ZIP_CODE'])
+    cehd_data['ZIP_CODE'] = (
+        as_character(cehd_data['ZIP_CODE'])
         .str.replace(' ', '0').str.zfill(5)
     )
-    database['ZIP_CODE'] = factor(database['ZIP_CODE'])
+    cehd_data['ZIP_CODE'] = factor(cehd_data['ZIP_CODE'])
 
-    database['YEAR'] = factor(database['DATE_SAMPLED'].dt.year)
+    cehd_data['YEAR'] = factor(cehd_data['DATE_SAMPLED'].dt.year)
 
-    database['INSPECTION_NUMBER'] = database['INSPECTION_NUMBER'].str.strip()
-    database['SAMPLING_NUMBER'] = database['SAMPLING_NUMBER'].str.strip()
+    cehd_data['INSPECTION_NUMBER'] = cehd_data['INSPECTION_NUMBER'].str.strip()
+    cehd_data['SAMPLING_NUMBER'] = cehd_data['SAMPLING_NUMBER'].str.strip()
 
-    return database
+    return cehd_data
 #endregion
 
 #region: as_character
