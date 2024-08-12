@@ -47,7 +47,19 @@ CLEANING_STEPS = [
 def clean_cehd_data(cehd_data, path_settings):
     '''
     '''
-    # Define key-word arguments for flexible argument passing
+    kwargs = _prepare_key_word_arguments(path_settings)
+
+    for step_name in CLEANING_STEPS:
+        cehd_data = _apply_cleaning_step(cehd_data, step_name, kwargs)
+    
+    return cehd_data
+#endregion
+
+#region: _prepare_key_word_arguments
+def _prepare_key_word_arguments(path_settings):
+    '''
+    Define key-word arguments for flexible argument passing.
+    '''
     kwargs = path_settings.copy()
     kwargs['qualif_conv_2020'] = load_qualifier_conversion(
         path_settings['qualif_conv_file']
@@ -55,11 +67,7 @@ def clean_cehd_data(cehd_data, path_settings):
     kwargs['unit_conv_2020'] = load_unit_measure_conversion(
         path_settings['unit_conv_file']
     )
-
-    for step_name in CLEANING_STEPS:
-        cehd_data = _apply_cleaning_step(cehd_data, step_name, kwargs)
-    
-    return cehd_data
+    return kwargs
 #endregion
 
 #region: _apply_cleaning_step
