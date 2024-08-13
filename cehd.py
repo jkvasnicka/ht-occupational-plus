@@ -44,17 +44,21 @@ CLEANING_STEPS = [
     'clean_duplicates'
 ]
 
-#region: clean_cehd_data
-def clean_cehd_data(cehd_data, path_settings, do_log_changes=True):
+#region: clean_chemical_exposure_health_data
+def clean_chemical_exposure_health_data(
+        exposure_data, 
+        path_settings, 
+        do_log_changes=True
+        ):
     '''
     '''
     change_log = {}  # initialize
     kwargs = _prepare_key_word_arguments(path_settings)
 
     for step_name in CLEANING_STEPS:
-        N_before = len(cehd_data)
-        cehd_data = _apply_cleaning_step(cehd_data, step_name, kwargs)
-        N_after = len(cehd_data)
+        N_before = len(exposure_data)
+        exposure_data = _apply_cleaning_step(exposure_data, step_name, kwargs)
+        N_after = len(exposure_data)
         change_log[step_name] =  N_after - N_before
 
     if do_log_changes is True:
@@ -64,7 +68,7 @@ def clean_cehd_data(cehd_data, path_settings, do_log_changes=True):
         with open(cehd_log_file, 'w') as log_file:
             json.dump(change_log, log_file, indent=4)
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _prepare_key_word_arguments
@@ -83,57 +87,57 @@ def _prepare_key_word_arguments(path_settings):
 #endregion
 
 #region: _apply_cleaning_step
-def _apply_cleaning_step(cehd_data, step_name, kwargs):
+def _apply_cleaning_step(exposure_data, step_name, kwargs):
     '''
     '''
-    return globals()[step_name](cehd_data, **kwargs)
+    return globals()[step_name](exposure_data, **kwargs)
 #endregion
 
 #region: clean_duplicates
-def clean_duplicates(cehd_data, **kwargs):
+def clean_duplicates(exposure_data, **kwargs):
     '''
     Clean the dataset by identifying and removing duplicate samples.
     '''
-    cehd_data = _create_hash(cehd_data)
-    bla = _identify_potential_duplicates(cehd_data)
-    false_duplicate_hashes = _identify_false_duplicates(cehd_data, bla)
-    return _remove_true_duplicates(cehd_data, false_duplicate_hashes, bla)
+    exposure_data = _create_hash(exposure_data)
+    bla = _identify_potential_duplicates(exposure_data)
+    false_duplicate_hashes = _identify_false_duplicates(exposure_data, bla)
+    return _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla)
 #endregion
 
 #region: _create_hash
-def _create_hash(cehd_data):
+def _create_hash(exposure_data):
     '''
     Create a unique HASH variable to identify potential duplicates.
     '''
-    cehd_data = cehd_data.copy()
-    cehd_data['HASH'] = (
-        cehd_data['INSPECTION_NUMBER'].astype(str) + '-' +
-        cehd_data['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
-        cehd_data['SAMPLING_NUMBER'].astype(str) + '-' +
-        cehd_data['FIELD_NUMBER'].astype(str)
+    exposure_data = exposure_data.copy()
+    exposure_data['HASH'] = (
+        exposure_data['INSPECTION_NUMBER'].astype(str) + '-' +
+        exposure_data['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
+        exposure_data['SAMPLING_NUMBER'].astype(str) + '-' +
+        exposure_data['FIELD_NUMBER'].astype(str)
     )
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _identify_potential_duplicates
-def _identify_potential_duplicates(cehd_data):
+def _identify_potential_duplicates(exposure_data):
     '''
     Identify and return a DataFrame of potential duplicate records based on 
     the HASH variable.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
-    bla = cehd_data['HASH'].value_counts().reset_index()
+    bla = exposure_data['HASH'].value_counts().reset_index()
     bla.columns = ['name', 'n']
     bla = bla[bla['n'] > 1]
     bla['name'] = bla['name'].astype(str)
 
     # Match the values for 'code' and 'sub'
     bla['code'] = bla['name'].map(
-        dict(zip(cehd_data['HASH'], cehd_data['IMIS_SUBSTANCE_CODE']))
+        dict(zip(exposure_data['HASH'], exposure_data['IMIS_SUBSTANCE_CODE']))
     )
     bla['sub'] = bla['name'].map(
-        dict(zip(cehd_data['HASH'], cehd_data['SUBSTANCE']))
+        dict(zip(exposure_data['HASH'], exposure_data['SUBSTANCE']))
     )
 
     # Ensure the order matches
@@ -141,7 +145,7 @@ def _identify_potential_duplicates(cehd_data):
 #endregion
 
 #region: _identify_false_duplicates
-def _identify_false_duplicates(cehd_data, bla):
+def _identify_false_duplicates(exposure_data, bla):
     '''
     Identify false duplicates by comparing additional variables (CONCAT).
     
@@ -149,17 +153,17 @@ def _identify_false_duplicates(cehd_data, bla):
     for the same HASH.
     '''
     # Create a new hash variable to identify false duplicates
-    cehd_data['CONCAT'] = (
-        cehd_data['LAB_NUMBER'].astype(str) + '-' +
-        cehd_data['STATE'].astype(str) + '-' +
-        cehd_data['ZIP_CODE'].astype(str) + '-' +
-        cehd_data['YEAR'].astype(str) + '-' +
-        cehd_data['TIME_SAMPLED'].astype(str) + '-' +
-        cehd_data['SAMPLE_WEIGHT_2'].astype(str)
+    exposure_data['CONCAT'] = (
+        exposure_data['LAB_NUMBER'].astype(str) + '-' +
+        exposure_data['STATE'].astype(str) + '-' +
+        exposure_data['ZIP_CODE'].astype(str) + '-' +
+        exposure_data['YEAR'].astype(str) + '-' +
+        exposure_data['TIME_SAMPLED'].astype(str) + '-' +
+        exposure_data['SAMPLE_WEIGHT_2'].astype(str)
     )
 
     # Identify samples where CONCAT is the same
-    concat_counts = cehd_data.groupby('HASH')['CONCAT'].nunique()
+    concat_counts = exposure_data.groupby('HASH')['CONCAT'].nunique()
     concatdiff_hashes = concat_counts.loc[concat_counts > 1].index
     bla['concatdiff'] = bla['name'].isin(concatdiff_hashes)
 
@@ -169,7 +173,7 @@ def _identify_false_duplicates(cehd_data, bla):
 
 # FIXME: The original R code
 #region: _remove_true_duplicates
-def _remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
+def _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla):
     '''
     Remove true duplicates from the dataset, retaining only one sample per 
     duplicate.
@@ -180,79 +184,87 @@ def _remove_true_duplicates(cehd_data, false_duplicate_hashes, bla):
     R code inadvertently creating additional rows with NaN. This Python code
     addresses this issue by correctly defining 'max_rows' based on the length.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
-    restrictM = cehd_data['HASH'].isin(false_duplicate_hashes)
+    restrictM = exposure_data['HASH'].isin(false_duplicate_hashes)
 
-    cehd_data_1 = cehd_data.loc[~restrictM]
+    exposure_data_1 = exposure_data.loc[~restrictM]
 
     #### N: true duplicates ####
     # Separate the DB into the OK and remaining problematic
-    cehd_data_1_ok = cehd_data_1.loc[~cehd_data_1['HASH'].isin(bla['name'])]
-    cehd_data_1_nonok = cehd_data_1.loc[cehd_data_1['HASH'].isin(bla['name'])]
+    exposure_data_1_ok = exposure_data_1.loc[
+        ~exposure_data_1['HASH'].isin(bla['name'])
+        ]
+    exposure_data_1_nonok = exposure_data_1.loc[
+        exposure_data_1['HASH'].isin(bla['name'])
+        ]
 
     # TODO: Why just 9010?
     # Majority is 9010 (e.g. duplicates of "M" and "M.from.Perc" cases)
     # Only 9010 treated, remaining cases are deleted
-    where_subs_9010 = cehd_data_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
-    cehd_data_1_nonok_9010 = cehd_data_1_nonok.loc[where_subs_9010]
-    cehd_data_1_nonok_9010 = cehd_data_1_nonok_9010.sort_values(by='HASH')
+    where_subs_9010 = exposure_data_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
+    exposure_data_1_nonok_9010 = exposure_data_1_nonok.loc[where_subs_9010]
+    exposure_data_1_nonok_9010 = (
+        exposure_data_1_nonok_9010.sort_values(by='HASH')
+    )
 
     # TODO: Why keep every second sample?
     # One out of 2 sample is retained
-    max_rows = len(cehd_data_1_nonok_9010)
+    max_rows = len(exposure_data_1_nonok_9010)
     indices = range(0, max_rows, 2)
-    cehd_data_1_nonok_9010 = cehd_data_1_nonok_9010.iloc[indices]
+    exposure_data_1_nonok_9010 = exposure_data_1_nonok_9010.iloc[indices]
 
     return pd.concat(
-        [cehd_data_1_ok, cehd_data_1_nonok_9010], 
+        [exposure_data_1_ok, exposure_data_1_nonok_9010], 
         ignore_index=True
         )
 #endregion
 
 #region: clean_instrument_type
-def clean_instrument_type(cehd_data, it_directory, **kwargs):
+def clean_instrument_type(exposure_data, it_directory, **kwargs):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
-    cehd_data = _handle_missing_instrument_type(cehd_data)
+    exposure_data = _handle_missing_instrument_type(exposure_data)
     table_for_subs = load_instrument_type_tables(it_directory)
-    cehd_data = _apply_instrument_type_tables(cehd_data, table_for_subs)
-    cehd_data = _handle_remaining_missing_instrument_type(cehd_data)
-    return cehd_data
+    exposure_data = (
+        _apply_instrument_type_tables(exposure_data, table_for_subs)
+    )
+    exposure_data = _handle_remaining_missing_instrument_type(exposure_data)
+    return exposure_data
 #endregion
 
 #region: _handle_missing_instrument_type
-def _handle_missing_instrument_type(cehd_data):
+def _handle_missing_instrument_type(exposure_data):
     '''
     Handle missing instrument type and perform initial population and cleanup.
     '''
-    cehd_data = _remove_empty_instrument_type(cehd_data)
-    where_nan = cehd_data['INSTRUMENT_TYPE'].isna()
-    cehd_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
+    exposure_data = _remove_empty_instrument_type(exposure_data)
+    where_nan = exposure_data['INSTRUMENT_TYPE'].isna()
+    exposure_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
 
-    cehd_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
+    exposure_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
 
     # Copy raw instrument type for 1984-2011
-    where_1984_2011 = cehd_data['YEAR'].astype(int) < 2012
-    cehd_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
-        cehd_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
+    where_1984_2011 = exposure_data['YEAR'].astype(int) < 2012
+    exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
+        exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
     )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _remove_empty_instrument_type
-def _remove_empty_instrument_type(cehd_data):
+def _remove_empty_instrument_type(exposure_data):
     '''
     Remove samples where instrument type is an empty string.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     rows_to_exclude = (
-        (cehd_data['INSTRUMENT_TYPE'] == '') 
-        & cehd_data['INSTRUMENT_TYPE'].notna()
+        (exposure_data['INSTRUMENT_TYPE'] == '') 
+        & exposure_data['INSTRUMENT_TYPE'].notna()
     )
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: load_instrument_type_tables
@@ -274,12 +286,12 @@ def load_instrument_type_tables(it_directory):
 #endregion
 
 #region: _apply_instrument_type_tables
-def _apply_instrument_type_tables(cehd_data, table_for_subs):
+def _apply_instrument_type_tables(exposure_data, table_for_subs):
     '''
     Clean instrument type for specific substance codes using conversion
     tables.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     for subs_code, it_table in table_for_subs.items():
         # For each clean values, get the corresponding raw value(s)
@@ -290,61 +302,63 @@ def _apply_instrument_type_tables(cehd_data, table_for_subs):
                 )
             
             where_to_clean = (
-                (cehd_data['IMIS_SUBSTANCE_CODE'] == subs_code) 
-                & (cehd_data['YEAR'].astype(int) < 2010)
-                & (cehd_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
+                (exposure_data['IMIS_SUBSTANCE_CODE'] == subs_code) 
+                & (exposure_data['YEAR'].astype(int) < 2010)
+                & (exposure_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
                 )
-            cehd_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = clean_value
+            exposure_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = (
+                clean_value
+            )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _handle_remaining_missing_instrument_type
-def _handle_remaining_missing_instrument_type(cehd_data):
+def _handle_remaining_missing_instrument_type(exposure_data):
     '''
     Final cleanup for 'INSTRUMENT_TYPE_2'.
 
     Sets empty strings to 'eliminate' and removes all samples designated as 
     'eliminate', including those set through conversion tables.
     '''
-    cehd_data = cehd_data.copy()
-    where_empty = cehd_data['INSTRUMENT_TYPE_2'] == ''
-    cehd_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
-    rows_to_exclude = cehd_data['INSTRUMENT_TYPE_2'] == 'eliminate'
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    where_empty = exposure_data['INSTRUMENT_TYPE_2'] == ''
+    exposure_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
+    rows_to_exclude = exposure_data['INSTRUMENT_TYPE_2'] == 'eliminate'
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_zero_volume_sampled
-def remove_zero_volume_sampled(cehd_data, **kwargs):
+def remove_zero_volume_sampled(exposure_data, **kwargs):
     '''
     Remove samples that have an air volume sampled of zero.
     '''
-    cehd_data = cehd_data.copy()
-    rows_to_exclude = cehd_data['AIR_VOLUME_SAMPLED'] == 0.
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    rows_to_exclude = exposure_data['AIR_VOLUME_SAMPLED'] == 0.
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_volume
-def remove_missing_volume(cehd_data, **kwargs):
+def remove_missing_volume(exposure_data, **kwargs):
     '''
     Remove samples that have a missing or empty volume sampled variable.
 
     This function identifies and removes samples where the 'AIR_VOLUME_SAMPLED'
     column is either missing (NaN) or an empty string ('').
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     
     rows_to_exclude = (
-        cehd_data['AIR_VOLUME_SAMPLED'].isna() 
-        | (cehd_data['AIR_VOLUME_SAMPLED'] == '')
+        exposure_data['AIR_VOLUME_SAMPLED'].isna() 
+        | (exposure_data['AIR_VOLUME_SAMPLED'] == '')
     )
 
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 # NOTE: Inconsistency
 #region: remove_missing_sample_number
-def remove_missing_sample_number(cehd_data, **kwargs):
+def remove_missing_sample_number(exposure_data, **kwargs):
     '''
     Remove samples that have a missing or null sampling number.
     
@@ -354,79 +368,83 @@ def remove_missing_sample_number(cehd_data, **kwargs):
       to numeric , both '0' and '0.0' are treated as numeric zero (0.0) and 
       thus identified as null values by this function.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     
     rows_to_exclude = (
-        cehd_data['SAMPLING_NUMBER'].isna() 
-        | (pd.to_numeric(cehd_data['SAMPLING_NUMBER'], errors='coerce') == 0.)
+        exposure_data['SAMPLING_NUMBER'].isna() 
+        | (pd.to_numeric(
+            exposure_data['SAMPLING_NUMBER'], errors='coerce') == 0.
+            )
     )
 
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_negative_sample_result
-def remove_negative_sample_result(cehd_data, **kwargs):
+def remove_negative_sample_result(exposure_data, **kwargs):
     '''
     Remove samples with a sample result less than zero.
     '''
-    cehd_data = cehd_data.copy()
-    rows_to_exclude = cehd_data['SAMPLE_RESULT_3'] < 0.
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    rows_to_exclude = exposure_data['SAMPLE_RESULT_3'] < 0.
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_null_time_sampled
-def remove_null_time_sampled(cehd_data, **kwargs):
+def remove_null_time_sampled(exposure_data, **kwargs):
     '''
     Remove samples that have a null time sampled variable.
     '''
-    cehd_data = cehd_data.copy()
-    rows_to_exclude = cehd_data['TIME_SAMPLED'] == 0.
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    rows_to_exclude = exposure_data['TIME_SAMPLED'] == 0.
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_time_sampled
-def remove_missing_time_sampled(cehd_data, **kwargs):
+def remove_missing_time_sampled(exposure_data, **kwargs):
     '''
     Remove samples that have a missing value for the time sampled variable.
     '''
-    cehd_data = cehd_data.copy()
-    rows_to_exclude = cehd_data['TIME_SAMPLED'].isna()
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    rows_to_exclude = exposure_data['TIME_SAMPLED'].isna()
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_missing_office_id
-def remove_missing_office_id(cehd_data, **kwargs):
+def remove_missing_office_id(exposure_data, **kwargs):
     '''
     Remove samples that have a missing value for the office ID.
     '''
-    cehd_data = cehd_data.copy()
-    rows_to_exclude = cehd_data['OFFICE_ID'].isna()
-    return cehd_data.loc[~rows_to_exclude]
+    exposure_data = exposure_data.copy()
+    rows_to_exclude = exposure_data['OFFICE_ID'].isna()
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 # FIXME: Double check conversion factor. Unclear.
 #region: convert_percent_to_mass_concentration
-def convert_percent_to_mass_concentration(cehd_data, **kwargs):
+def convert_percent_to_mass_concentration(exposure_data, **kwargs):
     '''
     Convert sample results from percentage concentration to mass concentration 
     (mg/m³).
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
-    cehd_data = remove_null_weight(cehd_data)
+    exposure_data = remove_null_weight(exposure_data)
 
     where_to_convert = (
-        (cehd_data['SAMPLE_WEIGHT_2'] != 0) 
-        & (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') 
-        & (cehd_data['SAMPLE_RESULT_2'] > 0) 
-        & cehd_data['SAMPLE_WEIGHT_2'].notna() 
-        & cehd_data['AIR_VOLUME_SAMPLED'].notna() 
-        & (cehd_data['AIR_VOLUME_SAMPLED'] > 0)
+        (exposure_data['SAMPLE_WEIGHT_2'] != 0) 
+        & (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') 
+        & (exposure_data['SAMPLE_RESULT_2'] > 0) 
+        & exposure_data['SAMPLE_WEIGHT_2'].notna() 
+        & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
+        & (exposure_data['AIR_VOLUME_SAMPLED'] > 0)
     )
 
-    sample_result = cehd_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
-    sample_weight = cehd_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
-    air_volume_sampled = cehd_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
+    sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
+    sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
+    air_volume_sampled = (
+        exposure_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
+    )
 
     conversion_factor = 10.
 
@@ -436,37 +454,41 @@ def convert_percent_to_mass_concentration(cehd_data, **kwargs):
     )
 
     # Assign the converted results back to the dataframe
-    cehd_data['SAMPLE_RESULT_3'] = cehd_data['SAMPLE_RESULT_2']
-    cehd_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
+    exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
+    exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
 
-    cehd_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = 'M.from.Perc'
+    exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = (
+        'M.from.Perc'
+        )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: remove_null_weight
-def remove_null_weight(cehd_data):
+def remove_null_weight(exposure_data):
     '''
     Remove samples where unit of measurement is percentage ('%'), the sample 
     result is non-null, but the sample weight is null.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     # TODO: Is this step necessary?
-    cehd_data['SAMPLE_WEIGHT_2'] = cehd_data['SAMPLE_WEIGHT'].fillna(0)
-
-    rows_to_exclude = (
-        (cehd_data['SAMPLE_WEIGHT_2'] == 0) &
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (cehd_data['SAMPLE_RESULT_2'] > 0)
+    exposure_data['SAMPLE_WEIGHT_2'] = (
+        exposure_data['SAMPLE_WEIGHT'].fillna(0)
     )
 
-    return cehd_data.loc[~rows_to_exclude]
+    rows_to_exclude = (
+        (exposure_data['SAMPLE_WEIGHT_2'] == 0) &
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (exposure_data['SAMPLE_RESULT_2'] > 0)
+    )
+
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 # TODO: Remove hardcoding?
 #region: remove_invalid_unit_for_all_substances
-def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
+def remove_invalid_unit_for_all_substances(exposure_data, **kwargs):
     '''
     For each list of substance codes, remove samples where the unit of
     measurement is invalid.
@@ -478,38 +500,38 @@ def remove_invalid_unit_for_all_substances(cehd_data, **kwargs):
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
     ]
     valid_units_n31 = ['', 'F', 'P', 'M']
-    cehd_data = _remove_invalid_unit_for_substances(
-        cehd_data, 
+    exposure_data = _remove_invalid_unit_for_substances(
+        exposure_data, 
         top_substances, 
         valid_units_n31
         )
 
     valid_units_n32 = ['', '%', 'M']
-    cehd_data = _remove_invalid_unit_for_substances(
-        cehd_data, 
+    exposure_data = _remove_invalid_unit_for_substances(
+        exposure_data, 
         ['9010'], 
         valid_units_n32
         )
 
-    where_other_substances = (
-        ~cehd_data['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
+    where_other = (
+        ~exposure_data['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
         )
     other_substances = list(
-        cehd_data.loc[where_other_substances, 'IMIS_SUBSTANCE_CODE'].unique()
+        exposure_data.loc[where_other, 'IMIS_SUBSTANCE_CODE'].unique()
         )
     valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    cehd_data = _remove_invalid_unit_for_substances(
-        cehd_data, 
+    exposure_data = _remove_invalid_unit_for_substances(
+        exposure_data, 
         other_substances, 
         valid_units_n33
         )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _remove_invalid_unit_for_substances
 def _remove_invalid_unit_for_substances(
-        cehd_data, 
+        exposure_data, 
         substance_codes, 
         valid_units
         ):
@@ -517,60 +539,63 @@ def _remove_invalid_unit_for_substances(
     Remove samples where the unit of measurement is invalid for given
     substances.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     where_in_substance_codes = (
-        cehd_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
+        exposure_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
     )
-    where_invalid_units = ~cehd_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+    where_invalid_units = (
+        ~exposure_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+    )
 
     rows_to_exclude = where_in_substance_codes & where_invalid_units
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: create_detection_indicator
-def create_detection_indicator(cehd_data, **kwargs):
+def create_detection_indicator(exposure_data, **kwargs):
     '''
     Create a new column 'QUALIFIER_2' to indicate detection status.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
-    cehd_data['QUALIFIER_2'] = 'detected'  # initialize
-    cehd_data.loc[cehd_data['SAMPLE_RESULT_2'] == 0, 'QUALIFIER_2'] = 'ND'
+    exposure_data['QUALIFIER_2'] = 'detected'  # initialize
+    where_null = exposure_data['SAMPLE_RESULT_2'] == 0
+    exposure_data.loc[where_null, 'QUALIFIER_2'] = 'ND'
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: remove_percent_greater_than_100
-def remove_percent_greater_than_100(cehd_data, **kwargs):
+def remove_percent_greater_than_100(exposure_data, **kwargs):
     '''
     Remove samples where the unit of measurement is '%' and the sample result
     is greater than 100.
     '''
     rows_to_exclude = (
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (cehd_data['SAMPLE_RESULT_2'] > 100.)
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+        (exposure_data['SAMPLE_RESULT_2'] > 100.)
     )
     
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_empty_unit_non_null_result
-def remove_empty_unit_non_null_result(cehd_data, **kwargs):
+def remove_empty_unit_non_null_result(exposure_data, **kwargs):
     '''
     Remove samples where the unit of measurement is empty and the sample 
     result is not null.
     '''
     rows_to_exclude = (
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] == '') &
-        (cehd_data['SAMPLE_RESULT_2'] > 0)
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '') &
+        (exposure_data['SAMPLE_RESULT_2'] > 0)
     )
     
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_invalid_unit_f
-def remove_invalid_unit_f(cehd_data, **kwargs):
+def remove_invalid_unit_f(exposure_data, **kwargs):
     '''
     Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
@@ -579,37 +604,37 @@ def remove_invalid_unit_f(cehd_data, **kwargs):
     invalid_substance_codes = ['1073', '2270', '2470', '9135']
     
     where_invalid_units = (
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
-        (cehd_data['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
+        (exposure_data['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
     )
     
-    return cehd_data.loc[~where_invalid_units]
+    return exposure_data.loc[~where_invalid_units]
 #endregion
 
 #region: remove_qualifier_unit_mismatch
-def remove_qualifier_unit_mismatch(cehd_data, **kwargs):
+def remove_qualifier_unit_mismatch(exposure_data, **kwargs):
     '''
     Remove samples with inconsistent qualifier and unit of measurement.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     condition_inconsistent_units = (
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] != '%') 
-        & (cehd_data['QUALIFIER'] == '%')
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] != '%') 
+        & (exposure_data['QUALIFIER'] == '%')
     ) | (
-        (cehd_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
-        & (cehd_data['QUALIFIER'] == 'M')
+        (exposure_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
+        & (exposure_data['QUALIFIER'] == 'M')
     )
 
-    return cehd_data.loc[~condition_inconsistent_units]
+    return exposure_data.loc[~condition_inconsistent_units]
 #endregion
 
 #region: remove_approximate_measure
-def remove_approximate_measure(cehd_data, **kwargs):
+def remove_approximate_measure(exposure_data, **kwargs):
     '''
     Remove samples where the QUALIFIER indicates an approximate measure.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     
     approximate_qualifiers = [
         '@', 
@@ -621,214 +646,232 @@ def remove_approximate_measure(cehd_data, **kwargs):
         '=<@', 
         'EST'
         ]
-    rows_to_exclude = cehd_data['QUALIFIER'].isin(approximate_qualifiers)
+    rows_to_exclude = exposure_data['QUALIFIER'].isin(approximate_qualifiers)
     
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_yttrium_substance_conflict
-def remove_yttrium_substance_conflict(cehd_data, **kwargs):
+def remove_yttrium_substance_conflict(exposure_data, **kwargs):
     '''
     Remove samples where the qualifier 'Y' is used but the substance code is
     not 9135.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     rows_to_exclude = (
-        (cehd_data['QUALIFIER'] == 'Y') 
-        & (cehd_data['IMIS_SUBSTANCE_CODE'] != '9135')
+        (exposure_data['QUALIFIER'] == 'Y') 
+        & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9135')
     )
 
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_fibers_substance_conflict
-def remove_fibers_substance_conflict(cehd_data, **kwargs):
+def remove_fibers_substance_conflict(exposure_data, **kwargs):
     '''
     Remove samples where the qualifier suggests fibers (F) but the substance
     code is not 9020.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     rows_to_exclude = (
-        (cehd_data['QUALIFIER'] == 'F') 
-        & (cehd_data['IMIS_SUBSTANCE_CODE'] != '9020')
+        (exposure_data['QUALIFIER'] == 'F') 
+        & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9020')
     )
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_combustion_related
-def remove_combustion_related(cehd_data, **kwargs):
+def remove_combustion_related(exposure_data, **kwargs):
     '''
     Remove samples with qualifiers related to combustion.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     combustion_qualifiers = ['COMB', 'COMD', 'com', 'comb']
-    rows_to_exclude = cehd_data['QUALIFIER'].isin(combustion_qualifiers)
+    rows_to_exclude = exposure_data['QUALIFIER'].isin(combustion_qualifiers)
 
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_blk_possible_bulk_not_blank
-def remove_blk_possible_bulk_not_blank(cehd_data, qualif_conv_2020, **kwargs):
+def remove_blk_possible_bulk_not_blank(
+        exposure_data, 
+        qualif_conv_2020, 
+        **kwargs
+        ):
     '''
     Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
     is 'N'.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     condition_blk_possible_bulk = (
         (qualif_conv_2020['clean'] == 'BLK')
         & (qualif_conv_2020['possible_bulk'] == 'Y')
     )
     rows_to_exclude = _rows_to_exclude_based_on_qualifier(
-        cehd_data, 
+        exposure_data, 
         qualif_conv_2020, 
         condition_blk_possible_bulk
         )
 
     # Further filter rows where BLANK_USED is 'N'
-    rows_to_exclude = rows_to_exclude & (cehd_data['BLANK_USED'] == 'N')
+    rows_to_exclude = rows_to_exclude & (exposure_data['BLANK_USED'] == 'N')
 
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_conflicting_qualifier
-def remove_conflicting_qualifier(cehd_data, qualif_conv_2020, **kwargs):
+def remove_conflicting_qualifier(exposure_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples with qualifiers conflicting with sample type.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-    cehd_data = _remove_based_on_qualifier(
-        cehd_data, 
+    exposure_data = _remove_based_on_qualifier(
+        exposure_data, 
         qualif_conv_2020, 
         where_conflict
         )
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: remove_uninterpretable_qualifier
-def remove_uninterpretable_qualifier(cehd_data, qualif_conv_2020, **kwargs):
+def remove_uninterpretable_qualifier(
+        exposure_data, 
+        qualif_conv_2020, 
+        **kwargs
+        ):
     '''
     Remove samples with qualifiers deemed uninterpretable.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    cehd_data = _remove_based_on_qualifier(
-        cehd_data, 
+    exposure_data = _remove_based_on_qualifier(
+        exposure_data, 
         qualif_conv_2020, 
         where_eliminate
         )
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: remove_blk_not_bulk
-def remove_blk_not_bulk(cehd_data, qualif_conv_2020, **kwargs):
+def remove_blk_not_bulk(exposure_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where QUALIFIER is 'BLK' and not possible bulk.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     where_blk_not_bulk  = (
         (qualif_conv_2020['clean'] == 'BLK') 
         & (qualif_conv_2020['possible_bulk'] == 'N')
     )
-    cehd_data = _remove_based_on_qualifier(
-        cehd_data, 
+    exposure_data = _remove_based_on_qualifier(
+        exposure_data, 
         qualif_conv_2020, 
         where_blk_not_bulk
         )
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: _remove_based_on_qualifier
-def _remove_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
+def _remove_based_on_qualifier(exposure_data, qualif_conv_2020, condition):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     rows_to_exclude = _rows_to_exclude_based_on_qualifier(
-        cehd_data, 
+        exposure_data, 
         qualif_conv_2020, 
         condition
         )
-    return cehd_data.loc[~rows_to_exclude]
+    return exposure_data.loc[~rows_to_exclude]
 #endregion:
 
 #region: _rows_to_exclude_based_on_qualifier
-def _rows_to_exclude_based_on_qualifier(cehd_data, qualif_conv_2020, condition):
+def _rows_to_exclude_based_on_qualifier(
+        exposure_data, 
+        qualif_conv_2020, 
+        condition
+        ):
     '''
     General function to remove samples based on QUALIFIER conditions.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
     
     raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
-    return cehd_data['QUALIFIER'].isin(raw_values_to_exclude)
+    return exposure_data['QUALIFIER'].isin(raw_values_to_exclude)
 #endregion
 
 #region: clean_unit_of_measurement
-def clean_unit_of_measurement(cehd_data, unit_conv_2020, **kwargs):
+def clean_unit_of_measurement(exposure_data, unit_conv_2020, **kwargs):
     '''
     Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
     values.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     # Initialize a cleaned column
-    cehd_data['UNIT_OF_MEASUREMENT_2'] = cehd_data['UNIT_OF_MEASUREMENT']
+    exposure_data['UNIT_OF_MEASUREMENT_2'] = (
+        exposure_data['UNIT_OF_MEASUREMENT']
+    )
     
     for clean_value in unit_conv_2020['clean'].unique():
         where_clean_value = unit_conv_2020['clean'] == clean_value
         raw_values = list(unit_conv_2020.loc[where_clean_value, 'raw'])
-        where_needs_clean = cehd_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
-        cehd_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = clean_value
+        where_needs_clean = (
+            exposure_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
+        )
+        exposure_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = (
+            clean_value
+        )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: remove_invalid_nd
-def remove_invalid_nd(cehd_data, qualif_conv_2020, **kwargs):
+def remove_invalid_nd(exposure_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
     but `SAMPLE_RESULT_2` > 0 (N29).
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     where_nd = qualif_conv_2020['clean'] == 'ND'
     nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
     condition_n08 = (
-        (cehd_data['SAMPLE_RESULT_2'] > 0) 
-        & (cehd_data['CENSORED'] != 'Y') 
-        & (cehd_data['QUALIFIER'].isin(nd_qualifiers))
+        (exposure_data['SAMPLE_RESULT_2'] > 0) 
+        & (exposure_data['CENSORED'] != 'Y') 
+        & (exposure_data['QUALIFIER'].isin(nd_qualifiers))
     )
-    cehd_data = cehd_data.loc[~condition_n08]  # N08
+    exposure_data = exposure_data.loc[~condition_n08]  # N08
 
     condition_n29 = (
-        (cehd_data['SAMPLE_RESULT_2'] > 0) 
-        & ((cehd_data['CENSORED'] == 'Y') 
-           | (cehd_data['QUALIFIER'].isin(nd_qualifiers)))
+        (exposure_data['SAMPLE_RESULT_2'] > 0) 
+        & ((exposure_data['CENSORED'] == 'Y') 
+           | (exposure_data['QUALIFIER'].isin(nd_qualifiers)))
     )
     
-    cehd_data = cehd_data.loc[~condition_n29]  # N29
+    exposure_data = exposure_data.loc[~condition_n29]  # N29
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: add_censored_column
-def add_censored_column(cehd_data, **kwargs):
+def add_censored_column(exposure_data, **kwargs):
     '''
     Add a column indicating that the sample is censored ONLY based on the 
     'QUALIFIER' column.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     new_column = 'CENSORED'
-    cehd_data[new_column] = 'N'  # initialize
+    exposure_data[new_column] = 'N'  # initialize
     qualifier_censored_values = [
         '-<', 
         '  <', 
@@ -845,26 +888,32 @@ def add_censored_column(cehd_data, **kwargs):
         '=<', 
         '=<@'
     ]
-    where_censored = cehd_data['QUALIFIER'].isin(qualifier_censored_values)
-    cehd_data.loc[where_censored, new_column] = 'Y'
+    where_censored = (
+        exposure_data['QUALIFIER'].isin(qualifier_censored_values)
+    )
+    exposure_data.loc[where_censored, new_column] = 'Y'
 
     # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
-    cehd_data['QUALIFIER'] = cehd_data['QUALIFIER'].replace('raw was NA', '')
-    cehd_data['SAMPLE_RESULT_2'] = cehd_data['SAMPLE_RESULT'].fillna(0)
+    exposure_data['QUALIFIER'] = (
+        exposure_data['QUALIFIER'].replace('raw was NA', '')
+    )
+    exposure_data['SAMPLE_RESULT_2'] = (
+        exposure_data['SAMPLE_RESULT'].fillna(0)
+    )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: replace_missing_values
-def replace_missing_values(cehd_data, **kwargs):
+def replace_missing_values(exposure_data, **kwargs):
     '''
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     for column in ['QUALIFIER', 'UNIT_OF_MEASUREMENT']:
-        cehd_data[column] = cehd_data[column].fillna('raw was NA')
+        exposure_data[column] = exposure_data[column].fillna('raw was NA')
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: load_unit_measure_conversion
@@ -893,14 +942,14 @@ def load_qualifier_conversion(qualif_conv_file):
 #endregion
 
 #region: exclude_few
-def exclude_few(cehd_data, **kwargs):
+def exclude_few(exposure_data, **kwargs):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
 
     ## Exclude substances with few samples
-    subst = cehd_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
+    subst = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
     subst.columns = ['code', 'n']
     where_enough = subst['n'] >= 100
     subst = subst[where_enough]
@@ -914,117 +963,138 @@ def exclude_few(cehd_data, **kwargs):
     subst = subst[~where_non_chemical]
 
     sub_list_all = list(subst['code'])
-    return cehd_data[cehd_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)]
+    rows_to_include = exposure_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)
+    return exposure_data[rows_to_include]
 #endregion
 
 #region: remove_nonpersonal
-def remove_nonpersonal(cehd_data, **kwargs):
+def remove_nonpersonal(exposure_data, **kwargs):
     '''
     Exclude all samples that are not designated as 'P'.
     '''
-    cehd_data = cehd_data.copy()
-    not_blank = cehd_data['SAMPLE_TYPE'] != 'P'
-    return cehd_data.loc[~not_blank]
+    exposure_data = exposure_data.copy()
+    not_blank = exposure_data['SAMPLE_TYPE'] != 'P'
+    return exposure_data.loc[~not_blank]
 #endregion
 
 #region: remove_blanks
-def remove_blanks(cehd_data, **kwargs):
+def remove_blanks(exposure_data, **kwargs):
     '''
     Remove blanks from the 'BLANK_USED' variable 
     
     Other blanks identified later by 'QUALIFIER'.
     '''
-    cehd_data = cehd_data.copy()
-    not_blank = cehd_data['BLANK_USED'] == 'N'
-    return cehd_data.loc[not_blank]
+    exposure_data = exposure_data.copy()
+    not_blank = exposure_data['BLANK_USED'] == 'N'
+    return exposure_data.loc[not_blank]
 #endregion
 
 # TODO: Double check whether these are all relevant
 #region: pre_clean
-def pre_clean(cehd_data, **kwargs):
+def pre_clean(exposure_data, **kwargs):
     '''
     '''
-    cehd_data = cehd_data.copy()
+    exposure_data = exposure_data.copy()
         
-    cehd_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
-        cehd_data['AIR_VOLUME_SAMPLED'], errors='coerce'
+    exposure_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
+        exposure_data['AIR_VOLUME_SAMPLED'], errors='coerce'
         )
 
-    cehd_data['BLANK_USED'] = factor(
-        cehd_data['BLANK_USED'], categories=['Y', 'N']
+    exposure_data['BLANK_USED'] = factor(
+        exposure_data['BLANK_USED'], categories=['Y', 'N']
         )
 
-    cehd_data['CITY'] = as_character(cehd_data['CITY'])
+    exposure_data['CITY'] = as_character(exposure_data['CITY'])
 
-    cehd_data['DATE_REPORTED'] = convert_date(cehd_data['DATE_REPORTED'])
-    cehd_data['DATE_SAMPLED'] = convert_date(cehd_data['DATE_SAMPLED'])
+    exposure_data['DATE_REPORTED'] = (
+        convert_date(exposure_data['DATE_REPORTED'])
+    )
+    exposure_data['DATE_SAMPLED'] = (
+        convert_date(exposure_data['DATE_SAMPLED'])
+    )
 
-    cehd_data['EIGHT_HOUR_TWA_CALC'] = factor(
-        cehd_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
+    exposure_data['EIGHT_HOUR_TWA_CALC'] = factor(
+        exposure_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
         )
 
-    cehd_data['ESTABLISHMENT_NAME'] = as_character(
-        cehd_data['ESTABLISHMENT_NAME']
+    exposure_data['ESTABLISHMENT_NAME'] = as_character(
+        exposure_data['ESTABLISHMENT_NAME']
         )
-    cehd_data['FIELD_NUMBER'] = as_character(cehd_data['FIELD_NUMBER'])
+    exposure_data['FIELD_NUMBER'] = (
+        as_character(exposure_data['FIELD_NUMBER'])
+    )
 
     # NOTE: Seems unnecessary to go from one type to another
-    cehd_data['IMIS_SUBSTANCE_CODE'] = factor(
-        cehd_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
+    exposure_data['IMIS_SUBSTANCE_CODE'] = factor(
+        exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
     )
-    cehd_data['IMIS_SUBSTANCE_CODE'] = as_character(
-        cehd_data['IMIS_SUBSTANCE_CODE']
+    exposure_data['IMIS_SUBSTANCE_CODE'] = as_character(
+        exposure_data['IMIS_SUBSTANCE_CODE']
         )
     
-    cehd_data['INSPECTION_NUMBER'] = factor(cehd_data['INSPECTION_NUMBER'])
-    cehd_data['INSPECTION_NUMBER'] = as_character(cehd_data['INSPECTION_NUMBER'])
+    exposure_data['INSPECTION_NUMBER'] = (
+        factor(exposure_data['INSPECTION_NUMBER'])
+    )
+    exposure_data['INSPECTION_NUMBER'] = (
+        as_character(exposure_data['INSPECTION_NUMBER'])
+    )
 
-    cehd_data['INSTRUMENT_TYPE'] = as_character(cehd_data['INSTRUMENT_TYPE'])
-    cehd_data['LAB_NUMBER'] = factor(cehd_data['LAB_NUMBER'])
+    exposure_data['INSTRUMENT_TYPE'] = (
+        as_character(exposure_data['INSTRUMENT_TYPE'])
+    )
+    exposure_data['LAB_NUMBER'] = factor(exposure_data['LAB_NUMBER'])
 
-    cehd_data['NAICS_CODE'] = (
-        as_character(cehd_data['NAICS_CODE'])
+    exposure_data['NAICS_CODE'] = (
+        as_character(exposure_data['NAICS_CODE'])
         .apply(
             lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan)
     )
 
-    cehd_data['OFFICE_ID'] = factor(cehd_data['OFFICE_ID'])
-    cehd_data['QUALIFIER'] = as_character(cehd_data['QUALIFIER'])
+    exposure_data['OFFICE_ID'] = factor(exposure_data['OFFICE_ID'])
+    exposure_data['QUALIFIER'] = as_character(exposure_data['QUALIFIER'])
 
-    cehd_data['SAMPLE_RESULT'] = pd.to_numeric(
-        cehd_data['SAMPLE_RESULT'], errors='coerce'
+    exposure_data['SAMPLE_RESULT'] = pd.to_numeric(
+        exposure_data['SAMPLE_RESULT'], errors='coerce'
         )
 
-    cehd_data['SAMPLE_TYPE'] = factor(cehd_data['SAMPLE_TYPE'])
-    cehd_data['SAMPLE_WEIGHT'] = pd.to_numeric(
-        cehd_data['SAMPLE_WEIGHT'], errors='coerce'
+    exposure_data['SAMPLE_TYPE'] = factor(exposure_data['SAMPLE_TYPE'])
+    exposure_data['SAMPLE_WEIGHT'] = pd.to_numeric(
+        exposure_data['SAMPLE_WEIGHT'], errors='coerce'
         )
-    cehd_data['SAMPLING_NUMBER'] = factor(cehd_data['SAMPLING_NUMBER'])
-    cehd_data['SAMPLING_NUMBER'] = as_character(cehd_data['SAMPLING_NUMBER'])
+    exposure_data['SAMPLING_NUMBER'] = (
+        factor(exposure_data['SAMPLING_NUMBER'])
+    )
+    exposure_data['SAMPLING_NUMBER'] = (
+        as_character(exposure_data['SAMPLING_NUMBER'])
+    )
 
-    cehd_data['SIC_CODE'] = factor(cehd_data['SIC_CODE'])
-    cehd_data['STATE'] = factor(cehd_data['STATE'])
-    cehd_data['SUBSTANCE'] = as_character(cehd_data['SUBSTANCE'])
+    exposure_data['SIC_CODE'] = factor(exposure_data['SIC_CODE'])
+    exposure_data['STATE'] = factor(exposure_data['STATE'])
+    exposure_data['SUBSTANCE'] = as_character(exposure_data['SUBSTANCE'])
 
-    cehd_data['TIME_SAMPLED'] = pd.to_numeric(
-        cehd_data['TIME_SAMPLED'], errors='coerce'
+    exposure_data['TIME_SAMPLED'] = pd.to_numeric(
+        exposure_data['TIME_SAMPLED'], errors='coerce'
         )
-    cehd_data['UNIT_OF_MEASUREMENT'] = as_character(
-        cehd_data['UNIT_OF_MEASUREMENT']
+    exposure_data['UNIT_OF_MEASUREMENT'] = as_character(
+        exposure_data['UNIT_OF_MEASUREMENT']
         )
 
-    cehd_data['ZIP_CODE'] = (
-        as_character(cehd_data['ZIP_CODE'])
+    exposure_data['ZIP_CODE'] = (
+        as_character(exposure_data['ZIP_CODE'])
         .str.replace(' ', '0').str.zfill(5)
     )
-    cehd_data['ZIP_CODE'] = factor(cehd_data['ZIP_CODE'])
+    exposure_data['ZIP_CODE'] = factor(exposure_data['ZIP_CODE'])
 
-    cehd_data['YEAR'] = factor(cehd_data['DATE_SAMPLED'].dt.year)
+    exposure_data['YEAR'] = factor(exposure_data['DATE_SAMPLED'].dt.year)
 
-    cehd_data['INSPECTION_NUMBER'] = cehd_data['INSPECTION_NUMBER'].str.strip()
-    cehd_data['SAMPLING_NUMBER'] = cehd_data['SAMPLING_NUMBER'].str.strip()
+    exposure_data['INSPECTION_NUMBER'] = (
+        exposure_data['INSPECTION_NUMBER'].str.strip()
+    )
+    exposure_data['SAMPLING_NUMBER'] = (
+        exposure_data['SAMPLING_NUMBER'].str.strip()
+    )
 
-    return cehd_data
+    return exposure_data
 #endregion
 
 #region: as_character
