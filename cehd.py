@@ -7,6 +7,7 @@ The original R script was translated to Python.
 import pandas as pd
 import numpy as np
 import os
+import json
 
 CLEANING_STEPS = [
     'pre_clean',
@@ -44,14 +45,25 @@ CLEANING_STEPS = [
 ]
 
 #region: clean_cehd_data
-def clean_cehd_data(cehd_data, path_settings):
+def clean_cehd_data(cehd_data, path_settings, do_log_changes=True):
     '''
     '''
+    change_log = {}  # initialize
     kwargs = _prepare_key_word_arguments(path_settings)
 
     for step_name in CLEANING_STEPS:
+        N_before = len(cehd_data)
         cehd_data = _apply_cleaning_step(cehd_data, step_name, kwargs)
-    
+        N_after = len(cehd_data)
+        change_log[step_name] =  N_after - N_before
+
+    if do_log_changes is True:
+        cehd_log_file = path_settings.get(
+            'cehd_log_file', 'cehd_log_file.json'
+            )
+        with open(cehd_log_file, 'w') as log_file:
+            json.dump(change_log, log_file, indent=4)
+
     return cehd_data
 #endregion
 
@@ -925,20 +937,6 @@ def remove_blanks(cehd_data, **kwargs):
     cehd_data = cehd_data.copy()
     not_blank = cehd_data['BLANK_USED'] == 'N'
     return cehd_data.loc[not_blank]
-#endregion
-
-# NOTE: This may not be needed
-#region: initialize_elimination_log
-def initialize_elimination_log(cehd_data):
-    '''
-    Initialize a dataframe to function as a log or tracker for the samples 
-    eliminated during the data cleaning process.
-
-    This log is named 'reasons' in the R script.
-    '''
-    return pd.DataFrame(
-        index=pd.RangeIndex(min(cehd_data['YEAR']), max(cehd_data['YEAR'])+1)
-    )
 #endregion
 
 # TODO: Double check whether these are all relevant
