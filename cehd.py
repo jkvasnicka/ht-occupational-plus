@@ -13,10 +13,10 @@ CLEANING_STEPS = [
     'pre_clean',
     'remove_blanks',
     'remove_nonpersonal',
-    'exclude_few',
+    'remove_rare_or_non_chemical',
     'replace_missing_values',
     'add_censored_column',
-    'remove_invalid_nd',
+    'remove_invalid_non_detect',
     'clean_unit_of_measurement',
     'remove_blk_not_bulk',
     'remove_uninterpretable_qualifier',
@@ -27,13 +27,13 @@ CLEANING_STEPS = [
     'remove_yttrium_substance_conflict',
     'remove_approximate_measure',
     'remove_qualifier_unit_mismatch',
-    'remove_invalid_unit_f',
+    'remove_invalid_fibers_unit',
     'remove_empty_unit_non_null_result',
     'remove_percent_greater_than_100',
     'create_detection_indicator',
-    'remove_invalid_unit_for_all_substances',
+    'remove_invalid_unit',
     'convert_percent_to_mass_concentration',
-    'remove_missing_office_id',
+    'remove_missing_office_identifier',
     'remove_missing_time_sampled',
     'remove_null_time_sampled',
     'remove_negative_sample_result',
@@ -410,8 +410,8 @@ def remove_missing_time_sampled(exposure_data, **kwargs):
     return exposure_data.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_missing_office_id
-def remove_missing_office_id(exposure_data, **kwargs):
+#region: remove_missing_office_identifier
+def remove_missing_office_identifier(exposure_data, **kwargs):
     '''
     Remove samples that have a missing value for the office ID.
     '''
@@ -487,8 +487,8 @@ def remove_null_weight(exposure_data):
 #endregion
 
 # TODO: Remove hardcoding?
-#region: remove_invalid_unit_for_all_substances
-def remove_invalid_unit_for_all_substances(exposure_data, **kwargs):
+#region: remove_invalid_unit
+def remove_invalid_unit(exposure_data, **kwargs):
     '''
     For each list of substance codes, remove samples where the unit of
     measurement is invalid.
@@ -500,14 +500,14 @@ def remove_invalid_unit_for_all_substances(exposure_data, **kwargs):
         '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
     ]
     valid_units_n31 = ['', 'F', 'P', 'M']
-    exposure_data = _remove_invalid_unit_for_substances(
+    exposure_data = _remove_invalid_unit_for_substance_codes(
         exposure_data, 
         top_substances, 
         valid_units_n31
         )
 
     valid_units_n32 = ['', '%', 'M']
-    exposure_data = _remove_invalid_unit_for_substances(
+    exposure_data = _remove_invalid_unit_for_substance_codes(
         exposure_data, 
         ['9010'], 
         valid_units_n32
@@ -520,7 +520,7 @@ def remove_invalid_unit_for_all_substances(exposure_data, **kwargs):
         exposure_data.loc[where_other, 'IMIS_SUBSTANCE_CODE'].unique()
         )
     valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    exposure_data = _remove_invalid_unit_for_substances(
+    exposure_data = _remove_invalid_unit_for_substance_codes(
         exposure_data, 
         other_substances, 
         valid_units_n33
@@ -529,8 +529,8 @@ def remove_invalid_unit_for_all_substances(exposure_data, **kwargs):
     return exposure_data
 #endregion
 
-#region: _remove_invalid_unit_for_substances
-def _remove_invalid_unit_for_substances(
+#region: _remove_invalid_unit_for_substance_codes
+def _remove_invalid_unit_for_substance_codes(
         exposure_data, 
         substance_codes, 
         valid_units
@@ -594,8 +594,8 @@ def remove_empty_unit_non_null_result(exposure_data, **kwargs):
     return exposure_data.loc[~rows_to_exclude]
 #endregion
 
-#region: remove_invalid_unit_f
-def remove_invalid_unit_f(exposure_data, **kwargs):
+#region: remove_invalid_fibers_unit
+def remove_invalid_fibers_unit(exposure_data, **kwargs):
     '''
     Remove samples with specific substance codes that should not have "F" as
     the unit of measurement.
@@ -833,8 +833,8 @@ def clean_unit_of_measurement(exposure_data, unit_conv_2020, **kwargs):
     return exposure_data
 #endregion
 
-#region: remove_invalid_nd
-def remove_invalid_nd(exposure_data, qualif_conv_2020, **kwargs):
+#region: remove_invalid_non_detect
+def remove_invalid_non_detect(exposure_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
@@ -941,8 +941,8 @@ def load_qualifier_conversion(qualif_conv_file):
     return qualif_conv_2020
 #endregion
 
-#region: exclude_few
-def exclude_few(exposure_data, **kwargs):
+#region: remove_rare_or_non_chemical
+def remove_rare_or_non_chemical(exposure_data, **kwargs):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
