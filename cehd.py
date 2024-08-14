@@ -1219,14 +1219,12 @@ def prepare_cumulative_data(change_log, initial_count):
     def reformat_key(k, step_number):
         return f"{step_number}. {k.capitalize().replace('_', ' ')}"
     
-    step_number = 1  # initialize
-    for k, v in change_log.items():
+    for step_number, (k, v) in enumerate(change_log.items(), start=1):
         if abs(v) > 0:
             formatted_key = reformat_key(k, step_number)
             # Include the cumulative count of remaining samples
             cum_count += v  # where v = N_after - N_before
             cumulative_pairs.append((formatted_key, cum_count))
-            step_number += 1
 
     # Convert the counts to proportions
     TO_PERCENT = 100
