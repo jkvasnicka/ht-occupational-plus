@@ -94,6 +94,7 @@ def _apply_cleaning_step(exposure_data, step_name, kwargs):
     return globals()[step_name](exposure_data, **kwargs)
 #endregion
 
+# TODO: Is this convoluted process necessary for removing duplicates?
 #region: clean_duplicates
 def clean_duplicates(exposure_data, **kwargs):
     '''
@@ -172,7 +173,7 @@ def _identify_false_duplicates(exposure_data, bla):
     return bla['name'].loc[bla['concatdiff']].to_numpy()
 #endregion
 
-# FIXME: The original R code
+# NOTE: Inconsistency
 #region: _remove_true_duplicates
 def _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla):
     '''
@@ -209,15 +210,13 @@ def _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla):
         exposure_data_1_nonok_9010.sort_values(by='HASH')
     )
 
-    # TODO: Why keep every second sample?
     # One out of 2 sample is retained
     max_rows = len(exposure_data_1_nonok_9010)
     indices = range(0, max_rows, 2)
     exposure_data_1_nonok_9010 = exposure_data_1_nonok_9010.iloc[indices]
 
     return pd.concat(
-        [exposure_data_1_ok, exposure_data_1_nonok_9010], 
-        ignore_index=True
+        [exposure_data_1_ok, exposure_data_1_nonok_9010]
         )
 #endregion
 
