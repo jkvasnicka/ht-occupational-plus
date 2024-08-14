@@ -14,10 +14,10 @@ CLEANING_STEPS = [
     'pre_clean',
     'remove_blanks',
     'remove_nonpersonal',
-    'remove_rare_or_non_chemical',
+    'remove_rare_or_nonchemical',
     'replace_missing_values',
     'add_censored_column',
-    'remove_invalid_non_detect',
+    'remove_invalid_nondetect',
     'clean_unit_of_measurement',
     'remove_blk_not_bulk',
     'remove_uninterpretable_qualifier',
@@ -833,8 +833,8 @@ def clean_unit_of_measurement(exposure_data, unit_conv_2020, **kwargs):
     return exposure_data
 #endregion
 
-#region: remove_invalid_non_detect
-def remove_invalid_non_detect(exposure_data, qualif_conv_2020, **kwargs):
+#region: remove_invalid_nondetect
+def remove_invalid_nondetect(exposure_data, qualif_conv_2020, **kwargs):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
@@ -941,8 +941,8 @@ def load_qualifier_conversion(qualif_conv_file):
     return qualif_conv_2020
 #endregion
 
-#region: remove_rare_or_non_chemical
-def remove_rare_or_non_chemical(exposure_data, **kwargs):
+#region: remove_rare_or_nonchemical
+def remove_rare_or_nonchemical(exposure_data, **kwargs):
     '''
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
@@ -956,11 +956,11 @@ def remove_rare_or_non_chemical(exposure_data, **kwargs):
 
     ## Remove non-chemical substance codes
     # FIXME: Remove hardcoding
-    non_chemical_codes = [
+    nonchemical_codes = [
         'G301', 'G302', 'Q115', 'T110', 'M125', 'Q116', 'Q100', 'S325'
         ]
-    where_non_chemical = subst['code'].isin(non_chemical_codes)
-    subst = subst[~where_non_chemical]
+    where_nonchemical = subst['code'].isin(nonchemical_codes)
+    subst = subst[~where_nonchemical]
 
     sub_list_all = list(subst['code'])
     rows_to_include = exposure_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)
@@ -1182,7 +1182,7 @@ def plot_cumulative_changes(log_file, initial_count):
     fig, ax = plt.subplots(figsize=(6, 10))
     ax.plot(cum_values, steps, marker='o', linestyle='-')
     ax.set_title('Proportion of Samples Remaining After Each Cleaning Step')
-    ax.set_xlabel('Proportion Remaining (%)')
+    ax.set_xlabel('Samples Remaining (%)')
     ax.set_ylabel('Cleaning Step')
     ax.grid(True)
     
