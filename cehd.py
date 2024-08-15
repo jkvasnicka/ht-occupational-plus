@@ -1134,8 +1134,8 @@ def convert_date(column):
     )
 #endregion
 
-#region: compare_columns
-def compare_columns(df1, df2):
+#region: search_for_dataframe_discrepancies
+def search_for_dataframe_discrepancies(df1, df2):
     '''
     Helper function to check for discrepancies between dataframes.
     '''
@@ -1148,11 +1148,11 @@ def compare_columns(df1, df2):
     
     for col in df1.columns.intersection(df2.columns):
 
-        # Convert to str to avoid issues related to dtypes
-        col1, col2 = df1[col].astype('str'), df2[col].astype('str')
-
-        where_both_not_nan = ~(col1.isna() & col2.isna())
-        where_discrepancy = (col1 != col2) & where_both_not_nan
+        col1, col2 = df1[col], df2[col]
+        where_both_not_null = (col1.notnull() & col2.notnull())
+        # Convert to str to avoid issues related to dtypes  # FIXME: Temporary fix
+        col1, col2 = col1.astype('str'), col2.astype('str')
+        where_discrepancy = (col1 != col2) & where_both_not_null
 
         if any(where_discrepancy):
             discrepancies[col] = (
