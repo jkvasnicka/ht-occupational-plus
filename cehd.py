@@ -2,7 +2,12 @@
 This module implements a data cleaning methodology by Jérôme Lavoué - 
 Université de Montréal for the Chemical Exposure Health Data (CEHD).
 
-The original R script was translated to Python.
+Important Notes
+---------------
+The original R script was translated to Python almost verbatim. As a result, 
+while the logic closely mirrors the original R implementation, it may not be 
+optimal from a software engineering standpoint. Some sections still contain 
+hardcoded values and patterns that could be further optimized.
 '''
 import pandas as pd
 import numpy as np
@@ -94,7 +99,7 @@ def _apply_cleaning_step(exposure_data, step_name, kwargs):
     return globals()[step_name](exposure_data, **kwargs)
 #endregion
 
-# TODO: Is this convoluted process necessary for removing duplicates?
+# TODO: Is this complex process necessary for removing duplicates?
 #region: clean_duplicates
 def clean_duplicates(exposure_data, **kwargs):
     '''
