@@ -1009,8 +1009,6 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['BLANK_USED'], categories=['Y', 'N']
         )
 
-    exposure_data['CITY'] = as_character(exposure_data['CITY'])
-
     exposure_data['DATE_REPORTED'] = (
         convert_date(exposure_data['DATE_REPORTED'])
     )
@@ -1022,41 +1020,19 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
         )
 
-    exposure_data['ESTABLISHMENT_NAME'] = as_character(
-        exposure_data['ESTABLISHMENT_NAME']
-        )
-    exposure_data['FIELD_NUMBER'] = (
-        as_character(exposure_data['FIELD_NUMBER'])
-    )
-
-    # NOTE: Seems unnecessary to go from one type to another
-    exposure_data['IMIS_SUBSTANCE_CODE'] = factor(
+    exposure_data['IMIS_SUBSTANCE_CODE'] = (
         exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
     )
-    exposure_data['IMIS_SUBSTANCE_CODE'] = as_character(
-        exposure_data['IMIS_SUBSTANCE_CODE']
-        )
-    
-    exposure_data['INSPECTION_NUMBER'] = (
-        factor(exposure_data['INSPECTION_NUMBER'])
-    )
-    exposure_data['INSPECTION_NUMBER'] = (
-        as_character(exposure_data['INSPECTION_NUMBER'])
-    )
 
-    exposure_data['INSTRUMENT_TYPE'] = (
-        as_character(exposure_data['INSTRUMENT_TYPE'])
-    )
     exposure_data['LAB_NUMBER'] = factor(exposure_data['LAB_NUMBER'])
 
     exposure_data['NAICS_CODE'] = (
-        as_character(exposure_data['NAICS_CODE'])
+        exposure_data['NAICS_CODE']
         .apply(
             lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan)
     )
 
     exposure_data['OFFICE_ID'] = factor(exposure_data['OFFICE_ID'])
-    exposure_data['QUALIFIER'] = as_character(exposure_data['QUALIFIER'])
 
     exposure_data['SAMPLE_RESULT'] = pd.to_numeric(
         exposure_data['SAMPLE_RESULT'], errors='coerce'
@@ -1066,26 +1042,16 @@ def pre_clean(exposure_data, **kwargs):
     exposure_data['SAMPLE_WEIGHT'] = pd.to_numeric(
         exposure_data['SAMPLE_WEIGHT'], errors='coerce'
         )
-    exposure_data['SAMPLING_NUMBER'] = (
-        factor(exposure_data['SAMPLING_NUMBER'])
-    )
-    exposure_data['SAMPLING_NUMBER'] = (
-        as_character(exposure_data['SAMPLING_NUMBER'])
-    )
 
     exposure_data['SIC_CODE'] = factor(exposure_data['SIC_CODE'])
     exposure_data['STATE'] = factor(exposure_data['STATE'])
-    exposure_data['SUBSTANCE'] = as_character(exposure_data['SUBSTANCE'])
 
     exposure_data['TIME_SAMPLED'] = pd.to_numeric(
         exposure_data['TIME_SAMPLED'], errors='coerce'
         )
-    exposure_data['UNIT_OF_MEASUREMENT'] = as_character(
-        exposure_data['UNIT_OF_MEASUREMENT']
-        )
 
     exposure_data['ZIP_CODE'] = (
-        as_character(exposure_data['ZIP_CODE'])
+        exposure_data['ZIP_CODE']
         .str.replace(' ', '0').str.zfill(5)
     )
     exposure_data['ZIP_CODE'] = factor(exposure_data['ZIP_CODE'])
