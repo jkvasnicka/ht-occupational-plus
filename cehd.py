@@ -927,8 +927,6 @@ def load_unit_measure_conversion(unit_conv_file):
     Load conversion table for the 'UNIT_OF_MEASUREMENT' column.
     '''
     unit_conv_2020 = pd.read_csv(unit_conv_file, sep=';')
-    unit_conv_2020['clean'] = as_character(unit_conv_2020['clean'])
-    unit_conv_2020['raw'] = as_character(unit_conv_2020['raw'])
     return unit_conv_2020
 #endregion
 
@@ -938,11 +936,6 @@ def load_qualifier_conversion(qualif_conv_file):
     Load conversion table for the 'QUALIFIER' column.
     '''
     qualif_conv_2020 = pd.read_csv(qualif_conv_file, sep=';')
-    qualif_conv_2020['clean'] = as_character(qualif_conv_2020['clean'])
-    qualif_conv_2020['raw'] = as_character(qualif_conv_2020['raw'])
-    qualif_conv_2020['possible_bulk'] = as_character(
-        qualif_conv_2020['possible_bulk']
-        )
     return qualif_conv_2020
 #endregion
 
@@ -1066,16 +1059,6 @@ def pre_clean(exposure_data, **kwargs):
     )
 
     return exposure_data
-#endregion
-
-#region: as_character
-def as_character(column):
-    '''
-    Mimic R's as.character function in Python. 
-    
-    This may not account for all differences.
-    '''
-    return column.apply(lambda x : str(x) if pd.notna(x) else np.nan)
 #endregion
 
 #region: factor
