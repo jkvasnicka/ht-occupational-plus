@@ -1099,30 +1099,35 @@ def convert_to_integer_string(series):
 #endregion
 
 #region: search_for_dataframe_discrepancies
-def search_for_dataframe_discrepancies(df1, df2):
+def search_for_dataframe_discrepancies(df1, df2, **kwargs):
     '''
-    Helper function to check for discrepancies between dataframes.
+    Helper function to identify columns with discrepancies between two 
+    dataframes.
+
+    Parameters
+    ----------
+    **kwargs : dict, optional
+        Additional keyword arguments to pass to pd.testing.assert_series_equal.
+
+    Returns
+    -------
+    list 
+        Column names with discrepancies for further inspection.
     '''
-    discrepancies = {}
+    discrepancies = []
 
     if any(df1.columns != df2.columns):
         raise ValueError('The columns are not identical')
     if any(df1.index != df2.index):
         raise ValueError('The indexes are not identical')
-    
+
     for col in df1.columns.intersection(df2.columns):
-
         col1, col2 = df1[col], df2[col]
-        where_both_not_null = (col1.notnull() & col2.notnull())
-        # Convert to str to avoid issues related to dtypes  # FIXME: Temporary fix
-        col1, col2 = col1.astype('str'), col2.astype('str')
-        where_discrepancy = (col1 != col2) & where_both_not_null
 
-        if any(where_discrepancy):
-            discrepancies[col] = (
-                col1.loc[where_discrepancy], 
-                col2.loc[where_discrepancy]
-                )
+        try:
+            pd.testing.assert_series_equal(col1, col2, **kwargs)
+        except AssertionError:
+            discrepancies.append(col)
 
     return discrepancies
 #endregion
