@@ -2,8 +2,6 @@
 This module implements a data cleaning methodology by Jérôme Lavoué - 
 Université de Montréal for the Chemical Exposure Health Data (CEHD).
 
-Important Notes
----------------
 The original R script was translated to Python almost verbatim. As a result, 
 while the logic closely mirrors the original R implementation, it may not be 
 optimal from a software engineering standpoint. Some sections still contain 
@@ -1002,11 +1000,11 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['BLANK_USED'], categories=['Y', 'N']
         )
 
-    exposure_data['DATE_REPORTED'] = (
-        convert_date(exposure_data['DATE_REPORTED'])
+    exposure_data['DATE_REPORTED'] = convert_date(
+        exposure_data['DATE_REPORTED']
     )
-    exposure_data['DATE_SAMPLED'] = (
-        convert_date(exposure_data['DATE_SAMPLED'])
+    exposure_data['DATE_SAMPLED'] = convert_date(
+        exposure_data['DATE_SAMPLED']
     )
 
     exposure_data['EIGHT_HOUR_TWA_CALC'] = factor(
@@ -1020,40 +1018,47 @@ def pre_clean(exposure_data, **kwargs):
     exposure_data['LAB_NUMBER'] = factor(exposure_data['LAB_NUMBER'])
 
     exposure_data['NAICS_CODE'] = (
-        exposure_data['NAICS_CODE']
+        convert_to_integer_string(exposure_data['NAICS_CODE'])
         .apply(
-            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan)
-    )
+            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan
+            )
+        )
 
-    exposure_data['OFFICE_ID'] = factor(exposure_data['OFFICE_ID'])
+    exposure_data['OFFICE_ID'] = factor(
+        convert_to_integer_string(exposure_data['OFFICE_ID'])
+    )
 
     exposure_data['SAMPLE_RESULT'] = pd.to_numeric(
         exposure_data['SAMPLE_RESULT'], errors='coerce'
         )
 
     exposure_data['SAMPLE_TYPE'] = factor(exposure_data['SAMPLE_TYPE'])
+
     exposure_data['SAMPLE_WEIGHT'] = pd.to_numeric(
         exposure_data['SAMPLE_WEIGHT'], errors='coerce'
         )
 
-    exposure_data['SIC_CODE'] = factor(exposure_data['SIC_CODE'])
+    exposure_data['SIC_CODE'] = factor(
+        convert_to_integer_string(exposure_data['SIC_CODE'])
+    )
+
     exposure_data['STATE'] = factor(exposure_data['STATE'])
 
     exposure_data['TIME_SAMPLED'] = pd.to_numeric(
         exposure_data['TIME_SAMPLED'], errors='coerce'
         )
 
-    exposure_data['ZIP_CODE'] = (
-        exposure_data['ZIP_CODE']
+    exposure_data['ZIP_CODE'] = factor(
+        convert_to_integer_string(exposure_data['ZIP_CODE'])
         .str.replace(' ', '0').str.zfill(5)
     )
-    exposure_data['ZIP_CODE'] = factor(exposure_data['ZIP_CODE'])
 
     exposure_data['YEAR'] = factor(exposure_data['DATE_SAMPLED'].dt.year)
 
     exposure_data['INSPECTION_NUMBER'] = (
         exposure_data['INSPECTION_NUMBER'].str.strip()
     )
+
     exposure_data['SAMPLING_NUMBER'] = (
         exposure_data['SAMPLING_NUMBER'].str.strip()
     )
@@ -1086,6 +1091,22 @@ def convert_date(column):
     ).combine_first(
         pd.to_datetime(column.str.lower(), errors='coerce', format='%Y-%m-%d')
     )
+#endregion
+
+#region: convert_to_integer_string
+def convert_to_integer_string(series):
+    '''
+    Convert a pandas Series to integer strings where possible.
+    NaNs and non-convertible strings are left unchanged.
+    '''
+    # Attempt to convert to numeric, coercing errors to NaN
+    numeric_series = pd.to_numeric(series, errors='coerce')
+    integer_strings = numeric_series.dropna().astype('int').astype('str')
+    
+    # Where successfully converted, use the integer string
+    series = series.where(numeric_series.isna(), integer_strings)
+    
+    return series
 #endregion
 
 #region: search_for_dataframe_discrepancies
