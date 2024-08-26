@@ -1,12 +1,32 @@
 '''
-This module implements a data cleaning methodology by Jérôme Lavoué - 
-Université de Montréal for the Chemical Exposure Health Data (CEHD).
+This module implements a data cleaning methodology developed by Prof. Jérôme 
+Lavoué (Université de Montréal) et al. for the Chemical Exposure Health Data 
+(CEHD).
 
-The original R script was translated to Python almost verbatim. As a result, 
-while the logic closely mirrors the original R implementation, it may not be 
-optimal from a software engineering standpoint. Some sections still contain 
-hardcoded values and patterns that could be further optimized.
+### Context and Purpose
+
+The original data cleaning pipeline was written in R 
+(CEHD cleaning 1984_2018.R) and has been translated into Python to ensure 
+consistency with the initial implementation while integrating it into our 
+broader Python-based workflow. This translation was performed nearly verbatim 
+to maintain fidelity to the original logic and thereby facilitate testing and
+debugging. Consequently, the Python code may not follow best practices in 
+software engineering.  
+
+### Remaining Discrepancies Between R and Python Outputs
+
+During the translation, several discrepancies between the R and Python outputs
+were identified using pandas.testing.assert_series_equal():
+
+1. Bugs in the Original R Code: Some issues in the original R implementation, 
+   such as hardcoded values or incorrect sequence generation, were identified 
+   and corrected in the Python version.
+
+2. Data Formatting Differences: Remaining discrepancies arose due to 
+   differences in how R and Python handle data formatting. These discrepancies
+   were deemed to be insignificant (e.g., extra double quotes in R).
 '''
+
 import pandas as pd
 import numpy as np
 import os
