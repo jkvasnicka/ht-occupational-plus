@@ -996,7 +996,7 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['AIR_VOLUME_SAMPLED'], errors='coerce'
         )
 
-    exposure_data['BLANK_USED'] = factor(
+    exposure_data['BLANK_USED'] = pd.Categorical(
         exposure_data['BLANK_USED'], categories=['Y', 'N']
         )
 
@@ -1007,7 +1007,7 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['DATE_SAMPLED']
     )
 
-    exposure_data['EIGHT_HOUR_TWA_CALC'] = factor(
+    exposure_data['EIGHT_HOUR_TWA_CALC'] = pd.Categorical(
         exposure_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
         )
 
@@ -1015,7 +1015,7 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
     )
 
-    exposure_data['LAB_NUMBER'] = factor(exposure_data['LAB_NUMBER'])
+    exposure_data['LAB_NUMBER'] = pd.Categorical(exposure_data['LAB_NUMBER'])
 
     exposure_data['NAICS_CODE'] = (
         convert_to_integer_string(exposure_data['NAICS_CODE'])
@@ -1024,7 +1024,7 @@ def pre_clean(exposure_data, **kwargs):
             )
         )
 
-    exposure_data['OFFICE_ID'] = factor(
+    exposure_data['OFFICE_ID'] = pd.Categorical(
         convert_to_integer_string(exposure_data['OFFICE_ID'])
     )
 
@@ -1032,28 +1032,28 @@ def pre_clean(exposure_data, **kwargs):
         exposure_data['SAMPLE_RESULT'], errors='coerce'
         )
 
-    exposure_data['SAMPLE_TYPE'] = factor(exposure_data['SAMPLE_TYPE'])
+    exposure_data['SAMPLE_TYPE'] = pd.Categorical(exposure_data['SAMPLE_TYPE'])
 
     exposure_data['SAMPLE_WEIGHT'] = pd.to_numeric(
         exposure_data['SAMPLE_WEIGHT'], errors='coerce'
         )
 
-    exposure_data['SIC_CODE'] = factor(
+    exposure_data['SIC_CODE'] = pd.Categorical(
         convert_to_integer_string(exposure_data['SIC_CODE'])
     )
 
-    exposure_data['STATE'] = factor(exposure_data['STATE'])
+    exposure_data['STATE'] = pd.Categorical(exposure_data['STATE'])
 
     exposure_data['TIME_SAMPLED'] = pd.to_numeric(
         exposure_data['TIME_SAMPLED'], errors='coerce'
         )
 
-    exposure_data['ZIP_CODE'] = factor(
+    exposure_data['ZIP_CODE'] = pd.Categorical(
         convert_to_integer_string(exposure_data['ZIP_CODE'])
         .str.replace(' ', '0').str.zfill(5)
     )
 
-    exposure_data['YEAR'] = factor(exposure_data['DATE_SAMPLED'].dt.year)
+    exposure_data['YEAR'] = pd.Categorical(exposure_data['DATE_SAMPLED'].dt.year)
 
     exposure_data['INSPECTION_NUMBER'] = (
         exposure_data['INSPECTION_NUMBER'].str.strip()
@@ -1064,17 +1064,6 @@ def pre_clean(exposure_data, **kwargs):
     )
 
     return exposure_data
-#endregion
-
-#region: factor
-def factor(series, categories=None):
-    '''
-    Mimic R's factor function in Python using pandas.
-
-    This may not account for all differences.
-    '''    
-    cat_series = pd.Categorical(series, categories=categories, ordered=True)
-    return cat_series
 #endregion
 
 #region: convert_date
