@@ -1,4 +1,10 @@
+# Expected data for unit testing
+tests/*.feather
+
+# Only used for exploratory purposes
 Scratch
+
+# Contain large files
 Input/Raw/OSHA
 Input/Processed
 
