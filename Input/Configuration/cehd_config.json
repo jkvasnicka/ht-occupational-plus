@@ -1,0 +1,18 @@
+{
+
+    "dtype": {
+      "CITY": "str",
+      "ESTABLISHMENT_NAME": "str",
+      "FIELD_NUMBER": "str",
+      "IMIS_SUBSTANCE_CODE": "str",
+      "INSPECTION_NUMBER": "str",
+      "INSTRUMENT_TYPE": "str",
+      "NAICS_CODE": "str",
+      "QUALIFIER": "str",
+      "SAMPLING_NUMBER": "str",
+      "SUBSTANCE": "str",
+      "UNIT_OF_MEASUREMENT": "str",
+      "ZIP_CODE": "str"
+    }
+    
+  }  

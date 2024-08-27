@@ -1,5 +1,5 @@
-Understand remaining discrepancies
-Implement unit test to check the dataframe equality, minus the discrepancies, through 2018
+Create test for loading raw OSHA data 
+Implement unit test to check the dataframe equality through 2018
 Migrate hardcoded values to external config file
 Incorporate 2019-2023 CEHD datasets 
 Check most important cleaning steps and whether need refactoring to accomodate post-2018 data 

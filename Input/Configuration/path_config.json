@@ -1,0 +1,13 @@
+{
+
+    "cehd_file": "Input/Processed/osha_data.csv",
+
+    "qualif_conv_file": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables/qualif_new_2020.csv",
+
+    "unit_conv_file": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables/unit_conv_2020.csv",
+
+    "it_directory": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables IT",
+
+    "cehd_log_file": "cehd_log_file.json"
+    
+  }  
