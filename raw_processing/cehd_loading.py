@@ -1,6 +1,7 @@
 '''
 This module contains functions for loading and preprocessing Chemical Exposure
-Health Data from OSHA.
+Health Data (CEHD) from OSHA. Logic for cleaning and preprocessing these data
+can be found in a separate module.
 '''
 
 import os
