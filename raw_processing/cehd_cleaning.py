@@ -1020,6 +1020,8 @@ def pre_clean(exposure_data, **kwargs):
     '''
     '''
     exposure_data = exposure_data.copy()
+
+    exposure_data = exposure_data.sort_index(axis=1)
         
     exposure_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
         exposure_data['AIR_VOLUME_SAMPLED'], errors='coerce'

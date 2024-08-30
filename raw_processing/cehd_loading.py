@@ -87,7 +87,6 @@ def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
                 year_data['YEAR'] = year
                 exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
-    exposure_data = _final_cleaning(exposure_data)
 
     return exposure_data
 #endregion
@@ -238,31 +237,4 @@ def _strip_trailing_commas(df):
     df = df.rename(columns_with_trailing_commas, axis=1)
     
     return df
-#endregion
-
-# TODO: Move to cehd_cleaning
-#region: _final_cleaning
-def _final_cleaning(exposure_data):
-    '''
-    Perform final cleaning steps.
-
-    Parameters
-    ----------
-    exposure_data : pd.DataFrame
-        The DataFrame to clean.
-
-    Returns
-    -------
-    pd.DataFrame
-        The cleaned DataFrame.
-
-    Notes
-    -----
-    This code was transcribed from an R script by Delphine Bosson-Rieutort, 
-    based on scripts from Jérôme Lavoué.
-    '''
-    # NOTE: Some of this may be unnecessary.
-    exposure_data = exposure_data.astype(str)  # 'character' in R
-    exposure_data = exposure_data.reindex(sorted(exposure_data.columns), axis=1)
-    return exposure_data
 #endregion
