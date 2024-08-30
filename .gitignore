@@ -1,12 +1,10 @@
-# Expected data for unit testing
-tests/*.feather
-
 # Only used for exploratory purposes
 Scratch
 
 # Contain large files
 Input/Raw/OSHA
 Input/Processed
+*.feather
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

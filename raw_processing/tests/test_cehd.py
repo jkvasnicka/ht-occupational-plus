@@ -46,7 +46,7 @@ def test_cehd_cleaning(raw_exposure_data, config):
     this limitation, the DataFrame index is reset before saving to Feather and
     then restored after reading.
     '''
-    expected_cehd_file = 'tests/expected_cehd.feather'
+    expected_cehd_file = 'raw_processing/tests/expected_cehd.feather'
     expected_data = pd.read_feather(expected_cehd_file).set_index('index')
 
     cehd_data = cehd_cleaning.clean_chem_exposure_health_data(
