@@ -2,14 +2,14 @@
 
     "raw_cehd_dir": null,
 
-    "raw_cehd_file": "Input/Processed/osha_data.csv",
+    "raw_cehd_file": "input/processed/osha_data.csv",
 
-    "qualif_conv_file": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables/qualif_new_2020.csv",
+    "qualif_conv_file": "input/raw/osha/cehd/conversion_tables/qualif_new_2020.csv",
 
-    "unit_conv_file": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables/unit_conv_2020.csv",
+    "unit_conv_file": "input/raw/osha/cehd/conversion_tables/unit_conv_2020.csv",
 
-    "it_directory": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables IT",
+    "it_directory": "input/raw/osha/cehd/conversion_tables_it",
 
-    "cehd_log_file": "cehd_log_file.json"
+    "cehd_log_file": "logs/cehd_log_file.json"
     
   }  
