@@ -12,7 +12,7 @@ import pandas as pd
 import pytest 
 
 from config_management import UnifiedConfiguration
-from raw_processing import cehd_cleaning
+from raw_processing import cehd_loading, cehd_cleaning
 
 #region: config fixture
 @pytest.fixture
@@ -27,10 +27,10 @@ def config():
 def raw_exposure_data(config):
     '''
     '''
-    return pd.read_csv(
-        config.path['cehd_file'], 
-        index_col=0,
-        dtype=config.cehd['dtype']
+    return cehd_loading.raw_chem_exposure_health_data(
+        config.cehd,
+        raw_cehd_dir=config.path['raw_cehd_dir'],
+        raw_cehd_file=config.path['raw_cehd_file']
     )
 #endregion
 
@@ -49,7 +49,7 @@ def test_cehd_cleaning(raw_exposure_data, config):
     expected_cehd_file = 'tests/expected_cehd.feather'
     expected_data = pd.read_feather(expected_cehd_file).set_index('index')
 
-    cehd_data = cehd_cleaning.clean_chemical_exposure_health_data(
+    cehd_data = cehd_cleaning.clean_chem_exposure_health_data(
         raw_exposure_data, 
         config.path
         )

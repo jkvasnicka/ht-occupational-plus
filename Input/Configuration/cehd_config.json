@@ -13,6 +13,11 @@
       "SUBSTANCE": "str",
       "UNIT_OF_MEASUREMENT": "str",
       "ZIP_CODE": "str"
+    },
+
+    "rename_mapper" : {
+      "EIGHT_HR_TWA_CALC": "EIGHT_HOUR_TWA_CALC",
+      "BLANK_SAMPLE": "BLANK_USED"
     }
-    
+
   }  

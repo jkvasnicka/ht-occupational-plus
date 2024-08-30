@@ -68,13 +68,22 @@ CLEANING_STEPS = [
     'clean_duplicates'
 ]
 
-#region: clean_chemical_exposure_health_data
-def clean_chemical_exposure_health_data(
-        exposure_data, 
+#region: clean_chem_exposure_health_data
+def clean_chem_exposure_health_data(
+        exposure_data,
         path_settings, 
         do_log_changes=True
         ):
     '''
+    Load and clean the Chemical Exposure Health Data (CEHD).
+
+    This function serves as the top-level interface for loading and cleaning
+    CEHD. The user can either load raw data from a directory containing 
+    multiple files or load the raw data assembled into a single file.
+
+    Returns
+    -------
+    pandas.DataFrame
     '''
     change_log = {}  # initialize
     kwargs = _prepare_key_word_arguments(path_settings)
@@ -1005,7 +1014,7 @@ def remove_blanks(exposure_data, **kwargs):
     return exposure_data.loc[not_blank]
 #endregion
 
-# TODO: Double check whether these are all relevant
+# TODO: Move column names and settings to external config file
 #region: pre_clean
 def pre_clean(exposure_data, **kwargs):
     '''

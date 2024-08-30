@@ -1,6 +1,8 @@
 {
 
-    "cehd_file": "Input/Processed/osha_data.csv",
+    "raw_cehd_dir": null,
+
+    "raw_cehd_file": "Input/Processed/osha_data.csv",
 
     "qualif_conv_file": "Input/Raw/OSHA/CEHD/CEHD1984_2018/cleaning scripts/Conversion tables/qualif_new_2020.csv",
 
