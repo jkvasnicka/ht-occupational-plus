@@ -1,8 +1,8 @@
 {
 
-    "raw_cehd_dir": null,
+    "raw_cehd_dir": "input/raw/osha/cehd/healthsamples",
 
-    "raw_cehd_file": "input/processed/osha_data.csv",
+    "raw_cehd_file": null,
 
     "qualif_conv_file": "input/raw/osha/cehd/conversion_tables/qualif_new_2020.csv",
 

@@ -8,6 +8,7 @@ import os
 import chardet
 import pandas as pd
 
+# FIXME: Why are some dt.year returning NaN?
 #region: raw_chem_exposure_health_data
 def raw_chem_exposure_health_data(
         cehd_settings,
@@ -32,10 +33,12 @@ def raw_chem_exposure_health_data(
         raise ValueError(
             'Specify either "raw_cehd_dir" or "raw_cehd_file", not both.'
         )
+    # FIXME: Should return the same as _raw_cehd_from_single_file()
     if raw_cehd_dir:
         exposure_data = _raw_cehd_from_multiple_files(
             raw_cehd_dir, 
-            cehd_settings['rename_mapper']
+            cehd_settings['rename_mapper'],
+            dtype=cehd_settings['dtype']
             )
     elif raw_cehd_file:
         exposure_data = _raw_cehd_from_single_file(
@@ -46,7 +49,7 @@ def raw_chem_exposure_health_data(
 #endregion
 
 #region _raw_cehd_from_multiple_files
-def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
+def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper, dtype=None):
     '''
     Load the Chemical Exposure Health Data (CEHD) into a single DataFrame.
 
@@ -78,13 +81,12 @@ def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
                 print(f'Loading {year} data...')
                 if extension == 'csv':
                     year_data = _cehd_from_csv(
-                        root, file, rename_mapper
+                        root, file, rename_mapper, dtype=dtype
                         )
                 elif extension == 'xml':
                     year_data = _cehd_from_xml(
-                        root, file, rename_mapper
+                        root, file, rename_mapper, dtype=dtype
                         )
-                year_data['YEAR'] = year
                 exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
 
@@ -103,7 +105,7 @@ def _raw_cehd_from_single_file(raw_cehd_file, dtype=None):
 #endregion
 
 #region: _cehd_from_csv
-def _cehd_from_csv(root, file, rename_mapper):
+def _cehd_from_csv(root, file, rename_mapper, dtype=None):
     '''
     Loads CSV data for a given range of years.
 
@@ -129,6 +131,7 @@ def _cehd_from_csv(root, file, rename_mapper):
         raw_cehd_file, 
         encoding=encoding, 
         delimiter=delimiter,
+        dtype=dtype,
         low_memory=False
     )
 
@@ -162,7 +165,7 @@ def _determine_delimiter(file_path, encoding):
 #endregion
 
 #region: _cehd_from_xml
-def _cehd_from_xml(root, file, rename_mapper):
+def _cehd_from_xml(root, file, rename_mapper, dtype=None):
     '''
     Loads XML data from a file.
 
@@ -182,7 +185,7 @@ def _cehd_from_xml(root, file, rename_mapper):
     '''
     raw_cehd_file = os.path.join(root, file)
     
-    xml_data = pd.read_xml(raw_cehd_file)
+    xml_data = pd.read_xml(raw_cehd_file, dtype=dtype)
 
     xml_data = _standardize(xml_data, rename_mapper)
     
