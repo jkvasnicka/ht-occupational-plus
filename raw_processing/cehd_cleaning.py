@@ -34,7 +34,6 @@ import json
 import matplotlib.pyplot as plt 
 
 CLEANING_STEPS = [
-    'pre_clean',
     'remove_blanks',
     'remove_nonpersonal',
     'remove_rare_or_nonchemical',
@@ -71,7 +70,8 @@ CLEANING_STEPS = [
 #region: clean_chem_exposure_health_data
 def clean_chem_exposure_health_data(
         exposure_data,
-        path_settings, 
+        path_settings,
+        cehd_settings,
         do_log_changes=True
         ):
     '''
@@ -85,9 +85,10 @@ def clean_chem_exposure_health_data(
     -------
     pandas.DataFrame
     '''
+    exposure_data = pre_clean(exposure_data, cehd_settings['dtype'])
+    
     change_log = {}  # initialize
     kwargs = _prepare_key_word_arguments(path_settings)
-
     for step_name in CLEANING_STEPS:
         N_before = len(exposure_data)
         exposure_data = _apply_cleaning_step(exposure_data, step_name, kwargs)
@@ -1016,10 +1017,13 @@ def remove_blanks(exposure_data, **kwargs):
 
 # TODO: Move column names and settings to external config file
 #region: pre_clean
-def pre_clean(exposure_data, **kwargs):
+def pre_clean(exposure_data, dtype_settings):
     '''
     '''
     exposure_data = exposure_data.copy()
+
+    for col, dtype in dtype_settings.items():
+        exposure_data[col] = exposure_data[col].astype(dtype)
 
     exposure_data = exposure_data.sort_index(axis=1)
         

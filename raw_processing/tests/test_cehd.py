@@ -51,7 +51,8 @@ def test_cehd_cleaning(raw_exposure_data, config):
 
     cehd_data = cehd_cleaning.clean_chem_exposure_health_data(
         raw_exposure_data, 
-        config.path
+        config.path,
+        config.cehd
         )
     
     pd.testing.assert_frame_equal(cehd_data, expected_data, check_names=False)
