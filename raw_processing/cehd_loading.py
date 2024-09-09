@@ -85,6 +85,8 @@ def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
                     year_data = _cehd_from_xml(
                         root, file, rename_mapper
                         )
+                # Create a new column with the file year
+                year_data['YEAR'] = year
                 exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
 

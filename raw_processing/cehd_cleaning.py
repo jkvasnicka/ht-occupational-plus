@@ -1088,7 +1088,11 @@ def pre_clean(exposure_data, dtype_settings):
         .str.replace(' ', '0').str.zfill(5)
     )
 
-    exposure_data['YEAR'] = pd.Categorical(exposure_data['DATE_SAMPLED'].dt.year)
+    exposure_data['YEAR'] = pd.Categorical(
+        _replace_file_year_with_sampled_year(
+            exposure_data['YEAR'],
+            exposure_data['DATE_SAMPLED'])
+    )
 
     exposure_data['INSPECTION_NUMBER'] = (
         exposure_data['INSPECTION_NUMBER'].str.strip()
@@ -1114,7 +1118,23 @@ def convert_date(column):
         pd.to_datetime(column.str.lower(), errors='coerce', format='%Y/%m/%d')
     ).combine_first(
         pd.to_datetime(column.str.lower(), errors='coerce', format='%Y-%m-%d')
+    .combine_first(
+        pd.to_datetime(column.str.lower(), errors='coerce', format='%d-%b-%Y')
     )
+    )
+#endregion
+
+#region: _replace_file_year_with_sampled_year
+def _replace_file_year_with_sampled_year(file_year, date_sampled):
+    '''
+    Update the 'YEAR' column according to the 'DATE_SAMPLED'. 
+
+    Assumes the 'YEAR' column was prefilled with the file year based on the
+    filename (e.g., 'sample_data_[file_year].csv'). Replaces the file years 
+    with the year sampled, where values in 'YEAR_SAMPLED' are not missing.
+    '''
+    year_sampled = date_sampled.dt.year
+    return file_year.where(year_sampled.isna(), year_sampled).astype('int64')
 #endregion
 
 #region: convert_to_integer_string
