@@ -1,7 +1,4 @@
-Create test for loading raw OSHA data 
-Implement unit test to check the dataframe equality through 2018
 Migrate hardcoded values to external config file
-Incorporate 2019-2023 CEHD datasets 
 Check most important cleaning steps and whether need refactoring to accomodate post-2018 data 
 
 Download cleaned IMIS/OIS dataset and merge with CEHD 
