@@ -1,7 +1,10 @@
+Conversion factor of 10?
 Migrate hardcoded values to external config file
 Check most important cleaning steps and whether need refactoring to accomodate post-2018 data 
 
 Download cleaned IMIS/OIS dataset and merge with CEHD 
-Get a list of all chemical names for chemical curation team
 
 Prepare a simple case-study presentation for ISES
+	1. Get PODs for active TSCA inventory 
+	2. Overlay PODs for OSHA samples
+	3. Get MOE and rank-order
