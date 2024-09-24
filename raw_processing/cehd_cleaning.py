@@ -102,6 +102,39 @@ def clean_chem_exposure_health_data(
         with open(cehd_log_file, 'w') as log_file:
             json.dump(change_log, log_file, indent=4)
 
+    exposure_data = _clean_columns(exposure_data)
+
+    return exposure_data
+#endregion
+
+# TODO: Eliminate the need for this.
+#region: _clean_columns
+def _clean_columns(exposure_data):
+    '''
+    Finalize column naming and filter out unneeded columns. 
+    '''
+    exposure_data = exposure_data.copy()
+
+    # TODO: Creating all these extra columns may not be necessary
+    rename_dict = {
+        'UNIT_OF_MEASUREMENT_2': 'UNIT_OF_MEASUREMENT',
+        'SAMPLE_WEIGHT_2': 'SAMPLE_WEIGHT',
+        'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
+        'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
+    }
+
+    columns_to_drop = [
+        'QUALIFIER_2',
+        'SAMPLE_RESULT_2',
+    ]
+    columns_to_drop += list(rename_dict.values())
+
+    exposure_data = (
+        exposure_data.drop(columns=columns_to_drop)
+        .rename(columns=rename_dict)
+    )
+    exposure_data.columns = exposure_data.columns.str.lower()
+
     return exposure_data
 #endregion
 
