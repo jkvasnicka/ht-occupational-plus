@@ -33,6 +33,7 @@ import os
 import json
 import matplotlib.pyplot as plt 
 
+# TODO: Are some of these steps irrelevant to predicting air conc.?
 CLEANING_STEPS = [
     'remove_blanks',
     'remove_nonpersonal',
@@ -1026,6 +1027,7 @@ def remove_rare_or_nonchemical(exposure_data, **kwargs):
     return exposure_data[rows_to_include]
 #endregion
 
+# FIXME: Change 'not_blank' typo to 'where_nonpersonal'
 #region: remove_nonpersonal
 def remove_nonpersonal(exposure_data, **kwargs):
     '''
