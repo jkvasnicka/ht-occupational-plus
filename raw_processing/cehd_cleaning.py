@@ -161,130 +161,62 @@ def _apply_cleaning_step(exposure_data, step_name, kwargs):
     return globals()[step_name](exposure_data, **kwargs)
 #endregion
 
-# TODO: Is this complex process necessary for removing duplicates?
 #region: clean_duplicates
 def clean_duplicates(exposure_data, **kwargs):
     '''
     Clean the dataset by identifying and removing duplicate samples.
-    '''
-    exposure_data = _create_hash(exposure_data)
-    bla = _identify_potential_duplicates(exposure_data)
-    false_duplicate_hashes = _identify_false_duplicates(exposure_data, bla)
-    return _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla)
-#endregion
 
-#region: _create_hash
-def _create_hash(exposure_data):
-    '''
-    Create a unique HASH variable to identify potential duplicates.
+    The function identifies duplicates using key columns that uniquely define 
+    a sample. It removes false duplicates—records with the same key columns 
+    but differing in additional columns. For true duplicates (identical 
+    records), it retains one record for substance code '9010', and discards 
+    duplicates for other substances.
     '''
     exposure_data = exposure_data.copy()
-    exposure_data['HASH'] = (
-        exposure_data['INSPECTION_NUMBER'].astype(str) + '-' +
-        exposure_data['IMIS_SUBSTANCE_CODE'].astype(str) + '-' +
-        exposure_data['SAMPLING_NUMBER'].astype(str) + '-' +
-        exposure_data['FIELD_NUMBER'].astype(str)
-    )
-    return exposure_data
-#endregion
-
-#region: _identify_potential_duplicates
-def _identify_potential_duplicates(exposure_data):
-    '''
-    Identify and return a DataFrame of potential duplicate records based on 
-    the HASH variable.
-    '''
-    exposure_data = exposure_data.copy()
-
-    bla = exposure_data['HASH'].value_counts().reset_index()
-    bla.columns = ['name', 'n']
-    bla = bla[bla['n'] > 1]
-    bla['name'] = bla['name'].astype(str)
-
-    # Match the values for 'code' and 'sub'
-    bla['code'] = bla['name'].map(
-        dict(zip(exposure_data['HASH'], exposure_data['IMIS_SUBSTANCE_CODE']))
-    )
-    bla['sub'] = bla['name'].map(
-        dict(zip(exposure_data['HASH'], exposure_data['SUBSTANCE']))
-    )
-
-    # Ensure the order matches
-    return bla.sort_values(by='name').reset_index(drop=True)
-#endregion
-
-#region: _identify_false_duplicates
-def _identify_false_duplicates(exposure_data, bla):
-    '''
-    Identify false duplicates by comparing additional variables (CONCAT).
     
-    False duplicates are identified where the CONCAT variable varies 
-    for the same HASH.
-    '''
-    # Create a new hash variable to identify false duplicates
-    exposure_data['CONCAT'] = (
-        exposure_data['LAB_NUMBER'].astype(str) + '-' +
-        exposure_data['STATE'].astype(str) + '-' +
-        exposure_data['ZIP_CODE'].astype(str) + '-' +
-        exposure_data['YEAR'].astype(str) + '-' +
-        exposure_data['TIME_SAMPLED'].astype(str) + '-' +
-        exposure_data['SAMPLE_WEIGHT_2'].astype(str)
-    )
-
-    # Identify samples where CONCAT is the same
-    concat_counts = exposure_data.groupby('HASH')['CONCAT'].nunique()
-    concatdiff_hashes = concat_counts.loc[concat_counts > 1].index
-    bla['concatdiff'] = bla['name'].isin(concatdiff_hashes)
-
-    # False duplicates occur where CONCAT varies
-    return bla['name'].loc[bla['concatdiff']].to_numpy()
-#endregion
-
-# NOTE: Inconsistency
-#region: _remove_true_duplicates
-def _remove_true_duplicates(exposure_data, false_duplicate_hashes, bla):
-    '''
-    Remove true duplicates from the dataset, retaining only one sample per 
-    duplicate.
-
-    Notes
-    -----
-    The original R code hardcoded 'max_rows' to 6083, which resulted in the 
-    R code inadvertently creating additional rows with NaN. This Python code
-    addresses this issue by correctly defining 'max_rows' based on the length.
-    '''
-    exposure_data = exposure_data.copy()
-
-    restrictM = exposure_data['HASH'].isin(false_duplicate_hashes)
-
-    exposure_data_1 = exposure_data.loc[~restrictM]
-
-    #### N: true duplicates ####
-    # Separate the DB into the OK and remaining problematic
-    exposure_data_1_ok = exposure_data_1.loc[
-        ~exposure_data_1['HASH'].isin(bla['name'])
+    # TODO: Make these parameters
+    key_columns = [
+        'INSPECTION_NUMBER', 
+        'IMIS_SUBSTANCE_CODE', 
+        'SAMPLING_NUMBER', 
+        'FIELD_NUMBER'
         ]
-    exposure_data_1_nonok = exposure_data_1.loc[
-        exposure_data_1['HASH'].isin(bla['name'])
+    additional_columns = [
+        'LAB_NUMBER', 
+        'STATE', 
+        'ZIP_CODE', 
+        'YEAR', 
+        'TIME_SAMPLED', 
+        'SAMPLE_WEIGHT_2'
         ]
 
-    # TODO: Why just 9010?
-    # Majority is 9010 (e.g. duplicates of "M" and "M.from.Perc" cases)
-    # Only 9010 treated, remaining cases are deleted
-    where_subs_9010 = exposure_data_1_nonok['IMIS_SUBSTANCE_CODE'] == '9010'
-    exposure_data_1_nonok_9010 = exposure_data_1_nonok.loc[where_subs_9010]
-    exposure_data_1_nonok_9010 = (
-        exposure_data_1_nonok_9010.sort_values(by='HASH')
+    ## Step 1: Identify false duplicates and remove them
+
+    potential_duplicates = (
+        exposure_data.duplicated(subset=key_columns, keep=False)
     )
+    false_duplicates = (
+        exposure_data.loc[potential_duplicates]
+        .drop_duplicates(subset=key_columns + additional_columns, keep=False)
+    )
+    exposure_data_cleaned = exposure_data.drop(false_duplicates.index)
+    
+    # Step 2: Identify true duplicates and remove them selectively
 
-    # One out of 2 sample is retained
-    max_rows = len(exposure_data_1_nonok_9010)
-    indices = range(0, max_rows, 2)
-    exposure_data_1_nonok_9010 = exposure_data_1_nonok_9010.iloc[indices]
-
-    return pd.concat(
-        [exposure_data_1_ok, exposure_data_1_nonok_9010]
-        )
+    true_duplicates = (
+        exposure_data_cleaned.duplicated(subset=key_columns, keep=False)
+    )
+    
+    duplicates_df = exposure_data_cleaned.loc[true_duplicates]
+    non_duplicates_df = exposure_data_cleaned.loc[~true_duplicates]
+    
+    where_9010 = duplicates_df['IMIS_SUBSTANCE_CODE'] == '9010'
+    duplicates_9010 = duplicates_df.loc[where_9010]
+    duplicates_9010_deduped = (
+        duplicates_9010.drop_duplicates(subset=key_columns, keep='first')
+    )
+        
+    return pd.concat([non_duplicates_df, duplicates_9010_deduped])
 #endregion
 
 #region: clean_instrument_type
