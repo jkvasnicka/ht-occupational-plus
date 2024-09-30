@@ -33,41 +33,6 @@ import os
 import json
 import matplotlib.pyplot as plt 
 
-# TODO: Are some of these steps irrelevant to predicting air conc.?
-CLEANING_STEPS = [
-    'remove_blanks',
-    'remove_nonpersonal',
-    'remove_rare_or_nonchemical',
-    'replace_missing_values',
-    'add_censored_column',
-    'remove_invalid_nondetect',
-    'clean_unit_of_measurement',
-    'remove_blk_not_bulk',
-    'remove_uninterpretable_qualifier',
-    'remove_conflicting_qualifier',
-    'remove_blk_possible_bulk_not_blank',
-    'remove_combustion_related',
-    'remove_fibers_substance_conflict',
-    'remove_yttrium_substance_conflict',
-    'remove_approximate_measure',
-    'remove_qualifier_unit_mismatch',
-    'remove_invalid_fibers_unit',
-    'remove_empty_unit_non_null_result',
-    'remove_percent_greater_than_100',
-    'create_detection_indicator',
-    'remove_invalid_unit',
-    'convert_percent_to_mass_concentration',
-    'remove_missing_office_identifier',
-    'remove_missing_time_sampled',
-    'remove_null_time_sampled',
-    'remove_negative_sample_result',
-    'remove_missing_sample_number',
-    'remove_missing_volume',
-    'remove_zero_volume_sampled',
-    'clean_instrument_type',
-    'clean_duplicates'
-]
-
 #region: clean_chem_exposure_health_data
 def clean_chem_exposure_health_data(
         exposure_data,
@@ -87,12 +52,13 @@ def clean_chem_exposure_health_data(
     pandas.DataFrame
     '''
     exposure_data = pre_clean(exposure_data, cehd_settings['dtype'])
+    kwargs = _prepare_key_word_arguments(path_settings, cehd_settings)
     
     change_log = {}  # initialize
-    kwargs = _prepare_key_word_arguments(path_settings)
-    for step_name in CLEANING_STEPS:
+    for step_name in cehd_settings['cleaning_steps']:
         N_before = len(exposure_data)
-        exposure_data = _apply_cleaning_step(exposure_data, step_name, kwargs)
+        # Apply the cleaning step
+        exposure_data = globals()[step_name](exposure_data, **kwargs)
         N_after = len(exposure_data)
         change_log[step_name] =  N_after - N_before
 
@@ -140,25 +106,21 @@ def _clean_columns(exposure_data):
 #endregion
 
 #region: _prepare_key_word_arguments
-def _prepare_key_word_arguments(path_settings):
+def _prepare_key_word_arguments(path_settings, cehd_settings):
     '''
     Define key-word arguments for flexible argument passing.
     '''
-    kwargs = path_settings.copy()
-    kwargs['qualif_conv_2020'] = load_qualifier_conversion(
-        path_settings['qualif_conv_file']
-        )
-    kwargs['unit_conv_2020'] = load_unit_measure_conversion(
-        path_settings['unit_conv_file']
-    )
+    kwargs = {
+        'path_settings' : path_settings,
+        'cehd_settings' : cehd_settings,
+        'qualif_conv_2020' : load_qualifier_conversion(
+            path_settings['qualif_conv_file']
+            ),
+        'unit_conv_2020' : load_unit_measure_conversion(
+            path_settings['unit_conv_file']
+            )
+    }
     return kwargs
-#endregion
-
-#region: _apply_cleaning_step
-def _apply_cleaning_step(exposure_data, step_name, kwargs):
-    '''
-    '''
-    return globals()[step_name](exposure_data, **kwargs)
 #endregion
 
 #region: clean_duplicates
@@ -173,57 +135,59 @@ def clean_duplicates(exposure_data, **kwargs):
     duplicates for other substances.
     '''
     exposure_data = exposure_data.copy()
-    
-    # TODO: Make these parameters
-    key_columns = [
-        'INSPECTION_NUMBER', 
-        'IMIS_SUBSTANCE_CODE', 
-        'SAMPLING_NUMBER', 
-        'FIELD_NUMBER'
-        ]
-    additional_columns = [
-        'LAB_NUMBER', 
-        'STATE', 
-        'ZIP_CODE', 
-        'YEAR', 
-        'TIME_SAMPLED', 
-        'SAMPLE_WEIGHT_2'
-        ]
+    cehd_settings = kwargs['cehd_settings']
 
     ## Step 1: Identify false duplicates and remove them
 
     potential_duplicates = (
-        exposure_data.duplicated(subset=key_columns, keep=False)
+        exposure_data.duplicated(
+            subset=cehd_settings['unique_sample_columns'], 
+            keep=False
+            )
     )
     false_duplicates = (
         exposure_data.loc[potential_duplicates]
-        .drop_duplicates(subset=key_columns + additional_columns, keep=False)
+        .drop_duplicates(
+            subset=(
+                cehd_settings['unique_sample_columns'] 
+                + cehd_settings['comparison_columns']
+            ), 
+            keep=False
+            )
     )
     exposure_data_cleaned = exposure_data.drop(false_duplicates.index)
     
     # Step 2: Identify true duplicates and remove them selectively
 
     true_duplicates = (
-        exposure_data_cleaned.duplicated(subset=key_columns, keep=False)
+        exposure_data_cleaned.duplicated(
+            subset=cehd_settings['unique_sample_columns'], 
+            keep=False
+            )
     )
     
     duplicates_df = exposure_data_cleaned.loc[true_duplicates]
     non_duplicates_df = exposure_data_cleaned.loc[~true_duplicates]
     
-    where_9010 = duplicates_df['IMIS_SUBSTANCE_CODE'] == '9010'
+    where_9010 = duplicates_df[cehd_settings['substance_column']] == '9010'
     duplicates_9010 = duplicates_df.loc[where_9010]
     duplicates_9010_deduped = (
-        duplicates_9010.drop_duplicates(subset=key_columns, keep='first')
+        duplicates_9010.drop_duplicates(
+            subset=cehd_settings['unique_sample_columns'], 
+            keep='first'
+            )
     )
         
     return pd.concat([non_duplicates_df, duplicates_9010_deduped])
 #endregion
 
 #region: clean_instrument_type
-def clean_instrument_type(exposure_data, it_directory, **kwargs):
+def clean_instrument_type(exposure_data, **kwargs):
     '''
     Comprehensive function to handle the cleaning of instrument type.
     '''
+    it_directory = kwargs['path_settings']['it_directory']
+
     exposure_data = _handle_missing_instrument_type(exposure_data)
     table_for_subs = load_instrument_type_tables(it_directory)
     exposure_data = (
@@ -600,11 +564,11 @@ def remove_invalid_fibers_unit(exposure_data, **kwargs):
     the unit of measurement.
     '''
     # These codes should not have "F" as the unit of measurement
-    invalid_substance_codes = ['1073', '2270', '2470', '9135']
+    non_f_substance_codes = kwargs['cehd_settings']['non_f_substance_codes']
     
     where_invalid_units = (
         (exposure_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
-        (exposure_data['IMIS_SUBSTANCE_CODE'].isin(invalid_substance_codes))
+        (exposure_data['IMIS_SUBSTANCE_CODE'].isin(non_f_substance_codes))
     )
     
     return exposure_data.loc[~where_invalid_units]
@@ -634,17 +598,8 @@ def remove_approximate_measure(exposure_data, **kwargs):
     Remove samples where the QUALIFIER indicates an approximate measure.
     '''
     exposure_data = exposure_data.copy()
-    
-    approximate_qualifiers = [
-        '@', 
-        ' @', 
-        '@<', 
-        '@=<', 
-        '@<=', 
-        '<@', 
-        '=<@', 
-        'EST'
-        ]
+    approximate_qualifiers = kwargs['cehd_settings']['approximate_qualifiers']
+
     rows_to_exclude = exposure_data['QUALIFIER'].isin(approximate_qualifiers)
     
     return exposure_data.loc[~rows_to_exclude]
@@ -686,24 +641,21 @@ def remove_combustion_related(exposure_data, **kwargs):
     Remove samples with qualifiers related to combustion.
     '''
     exposure_data = exposure_data.copy()
+    combustion_qualifiers = kwargs['cehd_settings']['combustion_qualifiers']
 
-    combustion_qualifiers = ['COMB', 'COMD', 'com', 'comb']
     rows_to_exclude = exposure_data['QUALIFIER'].isin(combustion_qualifiers)
 
     return exposure_data.loc[~rows_to_exclude]
 #endregion
 
 #region: remove_blk_possible_bulk_not_blank
-def remove_blk_possible_bulk_not_blank(
-        exposure_data, 
-        qualif_conv_2020, 
-        **kwargs
-        ):
+def remove_blk_possible_bulk_not_blank(exposure_data, **kwargs):
     '''
     Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
     is 'N'.
     '''
     exposure_data = exposure_data.copy()
+    qualif_conv_2020 = kwargs['qualif_conv_2020']
 
     condition_blk_possible_bulk = (
         (qualif_conv_2020['clean'] == 'BLK')
@@ -722,11 +674,12 @@ def remove_blk_possible_bulk_not_blank(
 #endregion
 
 #region: remove_conflicting_qualifier
-def remove_conflicting_qualifier(exposure_data, qualif_conv_2020, **kwargs):
+def remove_conflicting_qualifier(exposure_data, **kwargs):
     '''
     Remove samples with qualifiers conflicting with sample type.
     '''
     exposure_data = exposure_data.copy()
+    qualif_conv_2020 = kwargs['qualif_conv_2020']
 
     where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
     exposure_data = _remove_based_on_qualifier(
@@ -738,15 +691,12 @@ def remove_conflicting_qualifier(exposure_data, qualif_conv_2020, **kwargs):
 #endregion
 
 #region: remove_uninterpretable_qualifier
-def remove_uninterpretable_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        **kwargs
-        ):
+def remove_uninterpretable_qualifier(exposure_data, **kwargs):
     '''
     Remove samples with qualifiers deemed uninterpretable.
     '''
     exposure_data = exposure_data.copy()
+    qualif_conv_2020 = kwargs['qualif_conv_2020']
 
     where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
     exposure_data = _remove_based_on_qualifier(
@@ -758,11 +708,12 @@ def remove_uninterpretable_qualifier(
 #endregion
 
 #region: remove_blk_not_bulk
-def remove_blk_not_bulk(exposure_data, qualif_conv_2020, **kwargs):
+def remove_blk_not_bulk(exposure_data, **kwargs):
     '''
     Remove samples where QUALIFIER is 'BLK' and not possible bulk.
     '''
     exposure_data = exposure_data.copy()
+    qualif_conv_2020 = kwargs['qualif_conv_2020']
 
     where_blk_not_bulk  = (
         (qualif_conv_2020['clean'] == 'BLK') 
@@ -807,12 +758,13 @@ def _rows_to_exclude_based_on_qualifier(
 #endregion
 
 #region: clean_unit_of_measurement
-def clean_unit_of_measurement(exposure_data, unit_conv_2020, **kwargs):
+def clean_unit_of_measurement(exposure_data, **kwargs):
     '''
     Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
     values.
     '''
     exposure_data = exposure_data.copy()
+    unit_conv_2020 = kwargs['unit_conv_2020']
 
     # Initialize a cleaned column
     exposure_data['UNIT_OF_MEASUREMENT_2'] = (
@@ -833,13 +785,14 @@ def clean_unit_of_measurement(exposure_data, unit_conv_2020, **kwargs):
 #endregion
 
 #region: remove_invalid_nondetect
-def remove_invalid_nondetect(exposure_data, qualif_conv_2020, **kwargs):
+def remove_invalid_nondetect(exposure_data, **kwargs):
     '''
     Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
     and not censored (N08), and where `QUALIFIER` suggests ND or is censored
     but `SAMPLE_RESULT_2` > 0 (N29).
     '''
     exposure_data = exposure_data.copy()
+    qualif_conv_2020 = kwargs['qualif_conv_2020']
 
     where_nd = qualif_conv_2020['clean'] == 'ND'
     nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
@@ -864,35 +817,22 @@ def remove_invalid_nondetect(exposure_data, qualif_conv_2020, **kwargs):
 #region: add_censored_column
 def add_censored_column(exposure_data, **kwargs):
     '''
-    Add a column indicating that the sample is censored ONLY based on the 
+    Add a column indicating that the sample is censored ONLY based on the
     'QUALIFIER' column.
     '''
     exposure_data = exposure_data.copy()
+    qualifier_censored_values = (
+        kwargs['cehd_settings']['qualifier_censored_values']
+    )
 
-    new_column = 'CENSORED'
-    exposure_data[new_column] = 'N'  # initialize
-    qualifier_censored_values = [
-        '-<', 
-        '  <', 
-        ' =<', 
-        '@<', 
-        '@<=', 
-        '@=<', 
-        '<', 
-        '< =', 
-        '<@', 
-        '<=', 
-        '<= 0', 
-        '= <', 
-        '=<', 
-        '=<@'
-    ]
+    exposure_data['CENSORED'] = 'N'  # initialize
+
     where_censored = (
         exposure_data['QUALIFIER'].isin(qualifier_censored_values)
     )
-    exposure_data.loc[where_censored, new_column] = 'Y'
+    exposure_data.loc[where_censored, 'CENSORED'] = 'Y'
 
-    # FIXME: Something seems odd. Replacing NA with 'raw was NA' and then ''
+    # FIXME: Double check whether this is necessary
     exposure_data['QUALIFIER'] = (
         exposure_data['QUALIFIER'].replace('raw was NA', '')
     )
@@ -939,6 +879,7 @@ def remove_rare_or_nonchemical(exposure_data, **kwargs):
     Exclude substances with few samples or non-chemical IMIS codes.
     '''
     exposure_data = exposure_data.copy()
+    nonchemical_codes = kwargs['cehd_settings']['nonchemical_codes']
 
     ## Exclude substances with few samples
     subst = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
@@ -947,10 +888,6 @@ def remove_rare_or_nonchemical(exposure_data, **kwargs):
     subst = subst[where_enough]
 
     ## Remove non-chemical substance codes
-    # FIXME: Remove hardcoding
-    nonchemical_codes = [
-        'G301', 'G302', 'Q115', 'T110', 'M125', 'Q116', 'Q100', 'S325'
-        ]
     where_nonchemical = subst['code'].isin(nonchemical_codes)
     subst = subst[~where_nonchemical]
 

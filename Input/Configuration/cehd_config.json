@@ -1,23 +1,128 @@
 {
 
-    "dtype": {
-      "CITY": "str",
-      "ESTABLISHMENT_NAME": "str",
-      "FIELD_NUMBER": "str",
-      "IMIS_SUBSTANCE_CODE": "str",
-      "INSPECTION_NUMBER": "str",
-      "INSTRUMENT_TYPE": "str",
-      "NAICS_CODE": "str",
-      "QUALIFIER": "str",
-      "SAMPLING_NUMBER": "str",
-      "SUBSTANCE": "str",
-      "UNIT_OF_MEASUREMENT": "str",
-      "ZIP_CODE": "str"
-    },
+  "dtype": {
+    "CITY": "str",
+    "ESTABLISHMENT_NAME": "str",
+    "FIELD_NUMBER": "str",
+    "IMIS_SUBSTANCE_CODE": "str",
+    "INSPECTION_NUMBER": "str",
+    "INSTRUMENT_TYPE": "str",
+    "NAICS_CODE": "str",
+    "QUALIFIER": "str",
+    "SAMPLING_NUMBER": "str",
+    "SUBSTANCE": "str",
+    "UNIT_OF_MEASUREMENT": "str",
+    "ZIP_CODE": "str"
+  },
 
-    "rename_mapper" : {
-      "EIGHT_HR_TWA_CALC": "EIGHT_HOUR_TWA_CALC",
-      "BLANK_SAMPLE": "BLANK_USED"
-    }
+  "rename_mapper" : {
+    "EIGHT_HR_TWA_CALC": "EIGHT_HOUR_TWA_CALC",
+    "BLANK_SAMPLE": "BLANK_USED"
+  },
+
+  "cleaning_steps" : [
+    "remove_blanks",
+    "remove_nonpersonal",
+    "remove_rare_or_nonchemical",
+    "replace_missing_values",
+    "add_censored_column",
+    "remove_invalid_nondetect",
+    "clean_unit_of_measurement",
+    "remove_blk_not_bulk",
+    "remove_uninterpretable_qualifier",
+    "remove_conflicting_qualifier",
+    "remove_blk_possible_bulk_not_blank",
+    "remove_combustion_related",
+    "remove_fibers_substance_conflict",
+    "remove_yttrium_substance_conflict",
+    "remove_approximate_measure",
+    "remove_qualifier_unit_mismatch",
+    "remove_invalid_fibers_unit",
+    "remove_empty_unit_non_null_result",
+    "remove_percent_greater_than_100",
+    "create_detection_indicator",
+    "remove_invalid_unit",
+    "convert_percent_to_mass_concentration",
+    "remove_missing_office_identifier",
+    "remove_missing_time_sampled",
+    "remove_null_time_sampled",
+    "remove_negative_sample_result",
+    "remove_missing_sample_number",
+    "remove_missing_volume",
+    "remove_zero_volume_sampled",
+    "clean_instrument_type",
+    "clean_duplicates"
+  ],
+
+  "unique_sample_columns" : [
+    "INSPECTION_NUMBER", 
+    "IMIS_SUBSTANCE_CODE", 
+    "SAMPLING_NUMBER", 
+    "FIELD_NUMBER"
+  ],
+
+  "comparison_columns" : [
+    "LAB_NUMBER", 
+    "STATE", 
+    "ZIP_CODE", 
+    "YEAR", 
+    "TIME_SAMPLED", 
+    "SAMPLE_WEIGHT_2"
+  ],
+
+  "substance_column" : "IMIS_SUBSTANCE_CODE",
+
+  "non_f_substance_codes" : [
+      "1073", 
+      "2270", 
+      "2470", 
+      "9135"
+  ],
+
+  "approximate_qualifiers" : [
+      "@", 
+      " @", 
+      "@<", 
+      "@=<", 
+      "@<=", 
+      "<@", 
+      "=<@", 
+      "EST"
+    ],
+
+    "combustion_qualifiers" : [
+      "COMB", 
+      "COMD", 
+      "com", 
+      "comb"
+    ],
+
+    "qualifier_censored_values" : [
+      "-<", 
+      "  <", 
+      " =<", 
+      "@<", 
+      "@<=", 
+      "@=<", 
+      "<", 
+      "< =", 
+      "<@", 
+      "<=", 
+      "<= 0", 
+      "= <", 
+      "=<", 
+      "=<@"
+  ],
+
+    "nonchemical_codes" : [
+      "G301", 
+      "G302", 
+      "Q115", 
+      "T110", 
+      "M125", 
+      "Q116", 
+      "Q100", 
+      "S325"
+    ]
 
   }  
