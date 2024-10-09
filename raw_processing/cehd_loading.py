@@ -11,11 +11,7 @@ import chardet
 import pandas as pd
 
 #region: raw_chem_exposure_health_data
-def raw_chem_exposure_health_data(
-        cehd_settings,
-        raw_cehd_dir=None,
-        raw_cehd_file=None
-        ):
+def raw_chem_exposure_health_data(cehd_settings, path_settings):
     '''
     Load the raw Chemical Exposure Health Data (CEHD).
 
@@ -30,18 +26,18 @@ def raw_chem_exposure_health_data(
     -------
     pandas.DataFrame
     '''
-    if raw_cehd_dir and raw_cehd_file:
+    if path_settings['raw_cehd_dir'] and path_settings['raw_cehd_file']:
         raise ValueError(
             'Specify either "raw_cehd_dir" or "raw_cehd_file", not both.'
         )
-    if raw_cehd_dir:
+    if path_settings['raw_cehd_dir']:
         exposure_data = _raw_cehd_from_multiple_files(
-            raw_cehd_dir, 
+            path_settings['raw_cehd_dir'], 
             cehd_settings['rename_mapper']
             )
-    elif raw_cehd_file:
+    elif path_settings['raw_cehd_file']:
         exposure_data = _raw_cehd_from_single_file(
-            raw_cehd_file
+            path_settings['raw_cehd_file']
             )
     return exposure_data
 #endregion
