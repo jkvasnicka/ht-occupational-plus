@@ -920,9 +920,8 @@ def remove_blanks(exposure_data, **kwargs):
     return exposure_data.loc[not_blank]
 #endregion
 
-# TODO: Move column names and settings to external config file
-#region: pre_clean
-def pre_clean(exposure_data, dtype_settings):
+#region: set_column_dtypes
+def set_column_dtypes(exposure_data, dtype_settings):
     '''
     '''
     exposure_data = exposure_data.copy()
@@ -930,8 +929,6 @@ def pre_clean(exposure_data, dtype_settings):
     for col, dtype in dtype_settings.items():
         exposure_data[col] = exposure_data[col].astype(dtype)
 
-    exposure_data = exposure_data.sort_index(axis=1)
-        
     exposure_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
         exposure_data['AIR_VOLUME_SAMPLED'], errors='coerce'
         )
@@ -950,19 +947,10 @@ def pre_clean(exposure_data, dtype_settings):
     exposure_data['EIGHT_HOUR_TWA_CALC'] = pd.Categorical(
         exposure_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
         )
-
-    exposure_data['IMIS_SUBSTANCE_CODE'] = (
-        exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
-    )
-
+    
     exposure_data['LAB_NUMBER'] = pd.Categorical(exposure_data['LAB_NUMBER'])
 
-    exposure_data['NAICS_CODE'] = (
-        convert_to_integer_string(exposure_data['NAICS_CODE'])
-        .apply(
-            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan
-            )
-        )
+    exposure_data['NAICS_CODE'] = convert_to_integer_string(exposure_data['NAICS_CODE'])
 
     exposure_data['OFFICE_ID'] = pd.Categorical(
         convert_to_integer_string(exposure_data['OFFICE_ID'])
@@ -987,9 +975,36 @@ def pre_clean(exposure_data, dtype_settings):
     exposure_data['TIME_SAMPLED'] = pd.to_numeric(
         exposure_data['TIME_SAMPLED'], errors='coerce'
         )
+    
+    exposure_data['ZIP_CODE'] = (
+        convert_to_integer_string(exposure_data['ZIP_CODE'])
+    )
+
+    return exposure_data
+#endregion
+
+#region: pre_clean
+def pre_clean(exposure_data, dtype_settings):
+    '''
+    '''
+    exposure_data = exposure_data.copy()
+
+    exposure_data = set_column_dtypes(exposure_data, dtype_settings)
+
+    exposure_data = exposure_data.sort_index(axis=1)
+
+    exposure_data['IMIS_SUBSTANCE_CODE'] = (
+        exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
+    )
+
+    exposure_data['NAICS_CODE'] = (
+        exposure_data['NAICS_CODE'].apply(
+            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan
+            )
+        )
 
     exposure_data['ZIP_CODE'] = pd.Categorical(
-        convert_to_integer_string(exposure_data['ZIP_CODE'])
+        exposure_data['ZIP_CODE']
         .str.replace(' ', '0').str.zfill(5)
     )
 
