@@ -1,18 +1,38 @@
 {
 
-  "dtype": {
-    "CITY": "str",
-    "ESTABLISHMENT_NAME": "str",
-    "FIELD_NUMBER": "str",
-    "IMIS_SUBSTANCE_CODE": "str",
-    "INSPECTION_NUMBER": "str",
-    "INSTRUMENT_TYPE": "str",
-    "NAICS_CODE": "str",
-    "QUALIFIER": "str",
-    "SAMPLING_NUMBER": "str",
-    "SUBSTANCE": "str",
-    "UNIT_OF_MEASUREMENT": "str",
-    "ZIP_CODE": "str"
+  "initial_dtypes" : {
+    "CITY" : {"dtype" :  "str"},
+    "ESTABLISHMENT_NAME" : {"dtype" :  "str"},
+    "FIELD_NUMBER" : {"dtype" :  "str"},
+    "IMIS_SUBSTANCE_CODE" : {"dtype" :  "str"},
+    "INSPECTION_NUMBER" : {"dtype" :  "str"},
+    "INSTRUMENT_TYPE" : {"dtype" :  "str"},
+    "QUALIFIER" : {"dtype" :  "str"},
+    "SAMPLING_NUMBER" : {"dtype" :  "str"},
+    "SUBSTANCE" : {"dtype" :  "str"},
+    "UNIT_OF_MEASUREMENT" : {"dtype" :  "str"},
+    "DATE_REPORTED" : {"dtype" : "datetime"},
+    "DATE_SAMPLED" : {"dtype" : "datetime"},
+    "OFFICE_ID" : {"dtype" : "integer_string"},
+    "NAICS_CODE" : {"dtype" : "integer_string"},
+    "SIC_CODE" : {"dtype" : "integer_string"},
+    "ZIP_CODE" : {"dtype" : "integer_string"},
+    "AIR_VOLUME_SAMPLED" : {"dtype" : "numeric", "errors" : "coerce"},
+    "SAMPLE_RESULT" : {"dtype" : "numeric", "errors" : "coerce"},
+    "SAMPLE_WEIGHT" : {"dtype" : "numeric", "errors" : "coerce"},
+    "TIME_SAMPLED" : {"dtype" : "numeric", "errors" : "coerce"}
+  },
+
+  "categoricals" : {
+    "BLANK_USED" : {"categories" : ["Y", "N"]},
+    "EIGHT_HOUR_TWA_CALC" : {"categories" : ["Y", "N"]},
+    "LAB_NUMBER" : {},
+    "OFFICE_ID" : {},
+    "SAMPLE_TYPE" : {},
+    "SIC_CODE" : {},
+    "STATE" : {},
+    "ZIP_CODE" : {},
+    "YEAR" : {}
   },
 
   "rename_mapper" : {

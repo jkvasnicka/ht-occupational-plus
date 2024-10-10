@@ -51,7 +51,11 @@ def clean_chem_exposure_health_data(
     -------
     pandas.DataFrame
     '''
-    exposure_data = pre_clean(exposure_data, cehd_settings['dtype'])
+    exposure_data = pre_clean(
+        exposure_data, 
+        cehd_settings['initial_dtypes'],
+        cehd_settings['categoricals']
+        )
     kwargs = _prepare_key_word_arguments(path_settings, cehd_settings)
     
     change_log = {}  # initialize
@@ -920,76 +924,13 @@ def remove_blanks(exposure_data, **kwargs):
     return exposure_data.loc[not_blank]
 #endregion
 
-#region: set_column_dtypes
-def set_column_dtypes(exposure_data, dtype_settings):
-    '''
-    '''
-    exposure_data = exposure_data.copy()
-
-    for col, dtype in dtype_settings.items():
-        exposure_data[col] = exposure_data[col].astype(dtype)
-
-    exposure_data['AIR_VOLUME_SAMPLED'] = pd.to_numeric(
-        exposure_data['AIR_VOLUME_SAMPLED'], errors='coerce'
-        )
-
-    exposure_data['BLANK_USED'] = pd.Categorical(
-        exposure_data['BLANK_USED'], categories=['Y', 'N']
-        )
-
-    exposure_data['DATE_REPORTED'] = convert_date(
-        exposure_data['DATE_REPORTED']
-    )
-    exposure_data['DATE_SAMPLED'] = convert_date(
-        exposure_data['DATE_SAMPLED']
-    )
-
-    exposure_data['EIGHT_HOUR_TWA_CALC'] = pd.Categorical(
-        exposure_data['EIGHT_HOUR_TWA_CALC'], categories=['Y', 'N']
-        )
-    
-    exposure_data['LAB_NUMBER'] = pd.Categorical(exposure_data['LAB_NUMBER'])
-
-    exposure_data['NAICS_CODE'] = convert_to_integer_string(exposure_data['NAICS_CODE'])
-
-    exposure_data['OFFICE_ID'] = pd.Categorical(
-        convert_to_integer_string(exposure_data['OFFICE_ID'])
-    )
-
-    exposure_data['SAMPLE_RESULT'] = pd.to_numeric(
-        exposure_data['SAMPLE_RESULT'], errors='coerce'
-        )
-
-    exposure_data['SAMPLE_TYPE'] = pd.Categorical(exposure_data['SAMPLE_TYPE'])
-
-    exposure_data['SAMPLE_WEIGHT'] = pd.to_numeric(
-        exposure_data['SAMPLE_WEIGHT'], errors='coerce'
-        )
-
-    exposure_data['SIC_CODE'] = pd.Categorical(
-        convert_to_integer_string(exposure_data['SIC_CODE'])
-    )
-
-    exposure_data['STATE'] = pd.Categorical(exposure_data['STATE'])
-
-    exposure_data['TIME_SAMPLED'] = pd.to_numeric(
-        exposure_data['TIME_SAMPLED'], errors='coerce'
-        )
-    
-    exposure_data['ZIP_CODE'] = (
-        convert_to_integer_string(exposure_data['ZIP_CODE'])
-    )
-
-    return exposure_data
-#endregion
-
 #region: pre_clean
-def pre_clean(exposure_data, dtype_settings):
+def pre_clean(exposure_data, dtype_settings, categoricals):
     '''
     '''
     exposure_data = exposure_data.copy()
 
-    exposure_data = set_column_dtypes(exposure_data, dtype_settings)
+    exposure_data = set_initial_dtypes(exposure_data, dtype_settings)
 
     exposure_data = exposure_data.sort_index(axis=1)
 
@@ -1003,12 +944,12 @@ def pre_clean(exposure_data, dtype_settings):
             )
         )
 
-    exposure_data['ZIP_CODE'] = pd.Categorical(
+    exposure_data['ZIP_CODE'] = (
         exposure_data['ZIP_CODE']
         .str.replace(' ', '0').str.zfill(5)
     )
 
-    exposure_data['YEAR'] = pd.Categorical(
+    exposure_data['YEAR'] = (
         _replace_file_year_with_sampled_year(
             exposure_data['YEAR'],
             exposure_data['DATE_SAMPLED'])
@@ -1022,6 +963,40 @@ def pre_clean(exposure_data, dtype_settings):
         exposure_data['SAMPLING_NUMBER'].str.strip()
     )
 
+    exposure_data = set_categorical_dtypes(exposure_data, categoricals)
+
+    return exposure_data
+#endregion
+
+#region: set_initial_dtypes
+def set_initial_dtypes(exposure_data, dtype_settings):
+    '''
+    '''
+    exposure_data = exposure_data.copy()
+
+    for col, settings in dtype_settings.items():
+        dtype = settings.pop('dtype')
+
+        if dtype == 'datetime':
+            exposure_data[col] = convert_date(exposure_data[col])
+        elif dtype == 'numeric':
+            exposure_data[col] = pd.to_numeric(exposure_data[col], **settings)
+        elif dtype == 'integer_string':
+            exposure_data[col] = convert_to_integer_string(exposure_data[col])
+        else:
+            # Infer pandas dtype
+            exposure_data[col] = exposure_data[col].astype(dtype)
+
+    return exposure_data
+#endregion
+
+#region: set_categorical_dtypes
+def set_categorical_dtypes(exposure_data, categoricals):
+    '''
+    '''
+    exposure_data = exposure_data.copy()
+    for col, kwargs in categoricals.items():
+        exposure_data[col] = pd.Categorical(exposure_data[col], **kwargs)
     return exposure_data
 #endregion
 
