@@ -28,7 +28,6 @@ were identified using pandas.testing.assert_series_equal():
 '''
 
 import pandas as pd
-import numpy as np
 import os
 import json
 import matplotlib.pyplot as plt 
@@ -51,11 +50,9 @@ def clean_chem_exposure_health_data(
     -------
     pandas.DataFrame
     '''
-    exposure_data = pre_clean(
-        exposure_data, 
-        cehd_settings['initial_dtypes'],
-        cehd_settings['categoricals']
-        )
+    exposure_data = (
+        set_categorical_dtypes(exposure_data, cehd_settings['categoricals'])
+    )
     kwargs = _prepare_key_word_arguments(path_settings, cehd_settings)
     
     change_log = {}  # initialize
@@ -75,6 +72,21 @@ def clean_chem_exposure_health_data(
 
     exposure_data = _clean_columns(exposure_data)
 
+    return exposure_data
+#endregion
+
+#region: set_categorical_dtypes
+def set_categorical_dtypes(exposure_data, categoricals):
+    '''
+    Set categorical data types for each column specified in the configuration
+    settings. 
+
+    This function is applied after loading the raw data, because Categorical
+    dtypes can be challenging to read and write to a file.
+    '''
+    exposure_data = exposure_data.copy()
+    for col, kwargs in categoricals.items():
+        exposure_data[col] = pd.Categorical(exposure_data[col], **kwargs)
     return exposure_data
 #endregion
 
@@ -922,164 +934,6 @@ def remove_blanks(exposure_data, **kwargs):
     exposure_data = exposure_data.copy()
     not_blank = exposure_data['BLANK_USED'] == 'N'
     return exposure_data.loc[not_blank]
-#endregion
-
-#region: pre_clean
-def pre_clean(exposure_data, dtype_settings, categoricals):
-    '''
-    '''
-    exposure_data = exposure_data.copy()
-
-    exposure_data = set_initial_dtypes(exposure_data, dtype_settings)
-
-    exposure_data = exposure_data.sort_index(axis=1)
-
-    exposure_data['IMIS_SUBSTANCE_CODE'] = (
-        exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
-    )
-
-    exposure_data['NAICS_CODE'] = (
-        exposure_data['NAICS_CODE'].apply(
-            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan
-            )
-        )
-
-    exposure_data['ZIP_CODE'] = (
-        exposure_data['ZIP_CODE']
-        .str.replace(' ', '0').str.zfill(5)
-    )
-
-    exposure_data['YEAR'] = (
-        _replace_file_year_with_sampled_year(
-            exposure_data['YEAR'],
-            exposure_data['DATE_SAMPLED'])
-    )
-
-    exposure_data['INSPECTION_NUMBER'] = (
-        exposure_data['INSPECTION_NUMBER'].str.strip()
-    )
-
-    exposure_data['SAMPLING_NUMBER'] = (
-        exposure_data['SAMPLING_NUMBER'].str.strip()
-    )
-
-    exposure_data = set_categorical_dtypes(exposure_data, categoricals)
-
-    return exposure_data
-#endregion
-
-#region: set_initial_dtypes
-def set_initial_dtypes(exposure_data, dtype_settings):
-    '''
-    '''
-    exposure_data = exposure_data.copy()
-
-    for col, settings in dtype_settings.items():
-        dtype = settings.pop('dtype')
-
-        if dtype == 'datetime':
-            exposure_data[col] = convert_date(exposure_data[col])
-        elif dtype == 'numeric':
-            exposure_data[col] = pd.to_numeric(exposure_data[col], **settings)
-        elif dtype == 'integer_string':
-            exposure_data[col] = convert_to_integer_string(exposure_data[col])
-        else:
-            # Infer pandas dtype
-            exposure_data[col] = exposure_data[col].astype(dtype)
-
-    return exposure_data
-#endregion
-
-#region: set_categorical_dtypes
-def set_categorical_dtypes(exposure_data, categoricals):
-    '''
-    '''
-    exposure_data = exposure_data.copy()
-    for col, kwargs in categoricals.items():
-        exposure_data[col] = pd.Categorical(exposure_data[col], **kwargs)
-    return exposure_data
-#endregion
-
-#region: convert_date
-def convert_date(column):
-    '''
-    Lowercase and date conversion handling multiple formats
-    '''
-    return pd.to_datetime(
-        column.str.lower(),
-        errors='coerce',
-        format='%Y-%b-%d'
-    ).combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y/%m/%d')
-    ).combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y-%m-%d')
-    .combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%d-%b-%Y')
-    )
-    )
-#endregion
-
-#region: _replace_file_year_with_sampled_year
-def _replace_file_year_with_sampled_year(file_year, date_sampled):
-    '''
-    Update the 'YEAR' column according to the 'DATE_SAMPLED'. 
-
-    Assumes the 'YEAR' column was prefilled with the file year based on the
-    filename (e.g., 'sample_data_[file_year].csv'). Replaces the file years 
-    with the year sampled, where values in 'YEAR_SAMPLED' are not missing.
-    '''
-    year_sampled = date_sampled.dt.year
-    return file_year.where(year_sampled.isna(), year_sampled).astype('int64')
-#endregion
-
-#region: convert_to_integer_string
-def convert_to_integer_string(series):
-    '''
-    Convert a pandas Series to integer strings where possible.
-    NaNs and non-convertible strings are left unchanged.
-    '''
-    # Attempt to convert to numeric, coercing errors to NaN
-    numeric_series = pd.to_numeric(series, errors='coerce')
-    integer_strings = numeric_series.dropna().astype('int').astype('str')
-    
-    # Where successfully converted, use the integer string
-    series = series.where(numeric_series.isna(), integer_strings)
-    
-    return series
-#endregion
-
-#region: search_for_dataframe_discrepancies
-def search_for_dataframe_discrepancies(df1, df2, **kwargs):
-    '''
-    Helper function to identify columns with discrepancies between two 
-    dataframes.
-
-    Parameters
-    ----------
-    **kwargs : dict, optional
-        Additional keyword arguments to pass to pd.testing.assert_series_equal.
-
-    Returns
-    -------
-    list 
-        Column names with discrepancies for further inspection.
-    '''
-    discrepancies = []
-
-    if any(df1.columns != df2.columns):
-        raise ValueError('The columns are not identical')
-    if any(df1.index != df2.index):
-        raise ValueError('The indexes are not identical')
-
-    for col in df1.columns.intersection(df2.columns):
-        col1, col2 = df1[col], df2[col]
-
-        try:
-            pd.testing.assert_series_equal(col1, col2, **kwargs)
-        except AssertionError:
-            discrepancies.append(col)
-
-    return discrepancies
 #endregion
 
 #region: plot_cumulative_changes

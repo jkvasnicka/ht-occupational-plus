@@ -9,6 +9,7 @@ separate module.
 import os
 import chardet
 import pandas as pd
+import numpy as np
 
 #region: raw_chem_exposure_health_data
 def raw_chem_exposure_health_data(cehd_settings, path_settings):
@@ -33,7 +34,8 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
     if path_settings['raw_cehd_dir']:
         exposure_data = _raw_cehd_from_multiple_files(
             path_settings['raw_cehd_dir'], 
-            cehd_settings['rename_mapper']
+            cehd_settings['rename_mapper'],
+            cehd_settings['initial_dtypes']
             )
     elif path_settings['raw_cehd_file']:
         exposure_data = _raw_cehd_from_single_file(
@@ -43,7 +45,11 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
 #endregion
 
 #region _raw_cehd_from_multiple_files
-def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
+def _raw_cehd_from_multiple_files(
+        raw_cehd_dir, 
+        rename_mapper,
+        dtype_settings
+        ):
     '''
     Load the Chemical Exposure Health Data (CEHD) into a single DataFrame.
 
@@ -85,7 +91,7 @@ def _raw_cehd_from_multiple_files(raw_cehd_dir, rename_mapper):
                 year_data['YEAR'] = year
                 exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
-
+    exposure_data = pre_clean(exposure_data, dtype_settings)
     return exposure_data
 #endregion
 
@@ -234,4 +240,124 @@ def _strip_trailing_commas(df):
     df = df.rename(columns_with_trailing_commas, axis=1)
     
     return df
+#endregion
+
+#region: pre_clean
+def pre_clean(exposure_data, dtype_settings):
+    '''
+    Apply minimal data cleaning and type conversion to ensure that the data is 
+    in a workable format.
+
+    Minimal pre-cleaning is done to address issues related to mixed data types
+    within columns, which can cause problems when writing to formats like 
+    Feather. Pandas requires consistent data types.
+    '''
+    exposure_data = exposure_data.copy()
+
+    exposure_data = set_initial_dtypes(exposure_data, dtype_settings)
+
+    exposure_data = exposure_data.sort_index(axis=1)
+
+    exposure_data['IMIS_SUBSTANCE_CODE'] = (
+        exposure_data['IMIS_SUBSTANCE_CODE'].str.replace(' ', '0').str.zfill(4)
+    )
+
+    exposure_data['NAICS_CODE'] = (
+        exposure_data['NAICS_CODE'].apply(
+            lambda x: x if isinstance(x, str) and len(x) >= 6 else np.nan
+            )
+        )
+
+    exposure_data['ZIP_CODE'] = (
+        exposure_data['ZIP_CODE']
+        .str.replace(' ', '0').str.zfill(5)
+    )
+
+    exposure_data['YEAR'] = (
+        _replace_file_year_with_sampled_year(
+            exposure_data['YEAR'],
+            exposure_data['DATE_SAMPLED'])
+    )
+
+    exposure_data['INSPECTION_NUMBER'] = (
+        exposure_data['INSPECTION_NUMBER'].str.strip()
+    )
+
+    exposure_data['SAMPLING_NUMBER'] = (
+        exposure_data['SAMPLING_NUMBER'].str.strip()
+    )
+
+    return exposure_data
+#endregion
+
+#region: set_initial_dtypes
+def set_initial_dtypes(exposure_data, dtype_settings):
+    '''
+    Set consistent data types for each column based on the configuration 
+    settings.
+    '''
+    exposure_data = exposure_data.copy()
+
+    for col, settings in dtype_settings.items():
+        dtype = settings.pop('dtype')
+
+        if dtype == 'datetime':
+            exposure_data[col] = convert_date(exposure_data[col])
+        elif dtype == 'numeric':
+            exposure_data[col] = pd.to_numeric(exposure_data[col], **settings)
+        elif dtype == 'integer_string':
+            exposure_data[col] = convert_to_integer_string(exposure_data[col])
+        else:
+            # Infer pandas dtype
+            exposure_data[col] = exposure_data[col].astype(dtype)
+
+    return exposure_data
+#endregion
+
+#region: convert_date
+def convert_date(column):
+    '''
+    Lowercase and date conversion handling multiple formats
+    '''
+    return pd.to_datetime(
+        column.str.lower(),
+        errors='coerce',
+        format='%Y-%b-%d'
+    ).combine_first(
+        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y/%m/%d')
+    ).combine_first(
+        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y-%m-%d')
+    .combine_first(
+        pd.to_datetime(column.str.lower(), errors='coerce', format='%d-%b-%Y')
+    )
+    )
+#endregion
+
+#region: _replace_file_year_with_sampled_year
+def _replace_file_year_with_sampled_year(file_year, date_sampled):
+    '''
+    Update the 'YEAR' column according to the 'DATE_SAMPLED'. 
+
+    Assumes the 'YEAR' column was prefilled with the file year based on the
+    filename (e.g., 'sample_data_[file_year].csv'). Replaces the file years 
+    with the year sampled, where values in 'YEAR_SAMPLED' are not missing.
+    '''
+    year_sampled = date_sampled.dt.year
+    return file_year.where(year_sampled.isna(), year_sampled).astype('int64')
+#endregion
+
+#region: convert_to_integer_string
+def convert_to_integer_string(series):
+    '''
+    Convert a pandas Series to integer strings where possible.
+    NaNs and non-convertible strings are left unchanged.
+    '''
+    # Attempt to convert to numeric, coercing errors to NaN
+    numeric_series = pd.to_numeric(series, errors='coerce')
+    integer_strings = numeric_series.dropna().astype('int').astype('str')
+    
+    # Where successfully converted, use the integer string
+    series = series.where(numeric_series.isna(), integer_strings)
+    
+    return series
 #endregion
