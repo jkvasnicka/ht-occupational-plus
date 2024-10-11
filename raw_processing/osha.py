@@ -48,6 +48,11 @@ class OshaDataCleaner:
         exposure_data = exposure_data.copy()
         change_log = {}  # initialize
 
+        exposure_data = self.set_categorical_dtypes(
+            exposure_data, 
+            self._data_settings.get('categoricals', {})
+            )
+        
         for step_name in cleaning_steps:
             N_before = len(exposure_data)
             # Dynamically get the cleaning method from the step name

@@ -68,12 +68,6 @@ class CehdCleaner(OshaDataCleaner):
         -------
         pandas.DataFrame
         '''
-        # TODO: Move this to the base class method
-        exposure_data = super().set_categorical_dtypes(
-            exposure_data, 
-            self._data_settings['categoricals']
-            )
-
         exposure_data = super().clean_raw_data(
             exposure_data,
             self._data_settings['cleaning_steps'],
