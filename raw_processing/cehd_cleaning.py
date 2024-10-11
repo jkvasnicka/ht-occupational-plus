@@ -56,7 +56,7 @@ class CehdCleaner(OshaDataCleaner):
     #region: clean_raw_data
     def clean_raw_data(
             self,
-            exposure_data,
+            raw_exposure_data,
             do_log_changes=True
             ):
         '''
@@ -69,7 +69,7 @@ class CehdCleaner(OshaDataCleaner):
         pandas.DataFrame
         '''
         exposure_data = super().clean_raw_data(
-            exposure_data,
+            raw_exposure_data,
             self._data_settings['cleaning_steps'],
             log_file=self._path_settings['cehd_log_file'],
             do_log_changes=do_log_changes
@@ -809,15 +809,10 @@ class CehdCleaner(OshaDataCleaner):
         return exposure_data[rows_to_include]
     #endregion
 
-    # FIXME: Change 'not_blank' typo to 'where_nonpersonal'
     #region: remove_nonpersonal
     def remove_nonpersonal(self, exposure_data):
-        '''
-        Exclude all samples that are not designated as 'P'.
-        '''
-        exposure_data = exposure_data.copy()
-        not_blank = exposure_data['SAMPLE_TYPE'] != 'P'
-        return exposure_data.loc[~not_blank]
+        '''Exclude all samples that are non-personal (e.g., area, etc.)'''
+        return super().remove_nonpersonal(exposure_data, 'SAMPLE_TYPE')
     #endregion
 
     #region: remove_blanks

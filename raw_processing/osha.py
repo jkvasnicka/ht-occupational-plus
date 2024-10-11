@@ -19,7 +19,7 @@ class OshaDataCleaner:
     #region: clean_raw_data
     def clean_raw_data(
             self, 
-            exposure_data,
+            raw_exposure_data,
             cleaning_steps, 
             log_file=None, 
             do_log_changes=True
@@ -29,7 +29,7 @@ class OshaDataCleaner:
 
         Parameters
         ----------
-        exposure_data : pandas.DataFrame
+        raw_exposure_data : pandas.DataFrame
             The raw exposure data to be cleaned.
         cleaning_steps : list of str
             List of method names (as strings) to apply to the data.
@@ -45,7 +45,7 @@ class OshaDataCleaner:
         pandas.DataFrame
             The cleaned exposure data.
         '''
-        exposure_data = exposure_data.copy()
+        exposure_data = raw_exposure_data.copy()
         change_log = {}  # initialize
 
         exposure_data = self.set_categorical_dtypes(
@@ -128,6 +128,14 @@ class OshaDataCleaner:
         )
             
         return pd.concat([non_duplicates_df, duplicates_9010_deduped])
+    #endregion
+
+    #region: remove_nonpersonal
+    def remove_nonpersonal(self, exposure_data, sample_type_column):
+        '''Exclude all samples that are non-personal (e.g., area, etc.)'''
+        exposure_data = exposure_data.copy()
+        not_blank = exposure_data[sample_type_column] != 'P'
+        return exposure_data.loc[~not_blank]
     #endregion
 
     # TODO: Consider NOT using Categorical, and switching to Parquet file.

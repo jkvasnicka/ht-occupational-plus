@@ -21,7 +21,7 @@ class UsisCleaner(OshaDataCleaner):
     #region: clean_raw_data
     def clean_raw_data(
             self, 
-            exposure_data, 
+            raw_exposure_data, 
             do_log_changes=True
             ):
         '''
@@ -33,10 +33,8 @@ class UsisCleaner(OshaDataCleaner):
         -------
         pandas.DataFrame
         '''
-        exposure_data = self.pre_clean(exposure_data)
-
         exposure_data = super().clean_raw_data(
-            exposure_data, 
+            raw_exposure_data, 
             self._data_settings['cleaning_steps'],
             log_file=self._path_settings['usis_log_file'],
             do_log_changes=do_log_changes
@@ -45,26 +43,28 @@ class UsisCleaner(OshaDataCleaner):
         return exposure_data
     #endregion
 
-    # TODO: This could be common function with cehd_cleaning.py
     #region: remove_nonpersonal
     def remove_nonpersonal(self, exposure_data):
-        '''
-        Exclude all samples that are non-personal (e.g., area, etc.)
-        '''
-        exposure_data = exposure_data.copy()
-        where_nonpersonal = exposure_data['sample_type_id'] != 'P'
-        return exposure_data.loc[~where_nonpersonal]
+        '''Exclude all samples that are non-personal (e.g., area, etc.)'''
+        return super().remove_nonpersonal(exposure_data, 'sample_type_id')
     #endregion
 
-    # TODO: Move this to separate loading as for CEHD
-    #region: pre_clean
-    def pre_clean(self, exposure_data):
-        '''
-        '''
-        exposure_data = exposure_data.copy()
-        exposure_data['year'] = _extract_sample_year(exposure_data['sample_date'])
-        return exposure_data
-    #endregion
+#region: load_raw_usis_data
+def load_raw_usis_data(raw_usis_file):
+    '''
+    '''
+    exposure_data = pd.read_feather(raw_usis_file)
+    # Apply minimal data cleaning for consistency with CEHD
+    return pre_clean(exposure_data)
+#endregion
+
+#region: pre_clean
+def pre_clean(exposure_data):
+    '''Apply minimal data cleaning for consistency with CEHD'''
+    exposure_data = exposure_data.copy()
+    exposure_data['year'] = _extract_sample_year(exposure_data['sample_date'])
+    return exposure_data
+#endregion
 
 #region: _extract_sample_year
 def _extract_sample_year(sample_dates):

@@ -29,9 +29,9 @@ def raw_exposure_data(config):
     return cehd_loading.raw_chem_exposure_health_data(config.cehd, config.path)
 #endregion
 
-#region: test_cehd_data fixture
+#region: test_data fixture
 @pytest.fixture
-def test_cehd_data(config):
+def test_data(config):
     '''Fixture to load the expected data for comparison.'''
     return load_test_data(config.path)
 #endregion
@@ -43,7 +43,7 @@ def load_test_data(path_settings):
 #endregion
 
 #region: test_cehd_cleaning
-def test_cehd_cleaning(raw_exposure_data, test_cehd_data, config):
+def test_cehd_cleaning(raw_exposure_data, test_data, config):
     '''
     Use `pd.testing.assert_frame_equal` to compare the cleaned DataFrame with 
     the expected DataFrame.
@@ -61,5 +61,5 @@ def test_cehd_cleaning(raw_exposure_data, test_cehd_data, config):
         do_log_changes=True
     )
     
-    pd.testing.assert_frame_equal(cehd_data, test_cehd_data, check_names=False)
+    pd.testing.assert_frame_equal(cehd_data, test_data, check_names=False)
 #endregion
