@@ -75,6 +75,7 @@ def clean_chem_exposure_health_data(
     return exposure_data
 #endregion
 
+# TODO: Consider NOT using Categorical, and switching to Parquet file.
 #region: set_categorical_dtypes
 def set_categorical_dtypes(exposure_data, categoricals):
     '''

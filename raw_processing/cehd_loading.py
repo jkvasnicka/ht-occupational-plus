@@ -99,10 +99,7 @@ def _raw_cehd_from_multiple_files(
 def _raw_cehd_from_single_file(raw_cehd_file):
     '''
     '''
-    return pd.read_csv(
-            raw_cehd_file, 
-            index_col=0
-        )
+    return pd.read_feather(raw_cehd_file).set_index('index')
 #endregion
 
 #region: _cehd_from_csv
