@@ -6,6 +6,8 @@
 
     "test_cehd_file" : "raw_processing/tests/expected_cehd.feather",
 
+    "cehd_log_file": "logs/cehd_log_file.json",
+
     "raw_usis_file" : "input/raw/osha/usis/USIS_data.feather",
 
     "test_usis_file" : "raw_processing/tests/expected_usis.feather",
@@ -14,8 +16,6 @@
 
     "unit_conv_file": "input/raw/osha/cehd/conversion_tables/unit_conv_2020.csv",
 
-    "it_directory": "input/raw/osha/cehd/conversion_tables_it",
+    "it_directory": "input/raw/osha/cehd/conversion_tables_it"
 
-    "cehd_log_file": "logs/cehd_log_file.json"
-    
   }  

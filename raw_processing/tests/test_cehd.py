@@ -12,7 +12,8 @@ import pandas as pd
 import pytest 
 
 from config_management import UnifiedConfiguration
-from raw_processing import cehd_loading, cehd_cleaning
+from raw_processing.cehd_cleaning import CehdCleaner
+from raw_processing import cehd_loading
 
 #region: config fixture
 @pytest.fixture
@@ -53,10 +54,11 @@ def test_cehd_cleaning(raw_exposure_data, test_cehd_data, config):
     this limitation, the DataFrame index must be reset before writing to 
     Feather and then restored after reading.
     '''
-    cehd_data = cehd_cleaning.clean_chem_exposure_health_data(
-        raw_exposure_data, 
-        config.path,
-        config.cehd
+    cleaner = CehdCleaner(config.path, config.cehd)
+
+    cehd_data = cleaner.clean_raw_data(
+        raw_exposure_data,
+        do_log_changes=True
     )
     
     pd.testing.assert_frame_equal(cehd_data, test_cehd_data, check_names=False)

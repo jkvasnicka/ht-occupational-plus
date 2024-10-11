@@ -32,846 +32,810 @@ import os
 import json
 import matplotlib.pyplot as plt 
 
-#region: clean_chem_exposure_health_data
-def clean_chem_exposure_health_data(
-        exposure_data,
-        path_settings,
-        cehd_settings,
-        do_log_changes=True
-        ):
+from raw_processing.osha import OshaDataCleaner
+
+#region: CehdCleaner.__init__
+class CehdCleaner(OshaDataCleaner):
     '''
-    Load and clean the Chemical Exposure Health Data (CEHD).
+    A data cleaner subclass for Chemical Exposure Health Data (CEHD).
 
-    This function serves as the top-level interface for loading and cleaning
-    CEHD. The user can either load raw data from a directory containing 
-    multiple files or load the raw data assembled into a single file.
-
-    Returns
-    -------
-    pandas.DataFrame
+    This subclass extends the `OshaDataCleaner` to apply specific cleaning 
+    methods and settings for the CEHD.
     '''
-    exposure_data = (
-        set_categorical_dtypes(exposure_data, cehd_settings['categoricals'])
-    )
-    kwargs = _prepare_key_word_arguments(path_settings, cehd_settings)
-    
-    change_log = {}  # initialize
-    for step_name in cehd_settings['cleaning_steps']:
-        N_before = len(exposure_data)
-        # Apply the cleaning step
-        exposure_data = globals()[step_name](exposure_data, **kwargs)
-        N_after = len(exposure_data)
-        change_log[step_name] =  N_after - N_before
-
-    if do_log_changes is True:
-        cehd_log_file = path_settings.get(
-            'cehd_log_file', 'cehd_log_file.json'
-            )
-        with open(cehd_log_file, 'w') as log_file:
-            json.dump(change_log, log_file, indent=4)
-
-    exposure_data = _clean_columns(exposure_data)
-
-    return exposure_data
-#endregion
-
-# TODO: Consider NOT using Categorical, and switching to Parquet file.
-#region: set_categorical_dtypes
-def set_categorical_dtypes(exposure_data, categoricals):
-    '''
-    Set categorical data types for each column specified in the configuration
-    settings. 
-
-    This function is applied after loading the raw data, because Categorical
-    dtypes can be challenging to read and write to a file.
-    '''
-    exposure_data = exposure_data.copy()
-    for col, kwargs in categoricals.items():
-        exposure_data[col] = pd.Categorical(exposure_data[col], **kwargs)
-    return exposure_data
-#endregion
-
-# TODO: Eliminate the need for this.
-#region: _clean_columns
-def _clean_columns(exposure_data):
-    '''
-    Finalize column naming and filter out unneeded columns. 
-    '''
-    exposure_data = exposure_data.copy()
-
-    # TODO: Creating all these extra columns may not be necessary
-    rename_dict = {
-        'UNIT_OF_MEASUREMENT_2': 'UNIT_OF_MEASUREMENT',
-        'SAMPLE_WEIGHT_2': 'SAMPLE_WEIGHT',
-        'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
-        'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
-    }
-
-    columns_to_drop = [
-        'QUALIFIER_2',
-        'SAMPLE_RESULT_2',
-    ]
-    columns_to_drop += list(rename_dict.values())
-
-    exposure_data = (
-        exposure_data.drop(columns=columns_to_drop)
-        .rename(columns=rename_dict)
-    )
-    exposure_data.columns = exposure_data.columns.str.lower()
-
-    return exposure_data
-#endregion
-
-#region: _prepare_key_word_arguments
-def _prepare_key_word_arguments(path_settings, cehd_settings):
-    '''
-    Define key-word arguments for flexible argument passing.
-    '''
-    kwargs = {
-        'path_settings' : path_settings,
-        'cehd_settings' : cehd_settings,
-        'qualif_conv_2020' : load_qualifier_conversion(
+    def __init__(self, path_settings, data_settings):
+        self._path_settings = path_settings
+        self._data_settings = data_settings
+        self._qualif_conv_2020 = load_qualifier_conversion(
             path_settings['qualif_conv_file']
-            ),
-        'unit_conv_2020' : load_unit_measure_conversion(
+            )
+        self._unit_conv_2020 = load_unit_measure_conversion(
             path_settings['unit_conv_file']
             )
-    }
-    return kwargs
 #endregion
+     
+    #region: clean_raw_data
+    def clean_raw_data(
+            self,
+            exposure_data,
+            do_log_changes=True
+            ):
+        '''
+        Clean the raw exposure data using a sequence of cleaning steps.
 
-# TODO: Move to osha.py and use in usis_cleaning.py
-#region: clean_duplicates
-def clean_duplicates(exposure_data, **kwargs):
-    '''
-    Clean the dataset by identifying and removing duplicate samples.
+        This method augments the corresponding method of the base class.
 
-    The function identifies duplicates using key columns that uniquely define 
-    a sample. It removes false duplicates—records with the same key columns 
-    but differing in additional columns. For true duplicates (identical 
-    records), it retains one record for substance code '9010', and discards 
-    duplicates for other substances.
-    '''
-    exposure_data = exposure_data.copy()
-    cehd_settings = kwargs['cehd_settings']
-
-    ## Step 1: Identify false duplicates and remove them
-
-    potential_duplicates = (
-        exposure_data.duplicated(
-            subset=cehd_settings['unique_sample_columns'], 
-            keep=False
+        Returns
+        -------
+        pandas.DataFrame
+        '''
+        exposure_data = super().set_categorical_dtypes(
+            exposure_data, 
+            self._data_settings['categoricals']
             )
-    )
-    false_duplicates = (
-        exposure_data.loc[potential_duplicates]
-        .drop_duplicates(
-            subset=(
-                cehd_settings['unique_sample_columns'] 
-                + cehd_settings['comparison_columns']
-            ), 
-            keep=False
-            )
-    )
-    exposure_data_cleaned = exposure_data.drop(false_duplicates.index)
-    
-    # Step 2: Identify true duplicates and remove them selectively
 
-    true_duplicates = (
-        exposure_data_cleaned.duplicated(
-            subset=cehd_settings['unique_sample_columns'], 
-            keep=False
+        exposure_data = super().clean_raw_data(
+            exposure_data,
+            self._data_settings['cleaning_steps'] ,
+            log_file=self._path_settings['cehd_log_file'],
+            do_log_changes=do_log_changes
             )
-    )
-    
-    duplicates_df = exposure_data_cleaned.loc[true_duplicates]
-    non_duplicates_df = exposure_data_cleaned.loc[~true_duplicates]
-    
-    where_9010 = duplicates_df[cehd_settings['substance_column']] == '9010'
-    duplicates_9010 = duplicates_df.loc[where_9010]
-    duplicates_9010_deduped = (
-        duplicates_9010.drop_duplicates(
-            subset=cehd_settings['unique_sample_columns'], 
-            keep='first'
-            )
-    )
+
+        exposure_data = self._clean_columns(exposure_data)
+
+        return exposure_data
+    #endregion
+
+    # TODO: Eliminate the need for this.
+    #region: _clean_columns
+    def _clean_columns(self, exposure_data):
+        '''
+        Finalize column naming and filter out unneeded columns. 
+        '''
+        exposure_data = exposure_data.copy()
+
+        # TODO: Creating all these extra columns may not be necessary
+        rename_dict = {
+            'UNIT_OF_MEASUREMENT_2': 'UNIT_OF_MEASUREMENT',
+            'SAMPLE_WEIGHT_2': 'SAMPLE_WEIGHT',
+            'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
+            'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
+        }
+
+        columns_to_drop = [
+            'QUALIFIER_2',
+            'SAMPLE_RESULT_2',
+        ]
+        columns_to_drop += list(rename_dict.values())
+
+        exposure_data = (
+            exposure_data.drop(columns=columns_to_drop)
+            .rename(columns=rename_dict)
+        )
+        exposure_data.columns = exposure_data.columns.str.lower()
+
+        return exposure_data
+    #endregion
+
+    #region: clean_duplicates
+    def clean_duplicates(self, exposure_data):
+        '''Augment the method of the base class'''
+        return super().clean_duplicates(
+            exposure_data,
+            self._data_settings['unique_sample_columns'],
+            self._data_settings['comparison_columns'],
+            self._data_settings['substance_column']
+        )
+    #endregion
+
+    #region: clean_instrument_type
+    def clean_instrument_type(self, exposure_data):
+        '''
+        Comprehensive function to handle the cleaning of instrument type.
+        '''
+        exposure_data = self._handle_missing_instrument_type(exposure_data)
+        table_for_subs = self.load_instrument_type_tables()
+        exposure_data = (
+            self._apply_instrument_type_tables(exposure_data, table_for_subs)
+        )
+        exposure_data = self._handle_remaining_missing_instrument_type(exposure_data)
+        return exposure_data
+    #endregion
+
+    #region: _handle_missing_instrument_type
+    def _handle_missing_instrument_type(self, exposure_data):
+        '''
+        Handle missing instrument type and perform initial population and cleanup.
+        '''
+        exposure_data = self._remove_empty_instrument_type(exposure_data)
+        where_nan = exposure_data['INSTRUMENT_TYPE'].isna()
+        exposure_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
+
+        exposure_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
+
+        # Copy raw instrument type for 1984-2011
+        where_1984_2011 = exposure_data['YEAR'].astype(int) < 2012
+        exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
+            exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
+        )
+
+        return exposure_data
+    #endregion
+
+    #region: _remove_empty_instrument_type
+    def _remove_empty_instrument_type(self, exposure_data):
+        '''
+        Remove samples where instrument type is an empty string.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = (
+            (exposure_data['INSTRUMENT_TYPE'] == '') 
+            & exposure_data['INSTRUMENT_TYPE'].notna()
+        )
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: load_instrument_type_tables
+    def load_instrument_type_tables(self):
+        '''
+        Load IT tables for each substance code.
+        '''
+        it_directory = self._path_settings['it_directory']
+
+        csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
+        table_for_subs = {}
+
+        for file in csv_files:
+            # Extract the substance code from the filename
+            subs_code = file[2:6]
+            # Missing values are replaced with '' like R's read.csv
+            df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
+            table_for_subs[subs_code] = df
+
+        return table_for_subs
+    #endregion
+
+    #region: _apply_instrument_type_tables
+    def _apply_instrument_type_tables(self, exposure_data, table_for_subs):
+        '''
+        Clean instrument type for specific substance codes using conversion
+        tables.
+        '''
+        exposure_data = exposure_data.copy()
+
+        for subs_code, it_table in table_for_subs.items():
+            # For each clean values, get the corresponding raw value(s)
+            for clean_value in it_table['clean'].unique():
+                where_clean_value = it_table['clean'] == clean_value
+                raw_values_to_clean = list(
+                    it_table.loc[where_clean_value, 'raw'].astype('str')
+                    )
+                
+                where_to_clean = (
+                    (exposure_data['IMIS_SUBSTANCE_CODE'] == subs_code) 
+                    & (exposure_data['YEAR'].astype(int) < 2010)
+                    & (exposure_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
+                    )
+                exposure_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = (
+                    clean_value
+                )
+
+        return exposure_data
+    #endregion
+
+    #region: _handle_remaining_missing_instrument_type
+    def _handle_remaining_missing_instrument_type(self, exposure_data):
+        '''
+        Final cleanup for 'INSTRUMENT_TYPE_2'.
+
+        Sets empty strings to 'eliminate' and removes all samples designated as 
+        'eliminate', including those set through conversion tables.
+        '''
+        exposure_data = exposure_data.copy()
+        where_empty = exposure_data['INSTRUMENT_TYPE_2'] == ''
+        exposure_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
+        rows_to_exclude = exposure_data['INSTRUMENT_TYPE_2'] == 'eliminate'
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_zero_volume_sampled
+    def remove_zero_volume_sampled(self, exposure_data):
+        '''
+        Remove samples that have an air volume sampled of zero.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = exposure_data['AIR_VOLUME_SAMPLED'] == 0.
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_missing_volume
+    def remove_missing_volume(self, exposure_data):
+        '''
+        Remove samples that have a missing or empty volume sampled variable.
+
+        This function identifies and removes samples where the 'AIR_VOLUME_SAMPLED'
+        column is either missing (NaN) or an empty string ('').
+        '''
+        exposure_data = exposure_data.copy()
         
-    return pd.concat([non_duplicates_df, duplicates_9010_deduped])
-#endregion
+        rows_to_exclude = (
+            exposure_data['AIR_VOLUME_SAMPLED'].isna() 
+            | (exposure_data['AIR_VOLUME_SAMPLED'] == '')
+        )
 
-#region: clean_instrument_type
-def clean_instrument_type(exposure_data, **kwargs):
-    '''
-    Comprehensive function to handle the cleaning of instrument type.
-    '''
-    it_directory = kwargs['path_settings']['it_directory']
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
 
-    exposure_data = _handle_missing_instrument_type(exposure_data)
-    table_for_subs = load_instrument_type_tables(it_directory)
-    exposure_data = (
-        _apply_instrument_type_tables(exposure_data, table_for_subs)
-    )
-    exposure_data = _handle_remaining_missing_instrument_type(exposure_data)
-    return exposure_data
-#endregion
-
-#region: _handle_missing_instrument_type
-def _handle_missing_instrument_type(exposure_data):
-    '''
-    Handle missing instrument type and perform initial population and cleanup.
-    '''
-    exposure_data = _remove_empty_instrument_type(exposure_data)
-    where_nan = exposure_data['INSTRUMENT_TYPE'].isna()
-    exposure_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
-
-    exposure_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
-
-    # Copy raw instrument type for 1984-2011
-    where_1984_2011 = exposure_data['YEAR'].astype(int) < 2012
-    exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
-        exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
-    )
-
-    return exposure_data
-#endregion
-
-#region: _remove_empty_instrument_type
-def _remove_empty_instrument_type(exposure_data):
-    '''
-    Remove samples where instrument type is an empty string.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = (
-        (exposure_data['INSTRUMENT_TYPE'] == '') 
-        & exposure_data['INSTRUMENT_TYPE'].notna()
-    )
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: load_instrument_type_tables
-def load_instrument_type_tables(it_directory):
-    '''
-    Load IT tables for each substance code.
-    '''
-    csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
-    table_for_subs = {}
-
-    for file in csv_files:
-        # Extract the substance code from the filename
-        subs_code = file[2:6]
-        # Missing values are replaced with '' like R's read.csv
-        df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
-        table_for_subs[subs_code] = df
-
-    return table_for_subs
-#endregion
-
-#region: _apply_instrument_type_tables
-def _apply_instrument_type_tables(exposure_data, table_for_subs):
-    '''
-    Clean instrument type for specific substance codes using conversion
-    tables.
-    '''
-    exposure_data = exposure_data.copy()
-
-    for subs_code, it_table in table_for_subs.items():
-        # For each clean values, get the corresponding raw value(s)
-        for clean_value in it_table['clean'].unique():
-            where_clean_value = it_table['clean'] == clean_value
-            raw_values_to_clean = list(
-                it_table.loc[where_clean_value, 'raw'].astype('str')
+    # NOTE: Inconsistency
+    #region: remove_missing_sample_number
+    def remove_missing_sample_number(self, exposure_data):
+        '''
+        Remove samples that have a missing or null sampling number.
+        
+        Note:
+        - In the original R script, '0' and '0.0' were treated as distinct values 
+        because they were stored as strings. However, in Python, when converting 
+        to numeric , both '0' and '0.0' are treated as numeric zero (0.0) and 
+        thus identified as null values by this function.
+        '''
+        exposure_data = exposure_data.copy()
+        
+        rows_to_exclude = (
+            exposure_data['SAMPLING_NUMBER'].isna() 
+            | (pd.to_numeric(
+                exposure_data['SAMPLING_NUMBER'], errors='coerce') == 0.
                 )
-            
-            where_to_clean = (
-                (exposure_data['IMIS_SUBSTANCE_CODE'] == subs_code) 
-                & (exposure_data['YEAR'].astype(int) < 2010)
-                & (exposure_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
-                )
-            exposure_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = (
+        )
+
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_negative_sample_result
+    def remove_negative_sample_result(self, exposure_data):
+        '''
+        Remove samples with a sample result less than zero.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = exposure_data['SAMPLE_RESULT_3'] < 0.
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_null_time_sampled
+    def remove_null_time_sampled(self, exposure_data):
+        '''
+        Remove samples that have a null time sampled variable.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = exposure_data['TIME_SAMPLED'] == 0.
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_missing_time_sampled
+    def remove_missing_time_sampled(self, exposure_data):
+        '''
+        Remove samples that have a missing value for the time sampled variable.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = exposure_data['TIME_SAMPLED'].isna()
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_missing_office_identifier
+    def remove_missing_office_identifier(self, exposure_data):
+        '''
+        Remove samples that have a missing value for the office ID.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = exposure_data['OFFICE_ID'].isna()
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    # FIXME: Double check conversion factor. Unclear.
+    #region: convert_percent_to_mass_concentration
+    def convert_percent_to_mass_concentration(self, exposure_data):
+        '''
+        Convert sample results from percentage concentration to mass concentration 
+        (mg/m³).
+        '''
+        exposure_data = exposure_data.copy()
+
+        exposure_data = self.remove_null_weight(exposure_data)
+
+        where_to_convert = (
+            (exposure_data['SAMPLE_WEIGHT_2'] != 0) 
+            & (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') 
+            & (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            & exposure_data['SAMPLE_WEIGHT_2'].notna() 
+            & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
+            & (exposure_data['AIR_VOLUME_SAMPLED'] > 0)
+        )
+
+        sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
+        sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
+        air_volume_sampled = (
+            exposure_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
+        )
+
+        conversion_factor = 10.
+
+        converted_result = (
+            (sample_result * sample_weight * conversion_factor) 
+            / air_volume_sampled
+        )
+
+        # Assign the converted results back to the dataframe
+        exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
+        exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
+
+        exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = (
+            'M.from.Perc'
+            )
+
+        return exposure_data
+    #endregion
+
+    #region: remove_null_weight
+    def remove_null_weight(self, exposure_data):
+        '''
+        Remove samples where unit of measurement is percentage ('%'), the sample 
+        result is non-null, but the sample weight is null.
+        '''
+        exposure_data = exposure_data.copy()
+
+        # TODO: Is this step necessary?
+        exposure_data['SAMPLE_WEIGHT_2'] = (
+            exposure_data['SAMPLE_WEIGHT'].fillna(0)
+        )
+
+        rows_to_exclude = (
+            (exposure_data['SAMPLE_WEIGHT_2'] == 0) &
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+            (exposure_data['SAMPLE_RESULT_2'] > 0)
+        )
+
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    # TODO: Remove hardcoding?
+    #region: remove_invalid_unit
+    def remove_invalid_unit(self, exposure_data):
+        '''
+        For each list of substance codes, remove samples where the unit of
+        measurement is invalid.
+        '''
+        top_substances = [
+            '0040', '0230', '0260', '0360', '0430', '0491', '0685', 
+            '0720', '0731', '1073', '1290', '1520', '1560', '1591', 
+            '1620', '1730', '1790', '1840', '2270', '2280', '2460', 
+            '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
+        ]
+        valid_units_n31 = ['', 'F', 'P', 'M']
+        exposure_data = self._remove_invalid_unit_for_substance_codes(
+            exposure_data, 
+            top_substances, 
+            valid_units_n31
+            )
+
+        valid_units_n32 = ['', '%', 'M']
+        exposure_data = self._remove_invalid_unit_for_substance_codes(
+            exposure_data, 
+            ['9010'], 
+            valid_units_n32
+            )
+
+        where_other = (
+            ~exposure_data['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
+            )
+        other_substances = list(
+            exposure_data.loc[where_other, 'IMIS_SUBSTANCE_CODE'].unique()
+            )
+        valid_units_n33 = ['', '%', 'M', 'P', 'F']
+        exposure_data = self._remove_invalid_unit_for_substance_codes(
+            exposure_data, 
+            other_substances, 
+            valid_units_n33
+            )
+
+        return exposure_data
+    #endregion
+
+    #region: _remove_invalid_unit_for_substance_codes
+    def _remove_invalid_unit_for_substance_codes(
+            self,
+            exposure_data, 
+            substance_codes, 
+            valid_units
+            ):
+        '''
+        Remove samples where the unit of measurement is invalid for given
+        substances.
+        '''
+        exposure_data = exposure_data.copy()
+
+        where_in_substance_codes = (
+            exposure_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
+        )
+        where_invalid_units = (
+            ~exposure_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+        )
+
+        rows_to_exclude = where_in_substance_codes & where_invalid_units
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: create_detection_indicator
+    def create_detection_indicator(self, exposure_data):
+        '''
+        Create a new column 'QUALIFIER_2' to indicate detection status.
+        '''
+        exposure_data = exposure_data.copy()
+
+        exposure_data['QUALIFIER_2'] = 'detected'  # initialize
+        where_null = exposure_data['SAMPLE_RESULT_2'] == 0
+        exposure_data.loc[where_null, 'QUALIFIER_2'] = 'ND'
+
+        return exposure_data
+    #endregion
+
+    #region: remove_percent_greater_than_100
+    def remove_percent_greater_than_100(self, exposure_data):
+        '''
+        Remove samples where the unit of measurement is '%' and the sample result
+        is greater than 100.
+        '''
+        rows_to_exclude = (
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+            (exposure_data['SAMPLE_RESULT_2'] > 100.)
+        )
+        
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_empty_unit_non_null_result
+    def remove_empty_unit_non_null_result(self, exposure_data):
+        '''
+        Remove samples where the unit of measurement is empty and the sample 
+        result is not null.
+        '''
+        rows_to_exclude = (
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '') &
+            (exposure_data['SAMPLE_RESULT_2'] > 0)
+        )
+        
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_invalid_fibers_unit
+    def remove_invalid_fibers_unit(self, exposure_data):
+        '''
+        Remove samples with specific substance codes that should not have "F" as
+        the unit of measurement.
+        '''
+        # These codes should not have "F" as the unit of measurement
+        non_f_substance_codes = self._data_settings['non_f_substance_codes']
+        
+        where_invalid_units = (
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
+            (exposure_data['IMIS_SUBSTANCE_CODE'].isin(non_f_substance_codes))
+        )
+        
+        return exposure_data.loc[~where_invalid_units]
+    #endregion
+
+    #region: remove_qualifier_unit_mismatch
+    def remove_qualifier_unit_mismatch(self, exposure_data):
+        '''
+        Remove samples with inconsistent qualifier and unit of measurement.
+        '''
+        exposure_data = exposure_data.copy()
+
+        condition_inconsistent_units = (
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] != '%') 
+            & (exposure_data['QUALIFIER'] == '%')
+        ) | (
+            (exposure_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
+            & (exposure_data['QUALIFIER'] == 'M')
+        )
+
+        return exposure_data.loc[~condition_inconsistent_units]
+    #endregion
+
+    #region: remove_approximate_measure
+    def remove_approximate_measure(self, exposure_data):
+        '''
+        Remove samples where the QUALIFIER indicates an approximate measure.
+        '''
+        exposure_data = exposure_data.copy()
+        approximate_qualifiers = self._data_settings['approximate_qualifiers']
+
+        rows_to_exclude = exposure_data['QUALIFIER'].isin(approximate_qualifiers)
+        
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_yttrium_substance_conflict
+    def remove_yttrium_substance_conflict(self, exposure_data):
+        '''
+        Remove samples where the qualifier 'Y' is used but the substance code is
+        not 9135.
+        '''
+        exposure_data = exposure_data.copy()
+
+        rows_to_exclude = (
+            (exposure_data['QUALIFIER'] == 'Y') 
+            & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9135')
+        )
+
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_fibers_substance_conflict
+    def remove_fibers_substance_conflict(self, exposure_data):
+        '''
+        Remove samples where the qualifier suggests fibers (F) but the substance
+        code is not 9020.
+        '''
+        exposure_data = exposure_data.copy()
+        rows_to_exclude = (
+            (exposure_data['QUALIFIER'] == 'F') 
+            & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9020')
+        )
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_combustion_related
+    def remove_combustion_related(self, exposure_data):
+        '''
+        Remove samples with qualifiers related to combustion.
+        '''
+        exposure_data = exposure_data.copy()
+        combustion_qualifiers = self._data_settings['combustion_qualifiers']
+
+        rows_to_exclude = exposure_data['QUALIFIER'].isin(combustion_qualifiers)
+
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_blk_possible_bulk_not_blank
+    def remove_blk_possible_bulk_not_blank(self, exposure_data):
+        '''
+        Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
+        is 'N'.
+        '''
+        exposure_data = exposure_data.copy()
+
+        condition_blk_possible_bulk = (
+            (self._qualif_conv_2020['clean'] == 'BLK')
+            & (self._qualif_conv_2020['possible_bulk'] == 'Y')
+        )
+        rows_to_exclude = self._rows_to_exclude_based_on_qualifier(
+            exposure_data, 
+            condition_blk_possible_bulk
+            )
+
+        # Further filter rows where BLANK_USED is 'N'
+        rows_to_exclude = rows_to_exclude & (exposure_data['BLANK_USED'] == 'N')
+
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_conflicting_qualifier
+    def remove_conflicting_qualifier(self, exposure_data):
+        '''
+        Remove samples with qualifiers conflicting with sample type.
+        '''
+        exposure_data = exposure_data.copy()
+
+        where_conflict = self._qualif_conv_2020['clean'].isin(['B', 'W'])
+        exposure_data = self._remove_based_on_qualifier(
+            exposure_data, 
+            where_conflict
+            )
+        return exposure_data
+    #endregion
+
+    #region: remove_uninterpretable_qualifier
+    def remove_uninterpretable_qualifier(self, exposure_data):
+        '''
+        Remove samples with qualifiers deemed uninterpretable.
+        '''
+        exposure_data = exposure_data.copy()
+
+        where_eliminate = self._qualif_conv_2020['clean'] == 'eliminate'
+        exposure_data = self._remove_based_on_qualifier(
+            exposure_data, 
+            where_eliminate
+            )
+        return exposure_data
+    #endregion
+
+    #region: remove_blk_not_bulk
+    def remove_blk_not_bulk(self, exposure_data):
+        '''
+        Remove samples where QUALIFIER is 'BLK' and not possible bulk.
+        '''
+        exposure_data = exposure_data.copy()
+
+        where_blk_not_bulk  = (
+            (self._qualif_conv_2020['clean'] == 'BLK') 
+            & (self._qualif_conv_2020['possible_bulk'] == 'N')
+        )
+        exposure_data = self._remove_based_on_qualifier(
+            exposure_data,
+            where_blk_not_bulk
+            )
+        return exposure_data
+    #endregion
+
+    #region: _remove_based_on_qualifier
+    def _remove_based_on_qualifier(self, exposure_data, condition):
+        '''
+        General function to remove samples based on QUALIFIER conditions.
+        '''
+        exposure_data = exposure_data.copy()
+
+        rows_to_exclude = self._rows_to_exclude_based_on_qualifier(
+            exposure_data, 
+            condition
+            )
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion:
+
+    #region: _rows_to_exclude_based_on_qualifier
+    def _rows_to_exclude_based_on_qualifier(
+            self,
+            exposure_data,
+            condition
+            ):
+        '''
+        General function to remove samples based on QUALIFIER conditions.
+        '''
+        exposure_data = exposure_data.copy()
+        
+        raw_values_to_exclude = self._qualif_conv_2020.loc[condition, 'raw']
+        return exposure_data['QUALIFIER'].isin(raw_values_to_exclude)
+    #endregion
+
+    #region: clean_unit_of_measurement
+    def clean_unit_of_measurement(self, exposure_data):
+        '''
+        Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
+        values.
+        '''
+        exposure_data = exposure_data.copy()
+
+        # Initialize a cleaned column
+        exposure_data['UNIT_OF_MEASUREMENT_2'] = (
+            exposure_data['UNIT_OF_MEASUREMENT']
+        )
+        
+        for clean_value in self._unit_conv_2020['clean'].unique():
+            where_clean_value = self._unit_conv_2020['clean'] == clean_value
+            raw_values = list(self._unit_conv_2020.loc[where_clean_value, 'raw'])
+            where_needs_clean = (
+                exposure_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
+            )
+            exposure_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = (
                 clean_value
             )
 
-    return exposure_data
-#endregion
+        return exposure_data
+    #endregion
 
-#region: _handle_remaining_missing_instrument_type
-def _handle_remaining_missing_instrument_type(exposure_data):
-    '''
-    Final cleanup for 'INSTRUMENT_TYPE_2'.
+    #region: remove_invalid_nondetect
+    def remove_invalid_nondetect(self, exposure_data):
+        '''
+        Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
+        and not censored (N08), and where `QUALIFIER` suggests ND or is censored
+        but `SAMPLE_RESULT_2` > 0 (N29).
+        '''
+        exposure_data = exposure_data.copy()
 
-    Sets empty strings to 'eliminate' and removes all samples designated as 
-    'eliminate', including those set through conversion tables.
-    '''
-    exposure_data = exposure_data.copy()
-    where_empty = exposure_data['INSTRUMENT_TYPE_2'] == ''
-    exposure_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
-    rows_to_exclude = exposure_data['INSTRUMENT_TYPE_2'] == 'eliminate'
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
+        where_nd = self._qualif_conv_2020['clean'] == 'ND'
+        nd_qualifiers = self._qualif_conv_2020.loc[where_nd, 'raw']
+        condition_n08 = (
+            (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            & (exposure_data['CENSORED'] != 'Y') 
+            & (exposure_data['QUALIFIER'].isin(nd_qualifiers))
+        )
+        exposure_data = exposure_data.loc[~condition_n08]  # N08
 
-#region: remove_zero_volume_sampled
-def remove_zero_volume_sampled(exposure_data, **kwargs):
-    '''
-    Remove samples that have an air volume sampled of zero.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = exposure_data['AIR_VOLUME_SAMPLED'] == 0.
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
+        condition_n29 = (
+            (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            & ((exposure_data['CENSORED'] == 'Y') 
+            | (exposure_data['QUALIFIER'].isin(nd_qualifiers)))
+        )
+        
+        exposure_data = exposure_data.loc[~condition_n29]  # N29
 
-#region: remove_missing_volume
-def remove_missing_volume(exposure_data, **kwargs):
-    '''
-    Remove samples that have a missing or empty volume sampled variable.
+        return exposure_data
+    #endregion
 
-    This function identifies and removes samples where the 'AIR_VOLUME_SAMPLED'
-    column is either missing (NaN) or an empty string ('').
-    '''
-    exposure_data = exposure_data.copy()
-    
-    rows_to_exclude = (
-        exposure_data['AIR_VOLUME_SAMPLED'].isna() 
-        | (exposure_data['AIR_VOLUME_SAMPLED'] == '')
-    )
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-# NOTE: Inconsistency
-#region: remove_missing_sample_number
-def remove_missing_sample_number(exposure_data, **kwargs):
-    '''
-    Remove samples that have a missing or null sampling number.
-    
-    Note:
-    - In the original R script, '0' and '0.0' were treated as distinct values 
-      because they were stored as strings. However, in Python, when converting 
-      to numeric , both '0' and '0.0' are treated as numeric zero (0.0) and 
-      thus identified as null values by this function.
-    '''
-    exposure_data = exposure_data.copy()
-    
-    rows_to_exclude = (
-        exposure_data['SAMPLING_NUMBER'].isna() 
-        | (pd.to_numeric(
-            exposure_data['SAMPLING_NUMBER'], errors='coerce') == 0.
-            )
-    )
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_negative_sample_result
-def remove_negative_sample_result(exposure_data, **kwargs):
-    '''
-    Remove samples with a sample result less than zero.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = exposure_data['SAMPLE_RESULT_3'] < 0.
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_null_time_sampled
-def remove_null_time_sampled(exposure_data, **kwargs):
-    '''
-    Remove samples that have a null time sampled variable.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = exposure_data['TIME_SAMPLED'] == 0.
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_missing_time_sampled
-def remove_missing_time_sampled(exposure_data, **kwargs):
-    '''
-    Remove samples that have a missing value for the time sampled variable.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = exposure_data['TIME_SAMPLED'].isna()
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_missing_office_identifier
-def remove_missing_office_identifier(exposure_data, **kwargs):
-    '''
-    Remove samples that have a missing value for the office ID.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = exposure_data['OFFICE_ID'].isna()
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-# FIXME: Double check conversion factor. Unclear.
-#region: convert_percent_to_mass_concentration
-def convert_percent_to_mass_concentration(exposure_data, **kwargs):
-    '''
-    Convert sample results from percentage concentration to mass concentration 
-    (mg/m³).
-    '''
-    exposure_data = exposure_data.copy()
-
-    exposure_data = remove_null_weight(exposure_data)
-
-    where_to_convert = (
-        (exposure_data['SAMPLE_WEIGHT_2'] != 0) 
-        & (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') 
-        & (exposure_data['SAMPLE_RESULT_2'] > 0) 
-        & exposure_data['SAMPLE_WEIGHT_2'].notna() 
-        & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
-        & (exposure_data['AIR_VOLUME_SAMPLED'] > 0)
-    )
-
-    sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
-    sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
-    air_volume_sampled = (
-        exposure_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
-    )
-
-    conversion_factor = 10.
-
-    converted_result = (
-        (sample_result * sample_weight * conversion_factor) 
-        / air_volume_sampled
-    )
-
-    # Assign the converted results back to the dataframe
-    exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
-    exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
-
-    exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = (
-        'M.from.Perc'
+    #region: add_censored_column
+    def add_censored_column(self, exposure_data):
+        '''
+        Add a column indicating that the sample is censored ONLY based on the
+        'QUALIFIER' column.
+        '''
+        exposure_data = exposure_data.copy()
+        qualifier_censored_values = (
+            self._data_settings['qualifier_censored_values']
         )
 
-    return exposure_data
-#endregion
+        exposure_data['CENSORED'] = 'N'  # initialize
 
-#region: remove_null_weight
-def remove_null_weight(exposure_data):
-    '''
-    Remove samples where unit of measurement is percentage ('%'), the sample 
-    result is non-null, but the sample weight is null.
-    '''
-    exposure_data = exposure_data.copy()
+        where_censored = (
+            exposure_data['QUALIFIER'].isin(qualifier_censored_values)
+        )
+        exposure_data.loc[where_censored, 'CENSORED'] = 'Y'
 
-    # TODO: Is this step necessary?
-    exposure_data['SAMPLE_WEIGHT_2'] = (
-        exposure_data['SAMPLE_WEIGHT'].fillna(0)
-    )
-
-    rows_to_exclude = (
-        (exposure_data['SAMPLE_WEIGHT_2'] == 0) &
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (exposure_data['SAMPLE_RESULT_2'] > 0)
-    )
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-# TODO: Remove hardcoding?
-#region: remove_invalid_unit
-def remove_invalid_unit(exposure_data, **kwargs):
-    '''
-    For each list of substance codes, remove samples where the unit of
-    measurement is invalid.
-    '''
-    top_substances = [
-        '0040', '0230', '0260', '0360', '0430', '0491', '0685', 
-        '0720', '0731', '1073', '1290', '1520', '1560', '1591', 
-        '1620', '1730', '1790', '1840', '2270', '2280', '2460', 
-        '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
-    ]
-    valid_units_n31 = ['', 'F', 'P', 'M']
-    exposure_data = _remove_invalid_unit_for_substance_codes(
-        exposure_data, 
-        top_substances, 
-        valid_units_n31
+        # FIXME: Double check whether this is necessary
+        exposure_data['QUALIFIER'] = (
+            exposure_data['QUALIFIER'].replace('raw was NA', '')
+        )
+        exposure_data['SAMPLE_RESULT_2'] = (
+            exposure_data['SAMPLE_RESULT'].fillna(0)
         )
 
-    valid_units_n32 = ['', '%', 'M']
-    exposure_data = _remove_invalid_unit_for_substance_codes(
-        exposure_data, 
-        ['9010'], 
-        valid_units_n32
-        )
+        return exposure_data
+    #endregion
 
-    where_other = (
-        ~exposure_data['IMIS_SUBSTANCE_CODE'].isin(top_substances + ['9010'])
-        )
-    other_substances = list(
-        exposure_data.loc[where_other, 'IMIS_SUBSTANCE_CODE'].unique()
-        )
-    valid_units_n33 = ['', '%', 'M', 'P', 'F']
-    exposure_data = _remove_invalid_unit_for_substance_codes(
-        exposure_data, 
-        other_substances, 
-        valid_units_n33
-        )
+    #region: replace_missing_values
+    def replace_missing_values(self, exposure_data):
+        '''
+        '''
+        exposure_data = exposure_data.copy()
 
-    return exposure_data
-#endregion
+        for column in ['QUALIFIER', 'UNIT_OF_MEASUREMENT']:
+            exposure_data[column] = exposure_data[column].fillna('raw was NA')
 
-#region: _remove_invalid_unit_for_substance_codes
-def _remove_invalid_unit_for_substance_codes(
-        exposure_data, 
-        substance_codes, 
-        valid_units
-        ):
-    '''
-    Remove samples where the unit of measurement is invalid for given
-    substances.
-    '''
-    exposure_data = exposure_data.copy()
+        return exposure_data
+    #endregion
 
-    where_in_substance_codes = (
-        exposure_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
-    )
-    where_invalid_units = (
-        ~exposure_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
-    )
+    #region: remove_rare_or_nonchemical
+    def remove_rare_or_nonchemical(self, exposure_data):
+        '''
+        Exclude substances with few samples or non-chemical IMIS codes.
+        '''
+        exposure_data = exposure_data.copy()
+        nonchemical_codes = self._data_settings['nonchemical_codes']
 
-    rows_to_exclude = where_in_substance_codes & where_invalid_units
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
+        ## Exclude substances with few samples
+        subst = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
+        subst.columns = ['code', 'n']
+        where_enough = subst['n'] >= 100
+        subst = subst[where_enough]
 
-#region: create_detection_indicator
-def create_detection_indicator(exposure_data, **kwargs):
-    '''
-    Create a new column 'QUALIFIER_2' to indicate detection status.
-    '''
-    exposure_data = exposure_data.copy()
+        ## Remove non-chemical substance codes
+        where_nonchemical = subst['code'].isin(nonchemical_codes)
+        subst = subst[~where_nonchemical]
 
-    exposure_data['QUALIFIER_2'] = 'detected'  # initialize
-    where_null = exposure_data['SAMPLE_RESULT_2'] == 0
-    exposure_data.loc[where_null, 'QUALIFIER_2'] = 'ND'
+        sub_list_all = list(subst['code'])
+        rows_to_include = exposure_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)
+        return exposure_data[rows_to_include]
+    #endregion
 
-    return exposure_data
-#endregion
+    # FIXME: Change 'not_blank' typo to 'where_nonpersonal'
+    #region: remove_nonpersonal
+    def remove_nonpersonal(self, exposure_data):
+        '''
+        Exclude all samples that are not designated as 'P'.
+        '''
+        exposure_data = exposure_data.copy()
+        not_blank = exposure_data['SAMPLE_TYPE'] != 'P'
+        return exposure_data.loc[~not_blank]
+    #endregion
 
-#region: remove_percent_greater_than_100
-def remove_percent_greater_than_100(exposure_data, **kwargs):
-    '''
-    Remove samples where the unit of measurement is '%' and the sample result
-    is greater than 100.
-    '''
-    rows_to_exclude = (
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
-        (exposure_data['SAMPLE_RESULT_2'] > 100.)
-    )
-    
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_empty_unit_non_null_result
-def remove_empty_unit_non_null_result(exposure_data, **kwargs):
-    '''
-    Remove samples where the unit of measurement is empty and the sample 
-    result is not null.
-    '''
-    rows_to_exclude = (
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] == '') &
-        (exposure_data['SAMPLE_RESULT_2'] > 0)
-    )
-    
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_invalid_fibers_unit
-def remove_invalid_fibers_unit(exposure_data, **kwargs):
-    '''
-    Remove samples with specific substance codes that should not have "F" as
-    the unit of measurement.
-    '''
-    # These codes should not have "F" as the unit of measurement
-    non_f_substance_codes = kwargs['cehd_settings']['non_f_substance_codes']
-    
-    where_invalid_units = (
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
-        (exposure_data['IMIS_SUBSTANCE_CODE'].isin(non_f_substance_codes))
-    )
-    
-    return exposure_data.loc[~where_invalid_units]
-#endregion
-
-#region: remove_qualifier_unit_mismatch
-def remove_qualifier_unit_mismatch(exposure_data, **kwargs):
-    '''
-    Remove samples with inconsistent qualifier and unit of measurement.
-    '''
-    exposure_data = exposure_data.copy()
-
-    condition_inconsistent_units = (
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] != '%') 
-        & (exposure_data['QUALIFIER'] == '%')
-    ) | (
-        (exposure_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
-        & (exposure_data['QUALIFIER'] == 'M')
-    )
-
-    return exposure_data.loc[~condition_inconsistent_units]
-#endregion
-
-#region: remove_approximate_measure
-def remove_approximate_measure(exposure_data, **kwargs):
-    '''
-    Remove samples where the QUALIFIER indicates an approximate measure.
-    '''
-    exposure_data = exposure_data.copy()
-    approximate_qualifiers = kwargs['cehd_settings']['approximate_qualifiers']
-
-    rows_to_exclude = exposure_data['QUALIFIER'].isin(approximate_qualifiers)
-    
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_yttrium_substance_conflict
-def remove_yttrium_substance_conflict(exposure_data, **kwargs):
-    '''
-    Remove samples where the qualifier 'Y' is used but the substance code is
-    not 9135.
-    '''
-    exposure_data = exposure_data.copy()
-
-    rows_to_exclude = (
-        (exposure_data['QUALIFIER'] == 'Y') 
-        & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9135')
-    )
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_fibers_substance_conflict
-def remove_fibers_substance_conflict(exposure_data, **kwargs):
-    '''
-    Remove samples where the qualifier suggests fibers (F) but the substance
-    code is not 9020.
-    '''
-    exposure_data = exposure_data.copy()
-    rows_to_exclude = (
-        (exposure_data['QUALIFIER'] == 'F') 
-        & (exposure_data['IMIS_SUBSTANCE_CODE'] != '9020')
-    )
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_combustion_related
-def remove_combustion_related(exposure_data, **kwargs):
-    '''
-    Remove samples with qualifiers related to combustion.
-    '''
-    exposure_data = exposure_data.copy()
-    combustion_qualifiers = kwargs['cehd_settings']['combustion_qualifiers']
-
-    rows_to_exclude = exposure_data['QUALIFIER'].isin(combustion_qualifiers)
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_blk_possible_bulk_not_blank
-def remove_blk_possible_bulk_not_blank(exposure_data, **kwargs):
-    '''
-    Remove samples judged to be possible blank (BLK) and bulk, yet BLANK_USED
-    is 'N'.
-    '''
-    exposure_data = exposure_data.copy()
-    qualif_conv_2020 = kwargs['qualif_conv_2020']
-
-    condition_blk_possible_bulk = (
-        (qualif_conv_2020['clean'] == 'BLK')
-        & (qualif_conv_2020['possible_bulk'] == 'Y')
-    )
-    rows_to_exclude = _rows_to_exclude_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        condition_blk_possible_bulk
-        )
-
-    # Further filter rows where BLANK_USED is 'N'
-    rows_to_exclude = rows_to_exclude & (exposure_data['BLANK_USED'] == 'N')
-
-    return exposure_data.loc[~rows_to_exclude]
-#endregion
-
-#region: remove_conflicting_qualifier
-def remove_conflicting_qualifier(exposure_data, **kwargs):
-    '''
-    Remove samples with qualifiers conflicting with sample type.
-    '''
-    exposure_data = exposure_data.copy()
-    qualif_conv_2020 = kwargs['qualif_conv_2020']
-
-    where_conflict = qualif_conv_2020['clean'].isin(['B', 'W'])
-    exposure_data = _remove_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        where_conflict
-        )
-    return exposure_data
-#endregion
-
-#region: remove_uninterpretable_qualifier
-def remove_uninterpretable_qualifier(exposure_data, **kwargs):
-    '''
-    Remove samples with qualifiers deemed uninterpretable.
-    '''
-    exposure_data = exposure_data.copy()
-    qualif_conv_2020 = kwargs['qualif_conv_2020']
-
-    where_eliminate = qualif_conv_2020['clean'] == 'eliminate'
-    exposure_data = _remove_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        where_eliminate
-        )
-    return exposure_data
-#endregion
-
-#region: remove_blk_not_bulk
-def remove_blk_not_bulk(exposure_data, **kwargs):
-    '''
-    Remove samples where QUALIFIER is 'BLK' and not possible bulk.
-    '''
-    exposure_data = exposure_data.copy()
-    qualif_conv_2020 = kwargs['qualif_conv_2020']
-
-    where_blk_not_bulk  = (
-        (qualif_conv_2020['clean'] == 'BLK') 
-        & (qualif_conv_2020['possible_bulk'] == 'N')
-    )
-    exposure_data = _remove_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        where_blk_not_bulk
-        )
-    return exposure_data
-#endregion
-
-#region: _remove_based_on_qualifier
-def _remove_based_on_qualifier(exposure_data, qualif_conv_2020, condition):
-    '''
-    General function to remove samples based on QUALIFIER conditions.
-    '''
-    exposure_data = exposure_data.copy()
-
-    rows_to_exclude = _rows_to_exclude_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        condition
-        )
-    return exposure_data.loc[~rows_to_exclude]
-#endregion:
-
-#region: _rows_to_exclude_based_on_qualifier
-def _rows_to_exclude_based_on_qualifier(
-        exposure_data, 
-        qualif_conv_2020, 
-        condition
-        ):
-    '''
-    General function to remove samples based on QUALIFIER conditions.
-    '''
-    exposure_data = exposure_data.copy()
-    
-    raw_values_to_exclude = qualif_conv_2020.loc[condition, 'raw']
-    return exposure_data['QUALIFIER'].isin(raw_values_to_exclude)
-#endregion
-
-#region: clean_unit_of_measurement
-def clean_unit_of_measurement(exposure_data, **kwargs):
-    '''
-    Clean the `UNIT_OF_MEASUREMENT` column by mapping raw values to clean 
-    values.
-    '''
-    exposure_data = exposure_data.copy()
-    unit_conv_2020 = kwargs['unit_conv_2020']
-
-    # Initialize a cleaned column
-    exposure_data['UNIT_OF_MEASUREMENT_2'] = (
-        exposure_data['UNIT_OF_MEASUREMENT']
-    )
-    
-    for clean_value in unit_conv_2020['clean'].unique():
-        where_clean_value = unit_conv_2020['clean'] == clean_value
-        raw_values = list(unit_conv_2020.loc[where_clean_value, 'raw'])
-        where_needs_clean = (
-            exposure_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
-        )
-        exposure_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = (
-            clean_value
-        )
-
-    return exposure_data
-#endregion
-
-#region: remove_invalid_nondetect
-def remove_invalid_nondetect(exposure_data, **kwargs):
-    '''
-    Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
-    and not censored (N08), and where `QUALIFIER` suggests ND or is censored
-    but `SAMPLE_RESULT_2` > 0 (N29).
-    '''
-    exposure_data = exposure_data.copy()
-    qualif_conv_2020 = kwargs['qualif_conv_2020']
-
-    where_nd = qualif_conv_2020['clean'] == 'ND'
-    nd_qualifiers = qualif_conv_2020.loc[where_nd, 'raw']
-    condition_n08 = (
-        (exposure_data['SAMPLE_RESULT_2'] > 0) 
-        & (exposure_data['CENSORED'] != 'Y') 
-        & (exposure_data['QUALIFIER'].isin(nd_qualifiers))
-    )
-    exposure_data = exposure_data.loc[~condition_n08]  # N08
-
-    condition_n29 = (
-        (exposure_data['SAMPLE_RESULT_2'] > 0) 
-        & ((exposure_data['CENSORED'] == 'Y') 
-           | (exposure_data['QUALIFIER'].isin(nd_qualifiers)))
-    )
-    
-    exposure_data = exposure_data.loc[~condition_n29]  # N29
-
-    return exposure_data
-#endregion
-
-#region: add_censored_column
-def add_censored_column(exposure_data, **kwargs):
-    '''
-    Add a column indicating that the sample is censored ONLY based on the
-    'QUALIFIER' column.
-    '''
-    exposure_data = exposure_data.copy()
-    qualifier_censored_values = (
-        kwargs['cehd_settings']['qualifier_censored_values']
-    )
-
-    exposure_data['CENSORED'] = 'N'  # initialize
-
-    where_censored = (
-        exposure_data['QUALIFIER'].isin(qualifier_censored_values)
-    )
-    exposure_data.loc[where_censored, 'CENSORED'] = 'Y'
-
-    # FIXME: Double check whether this is necessary
-    exposure_data['QUALIFIER'] = (
-        exposure_data['QUALIFIER'].replace('raw was NA', '')
-    )
-    exposure_data['SAMPLE_RESULT_2'] = (
-        exposure_data['SAMPLE_RESULT'].fillna(0)
-    )
-
-    return exposure_data
-#endregion
-
-#region: replace_missing_values
-def replace_missing_values(exposure_data, **kwargs):
-    '''
-    '''
-    exposure_data = exposure_data.copy()
-
-    for column in ['QUALIFIER', 'UNIT_OF_MEASUREMENT']:
-        exposure_data[column] = exposure_data[column].fillna('raw was NA')
-
-    return exposure_data
-#endregion
+    #region: remove_blanks
+    def remove_blanks(self, exposure_data):
+        '''
+        Remove blanks from the 'BLANK_USED' variable 
+        
+        Other blanks identified later by 'QUALIFIER'.
+        '''
+        exposure_data = exposure_data.copy()
+        not_blank = exposure_data['BLANK_USED'] == 'N'
+        return exposure_data.loc[not_blank]
+    #endregion
 
 #region: load_unit_measure_conversion
 def load_unit_measure_conversion(unit_conv_file):
@@ -889,52 +853,6 @@ def load_qualifier_conversion(qualif_conv_file):
     '''
     qualif_conv_2020 = pd.read_csv(qualif_conv_file, sep=';')
     return qualif_conv_2020
-#endregion
-
-#region: remove_rare_or_nonchemical
-def remove_rare_or_nonchemical(exposure_data, **kwargs):
-    '''
-    Exclude substances with few samples or non-chemical IMIS codes.
-    '''
-    exposure_data = exposure_data.copy()
-    nonchemical_codes = kwargs['cehd_settings']['nonchemical_codes']
-
-    ## Exclude substances with few samples
-    subst = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
-    subst.columns = ['code', 'n']
-    where_enough = subst['n'] >= 100
-    subst = subst[where_enough]
-
-    ## Remove non-chemical substance codes
-    where_nonchemical = subst['code'].isin(nonchemical_codes)
-    subst = subst[~where_nonchemical]
-
-    sub_list_all = list(subst['code'])
-    rows_to_include = exposure_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)
-    return exposure_data[rows_to_include]
-#endregion
-
-# FIXME: Change 'not_blank' typo to 'where_nonpersonal'
-#region: remove_nonpersonal
-def remove_nonpersonal(exposure_data, **kwargs):
-    '''
-    Exclude all samples that are not designated as 'P'.
-    '''
-    exposure_data = exposure_data.copy()
-    not_blank = exposure_data['SAMPLE_TYPE'] != 'P'
-    return exposure_data.loc[~not_blank]
-#endregion
-
-#region: remove_blanks
-def remove_blanks(exposure_data, **kwargs):
-    '''
-    Remove blanks from the 'BLANK_USED' variable 
-    
-    Other blanks identified later by 'QUALIFIER'.
-    '''
-    exposure_data = exposure_data.copy()
-    not_blank = exposure_data['BLANK_USED'] == 'N'
-    return exposure_data.loc[not_blank]
 #endregion
 
 #region: plot_cumulative_changes
