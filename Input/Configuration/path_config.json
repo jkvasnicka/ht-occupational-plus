@@ -1,21 +1,23 @@
 {
 
-    "raw_cehd_dir": null,
+    "raw_cehd_dir" : null,
 
-    "raw_cehd_file": "input/raw/osha/cehd/raw_cehd.feather",
+    "raw_cehd_file" : "input/raw/osha/cehd/raw_cehd.feather",
 
     "test_cehd_file" : "raw_processing/tests/expected_cehd.feather",
 
-    "cehd_log_file": "logs/cehd_log_file.json",
+    "cehd_log_file" : "logs/cehd_log_file.json",
 
     "raw_usis_file" : "input/raw/osha/usis/USIS_data.feather",
 
     "test_usis_file" : "raw_processing/tests/expected_usis.feather",
 
-    "qualif_conv_file": "input/raw/osha/cehd/conversion_tables/qualif_new_2020.csv",
+    "usis_log_file" : "logs/usis_log_file.json",
 
-    "unit_conv_file": "input/raw/osha/cehd/conversion_tables/unit_conv_2020.csv",
+    "qualif_conv_file" : "input/raw/osha/cehd/conversion_tables/qualif_new_2020.csv",
 
-    "it_directory": "input/raw/osha/cehd/conversion_tables_it"
+    "unit_conv_file" : "input/raw/osha/cehd/conversion_tables/unit_conv_2020.csv",
+
+    "it_directory" : "input/raw/osha/cehd/conversion_tables_it"
 
   }  

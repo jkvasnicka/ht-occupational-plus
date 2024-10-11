@@ -40,12 +40,14 @@ def load_data_from_feather(file):
 #endregion
 
 #region: test_usis_cleaning
-def test_usis_cleaning(raw_usis_data, test_usis_data):
+def test_usis_cleaning(raw_usis_data, test_usis_data, config):
     '''
     Use `pd.testing.assert_frame_equal` to compare the cleaned DataFrame with 
     the expected DataFrame.
     '''
-    usis_data = usis_cleaning.clean_usis_data(raw_usis_data)
+    cleaner = usis_cleaning.UsisCleaner(config.path, config.usis)
+
+    usis_data = cleaner.clean_raw_data(raw_usis_data)
 
     pd.testing.assert_frame_equal(usis_data, test_usis_data, check_names=False)
 #endregion

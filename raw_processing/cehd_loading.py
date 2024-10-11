@@ -287,6 +287,7 @@ def pre_clean(exposure_data, dtype_settings):
     return exposure_data
 #endregion
 
+# TODO: integer_string may not be needed. How about just integer?
 #region: set_initial_dtypes
 def set_initial_dtypes(exposure_data, dtype_settings):
     '''

@@ -11,6 +11,10 @@
         "year"
     ],
 
-    "substance_column" : "substance_id"
+    "substance_column" : "substance_id",
+
+    "cleaning_steps" : [
+        "remove_nonpersonal"
+    ]
 
 }
