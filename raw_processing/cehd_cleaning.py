@@ -43,8 +43,10 @@ class CehdCleaner(OshaDataCleaner):
     methods and settings for the CEHD.
     '''
     def __init__(self, path_settings, data_settings):
+        super().__init__(data_settings)
+
+        # Apply CEHD-specific initialization
         self._path_settings = path_settings
-        self._data_settings = data_settings
         self._qualif_conv_2020 = load_qualifier_conversion(
             path_settings['qualif_conv_file']
             )
@@ -109,17 +111,6 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data.columns = exposure_data.columns.str.lower()
 
         return exposure_data
-    #endregion
-
-    #region: clean_duplicates
-    def clean_duplicates(self, exposure_data):
-        '''Augment the method of the base class'''
-        return super().clean_duplicates(
-            exposure_data,
-            self._data_settings['unique_sample_columns'],
-            self._data_settings['comparison_columns'],
-            self._data_settings['substance_column']
-        )
     #endregion
 
     #region: clean_instrument_type

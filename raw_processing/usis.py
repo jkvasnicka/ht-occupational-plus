@@ -14,8 +14,9 @@ class UsisCleaner(OshaDataCleaner):
     methods and settings for the USIS.
     '''
     def __init__(self, path_settings, data_settings):
+        super().__init__(data_settings)
+        # Apply USIS-specific initialization
         self._path_settings = path_settings
-        self._data_settings = data_settings
 #endregion
 
     #region: clean_raw_data

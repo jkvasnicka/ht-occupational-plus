@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import json
 
-#region: OshaDataCleaner
+#region: OshaDataCleaner.__init__
 class OshaDataCleaner:
     '''
     A base class for cleaning OSHA-related exposure datasets.
@@ -13,6 +13,8 @@ class OshaDataCleaner:
     This class defines common cleaning operations for OSHA datasets and 
     provides a framework for running a sequence of cleaning steps dynamically.
     '''
+    def __init__(self, data_settings):
+        self._data_settings = data_settings
 #endregion
 
     # TODO: Remove short-duration samples?
@@ -68,13 +70,7 @@ class OshaDataCleaner:
     #endregion
 
     #region: clean_duplicates
-    def clean_duplicates(
-            self,
-            exposure_data,
-            unique_sample_columns,
-            comparison_columns,
-            substance_column
-            ):
+    def clean_duplicates(self, exposure_data):
         '''
         Clean the dataset by identifying and removing duplicate samples.
 
@@ -85,6 +81,10 @@ class OshaDataCleaner:
         duplicates for other substances.
         '''
         exposure_data = exposure_data.copy()
+
+        unique_sample_columns = self._data_settings['unique_sample_columns']
+        comparison_columns = self._data_settings['comparison_columns']
+        substance_column = self._data_settings['substance_column']
 
         ## Step 1: Identify false duplicates and remove them
 
