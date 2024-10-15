@@ -14,7 +14,8 @@
     "substance_column" : "substance_id",
 
     "cleaning_steps" : [
-        "remove_nonpersonal"
+        "remove_nonpersonal",
+        "clean_duplicates"
     ]
 
 }

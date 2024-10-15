@@ -44,6 +44,23 @@ class UsisCleaner(OshaDataCleaner):
         return exposure_data
     #endregion
 
+    # FIXME: Missing identifier column in USIS prevents method inheritance
+    #region: clean_duplicates
+    def clean_duplicates(self, exposure_data):
+        '''
+        Drop duplicate samples. 
+
+        There is an issue preventing the use of the base class method. The 
+        USIS dataset appears to lack a column that identifies a unique sample
+        like "field number" in the CEHD. The U of M documentation indicates 
+        that there is a "measure ID" column, but this column appears to be 
+        missing. Perhaps create a GitHub issue. If this column were available,
+        then unique samples could be identified and the parent method could be 
+        directly inherited.
+        '''
+        return exposure_data.drop_duplicates()
+    #endregion
+
     #region: remove_nonpersonal
     def remove_nonpersonal(self, exposure_data):
         '''Exclude all samples that are non-personal (e.g., area, etc.)'''
