@@ -74,11 +74,12 @@ class OshaDataCleaner:
         '''
         Clean the dataset by identifying and removing duplicate samples.
 
-        The function identifies duplicates using key columns that uniquely define 
-        a sample. It removes false duplicates—records with the same key columns 
-        but differing in additional columns. For true duplicates (identical 
-        records), it retains one record for substance code '9010', and discards 
-        duplicates for other substances.
+        1. Identifies and removes conflicting duplicates—records with the same 
+        unique sample columns (i.e., they appear to describe the same sample) 
+        but differing in comparison columns.
+        2. Identifies true duplicates—identical records across all relevant columns.
+        3. Retains only the first occurrence of true duplicates for substance '9010',
+        while removing other exact duplicates.
         '''
         exposure_data = exposure_data.copy()
 
@@ -86,16 +87,16 @@ class OshaDataCleaner:
         comparison_columns = self._data_settings['comparison_columns']
         substance_column = self._data_settings['substance_column']
 
-        ## Step 1: Identify false duplicates and remove them
+        ## Step 1: Identify and remove conflicting duplicates
 
-        potential_duplicates = (
+        where_unique_sample_duplicate = (
             exposure_data.duplicated(
                 subset=unique_sample_columns, 
                 keep=False
                 )
         )
-        false_duplicates = (
-            exposure_data.loc[potential_duplicates]
+        conflicting_samples = (
+            exposure_data.loc[where_unique_sample_duplicate]
             .drop_duplicates(
                 subset=(
                     unique_sample_columns 
@@ -104,22 +105,20 @@ class OshaDataCleaner:
                 keep=False
                 )
         )
-        exposure_data_cleaned = exposure_data.drop(false_duplicates.index)
+        non_conflicting_data = exposure_data.drop(conflicting_samples.index)
         
-        # Step 2: Identify true duplicates and remove them selectively
+        # Step 2: Handle true duplicates (exact matches) selectively
 
-        true_duplicates = (
-            exposure_data_cleaned.duplicated(
-                subset=unique_sample_columns, 
-                keep=False
-                )
+        where_true_duplicate = (
+            where_unique_sample_duplicate.loc[non_conflicting_data.index]
         )
         
-        duplicates_df = exposure_data_cleaned.loc[true_duplicates]
-        non_duplicates_df = exposure_data_cleaned.loc[~true_duplicates]
+        duplicates_data = non_conflicting_data.loc[where_true_duplicate]
+        non_duplicates_data = non_conflicting_data.loc[~where_true_duplicate]
         
-        where_9010 = duplicates_df[substance_column] == '9010'
-        duplicates_9010 = duplicates_df.loc[where_9010]
+        # For duplicates with substance '9010', keep only the first occurrence
+        where_9010 = duplicates_data[substance_column] == '9010'
+        duplicates_9010 = duplicates_data.loc[where_9010]
         duplicates_9010_deduped = (
             duplicates_9010.drop_duplicates(
                 subset=unique_sample_columns, 
@@ -127,7 +126,7 @@ class OshaDataCleaner:
                 )
         )
             
-        return pd.concat([non_duplicates_df, duplicates_9010_deduped])
+        return pd.concat([non_duplicates_data, duplicates_9010_deduped])
     #endregion
 
     #region: remove_nonpersonal
