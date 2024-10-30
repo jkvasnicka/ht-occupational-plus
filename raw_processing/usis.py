@@ -13,10 +13,8 @@ class UsisCleaner(OshaDataCleaner):
     This subclass extends the `OshaDataCleaner` to apply specific cleaning 
     methods and settings for the USIS.
     '''
-    def __init__(self, path_settings, data_settings):
-        super().__init__(data_settings)
-        # Apply USIS-specific initialization
-        self._path_settings = path_settings
+    def __init__(self, data_settings, path_settings):
+        super().__init__(data_settings, path_settings)
 #endregion
 
     #region: clean_raw_data

@@ -2,7 +2,6 @@
 '''
 
 import pandas as pd
-import numpy as np
 import json
 
 #region: OshaDataCleaner.__init__
@@ -13,11 +12,11 @@ class OshaDataCleaner:
     This class defines common cleaning operations for OSHA datasets and 
     provides a framework for running a sequence of cleaning steps dynamically.
     '''
-    def __init__(self, data_settings):
+    def __init__(self, data_settings, path_settings):
         self._data_settings = data_settings
+        self._path_settings = path_settings
 #endregion
 
-    # TODO: Remove short-duration samples?
     #region: clean_raw_data
     def clean_raw_data(
             self, 
@@ -137,7 +136,80 @@ class OshaDataCleaner:
         return exposure_data.loc[~not_blank]
     #endregion
 
+    #region: convert_to_mass_concentration
+    def convert_to_mass_concentration(self, exposure_data):
+        '''
+        Convert samples results to mass concentration (mg/m³) where applicable
+
+        All other samples types are filtered out.
+        '''
+        exposure_data = exposure_data.copy()
+
+        measure_unit_col = self._data_settings['measure_unit_col']
+        # FIXME: Temporary workaround while Categorical types are being used
+        # Avoids TypeError: Cannot setitem on a Categorical ...
+        exposure_data[measure_unit_col] = (
+            exposure_data[measure_unit_col].astype('object')
+        )
+
+        exposure_data = self._convert_ppm_to_mg_m3(exposure_data)
+        exposure_data = self._convert_percent_to_mg_m3(exposure_data)
+
+        return exposure_data
+    #endregion
+
+    #region: _convert_ppm_to_mg_m3
+    def _convert_ppm_to_mg_m3(self, exposure_data):
+        '''
+        Convert sample results from parts per million (PPM) to mass 
+        concentration (mg/m³).
+        '''
+        exposure_data = exposure_data.copy()
+
+        chem_id_file = self._path_settings['chem_id_file']
+        measure_unit_col = self._data_settings['measure_unit_col']
+        sample_result_col = self._data_settings['sample_result_col']
+        substance_name_col = self._data_settings['substance_name_col']
+
+        # TODO: Move these strings to config?
+        chem_id_for_name = mapping_from_chem_id_file(
+            chem_id_file, 
+            'INPUT', 
+            'DTXSID'
+            )
+        mw_for_chem_id = mapping_from_chem_id_file(
+            chem_id_file, 
+            'DTXSID', 
+            'AVERAGE_MASS'
+            )
+
+        where_to_convert = exposure_data[measure_unit_col] == 'P'  # PPM
+        ppm_values = exposure_data.loc[where_to_convert, sample_result_col]
+        mol_weights = (
+            exposure_data.loc[where_to_convert, substance_name_col]
+            .map(chem_id_for_name)
+            .map(mw_for_chem_id)
+        )
+
+        mg_m3_values = ppm_to_mg_m3(ppm_values, mol_weights)
+        exposure_data.loc[where_to_convert, sample_result_col] = mg_m3_values
+        exposure_data.loc[where_to_convert, measure_unit_col] = 'M_from_PPM'
+
+        return exposure_data
+    #endregion
+
+    #region: _convert_percent_to_mg_m3
+    def _convert_percent_to_mg_m3(self, exposure_data):
+        '''
+        Convert sample results from percentage to mass concentration (mg/m³).
+
+        Placeholder to be defined in the subclass if applicable.
+        '''
+        return exposure_data
+    #endregion
+
     # TODO: Consider NOT using Categorical, and switching to Parquet file.
+    # Only temporarily set Categorical where it's needed for an operation
     #region: set_categorical_dtypes
     def set_categorical_dtypes(self, exposure_data, categoricals):
         '''
@@ -153,23 +225,19 @@ class OshaDataCleaner:
         return exposure_data
     #endregion
 
-# TODO: Drop samples if unit not M or P for consistency with USIS?
-# NOTE: Measure unit IDs are NaN if exposure level is null
-#region: prepare_concentration_target
-def prepare_concentration_target(sample_results, measure_units, mol_weights):
+#region: mapping_from_chem_id_file
+def mapping_from_chem_id_file(chem_id_file, key_col, value_col):
     '''
-    Prepare the target variable of chemical concentration in air with a 
-    consistent unit of mg/m3.
+    Generate a mapping based on the inputted chemical ID file and column 
+    names.
     '''
-    return np.where(
-        measure_units=='M',  # already mg/m3
-        sample_results,
-        np.where(
-            measure_units=='P',  # ppm
-            ppm_to_mg_m3(sample_results, mol_weights),
-            np.nan  # everything else
-        )
+    mapping = (
+        pd.read_csv(chem_id_file)
+        .set_index(key_col)[value_col]
+        .dropna()
+        .to_dict()
     )
+    return mapping
 #endregion
 
 #region: ppm_to_mg_m3
@@ -184,6 +252,14 @@ def ppm_to_mg_m3(ppm, mw):
         Value in PPM.
     mw : float or array-like
         Molecular weight [g/mol].
+
+    Notes
+    -----
+    24.45 is the volume in liters occupied by a mole of air at 25ºC and 760 
+    torr.
+
+    This formula can be used when measurements are taken at 25°C and the air 
+    pressure is 760 torr (= 1 atmosphere or 760 mm Hg).
 
     Reference
     ---------

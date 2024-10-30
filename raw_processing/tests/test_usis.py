@@ -43,7 +43,7 @@ def test_usis_cleaning(raw_exposure_data, test_data, config):
     Use `pd.testing.assert_frame_equal` to compare the cleaned DataFrame with 
     the expected DataFrame.
     '''
-    cleaner = usis.UsisCleaner(config.path, config.usis)
+    cleaner = usis.UsisCleaner(config.usis, config.path)
 
     usis_data = cleaner.clean_raw_data(raw_exposure_data)
 

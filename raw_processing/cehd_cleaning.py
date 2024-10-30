@@ -42,11 +42,10 @@ class CehdCleaner(OshaDataCleaner):
     This subclass extends the `OshaDataCleaner` to apply specific cleaning 
     methods and settings for the CEHD.
     '''
-    def __init__(self, path_settings, data_settings):
-        super().__init__(data_settings)
+    def __init__(self, data_settings, path_settings):
+        super().__init__(data_settings, path_settings)
 
         # Apply CEHD-specific initialization
-        self._path_settings = path_settings
         self._qualif_conv_2020 = load_qualifier_conversion(
             path_settings['qualif_conv_file']
             )
@@ -314,13 +313,12 @@ class CehdCleaner(OshaDataCleaner):
         rows_to_exclude = exposure_data['OFFICE_ID'].isna()
         return exposure_data.loc[~rows_to_exclude]
     #endregion
-
+    
     # FIXME: Double check conversion factor. Unclear.
-    #region: convert_percent_to_mass_concentration
-    def convert_percent_to_mass_concentration(self, exposure_data):
+    #region: _convert_percent_to_mg_m3
+    def _convert_percent_to_mg_m3(self, exposure_data):
         '''
-        Convert sample results from percentage concentration to mass concentration 
-        (mg/m³).
+        Convert sample results from percentage to mass concentration (mg/m³).
         '''
         exposure_data = exposure_data.copy()
 
@@ -349,13 +347,12 @@ class CehdCleaner(OshaDataCleaner):
         )
 
         # Assign the converted results back to the dataframe
-        exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
+        # exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
         exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
-
         exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = (
-            'M.from.Perc'
+            'M_from_Perc'
             )
-
+        
         return exposure_data
     #endregion
 
@@ -761,6 +758,8 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data['SAMPLE_RESULT_2'] = (
             exposure_data['SAMPLE_RESULT'].fillna(0)
         )
+        # FIXME: Get rid of these
+        exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
 
         return exposure_data
     #endregion

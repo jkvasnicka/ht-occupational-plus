@@ -62,7 +62,7 @@
     "remove_percent_greater_than_100",
     "create_detection_indicator",
     "remove_invalid_unit",
-    "convert_percent_to_mass_concentration",
+    "convert_to_mass_concentration",
     "remove_missing_office_identifier",
     "remove_missing_time_sampled",
     "remove_null_time_sampled",
@@ -91,6 +91,10 @@
   ],
 
   "substance_column" : "IMIS_SUBSTANCE_CODE",
+
+  "measure_unit_col" : "UNIT_OF_MEASUREMENT_2",
+  "sample_result_col" : "SAMPLE_RESULT_3",
+  "substance_name_col" : "SUBSTANCE",
 
   "non_f_substance_codes" : [
       "1073", 

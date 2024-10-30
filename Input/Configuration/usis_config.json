@@ -13,8 +13,13 @@
 
     "substance_column" : "substance_id",
 
+    "measure_unit_col" : "measure_unit_id",
+    "sample_result_col" : "exposure_level",
+    "substance_name_col" : "substance_name",
+
     "cleaning_steps" : [
         "remove_nonpersonal",
+        "convert_to_mass_concentration",
         "clean_duplicates"
     ]
 

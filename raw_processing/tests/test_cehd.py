@@ -54,7 +54,7 @@ def test_cehd_cleaning(raw_exposure_data, test_data, config):
     this limitation, the DataFrame index must be reset before writing to 
     Feather and then restored after reading.
     '''
-    cleaner = CehdCleaner(config.path, config.cehd)
+    cleaner = CehdCleaner(config.cehd, config.path)
 
     cehd_data = cleaner.clean_raw_data(
         raw_exposure_data,
