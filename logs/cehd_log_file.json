@@ -20,14 +20,14 @@
     "remove_percent_greater_than_100": -8,
     "create_detection_indicator": 0,
     "remove_invalid_unit": -39136,
-    "convert_to_mass_concentration": -2848,
-    "remove_missing_office_identifier": -2239,
-    "remove_missing_time_sampled": -1627,
-    "remove_null_time_sampled": -4534,
+    "convert_to_mass_concentration": -38769,
+    "remove_missing_office_identifier": -2173,
+    "remove_missing_time_sampled": -1516,
+    "remove_null_time_sampled": -4127,
     "remove_negative_sample_result": -1,
-    "remove_missing_sample_number": -1382,
-    "remove_missing_volume": -1642,
-    "remove_zero_volume_sampled": -12359,
-    "clean_instrument_type": -9596,
-    "clean_duplicates": -11753
+    "remove_missing_sample_number": -1325,
+    "remove_missing_volume": -1617,
+    "remove_zero_volume_sampled": -12242,
+    "clean_instrument_type": -9514,
+    "clean_duplicates": -10405
 }

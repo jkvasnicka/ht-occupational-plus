@@ -154,6 +154,7 @@ class OshaDataCleaner:
 
         exposure_data = self._convert_ppm_to_mg_m3(exposure_data)
         exposure_data = self._convert_percent_to_mg_m3(exposure_data)
+        exposure_data = self._remove_non_mg_m3_units(exposure_data)
 
         return exposure_data
     #endregion
@@ -205,6 +206,29 @@ class OshaDataCleaner:
 
         Placeholder to be defined in the subclass if applicable.
         '''
+        return exposure_data
+    #endregion
+
+    #region: _remove_non_mg_m3_units
+    def _remove_non_mg_m3_units(self, exposure_data):
+        '''
+        Remove samples with non-mass-concentration unit of measurement.
+        '''
+        exposure_data = exposure_data.copy()
+
+        measure_units = exposure_data[self._data_settings['measure_unit_col']]
+        sample_results = (
+            exposure_data[self._data_settings['sample_result_col']]
+        )
+
+        # Match strings starting with 'M' followed by '_' or end of string
+        # Retain samples where measure unit is NaN and result is non-detect
+        where_mass_conc = (
+            measure_units.str.contains(r'^M(?:_|$)')
+            | (measure_units.isna() & (sample_results == 0.))
+        )
+        exposure_data = exposure_data.loc[where_mass_conc]
+
         return exposure_data
     #endregion
 
