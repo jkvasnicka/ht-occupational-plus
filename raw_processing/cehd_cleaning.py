@@ -129,7 +129,6 @@ class CehdCleaner(OshaDataCleaner):
         '''
         Handle missing instrument type and perform initial population and cleanup.
         '''
-        exposure_data = self._remove_empty_instrument_type(exposure_data)
         where_nan = exposure_data['INSTRUMENT_TYPE'].isna()
         exposure_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
 
@@ -142,19 +141,6 @@ class CehdCleaner(OshaDataCleaner):
         )
 
         return exposure_data
-    #endregion
-
-    #region: _remove_empty_instrument_type
-    def _remove_empty_instrument_type(self, exposure_data):
-        '''
-        Remove samples where instrument type is an empty string.
-        '''
-        exposure_data = exposure_data.copy()
-        rows_to_exclude = (
-            (exposure_data['INSTRUMENT_TYPE'] == '') 
-            & exposure_data['INSTRUMENT_TYPE'].notna()
-        )
-        return exposure_data.loc[~rows_to_exclude]
     #endregion
 
     #region: load_instrument_type_tables
