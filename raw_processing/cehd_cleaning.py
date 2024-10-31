@@ -91,8 +91,7 @@ class CehdCleaner(OshaDataCleaner):
 
         # TODO: Creating all these extra columns may not be necessary
         rename_dict = {
-            'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
-            'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
+            'SAMPLE_RESULT_3': 'SAMPLE_RESULT'
         }
 
         columns_to_drop = [
@@ -132,13 +131,9 @@ class CehdCleaner(OshaDataCleaner):
         where_nan = exposure_data['INSTRUMENT_TYPE'].isna()
         exposure_data.loc[where_nan, 'INSTRUMENT_TYPE'] = ''
 
-        exposure_data['INSTRUMENT_TYPE_2'] = 'not recorded'  # initialize
-
-        # Copy raw instrument type for 1984-2011
-        where_1984_2011 = exposure_data['YEAR'].astype(int) < 2012
-        exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE_2'] = (
-            exposure_data.loc[where_1984_2011, 'INSTRUMENT_TYPE']
-        )
+        # For years before 2012, keep original data
+        where_pre_2012 = exposure_data['YEAR'].astype(int) < 2012
+        exposure_data.loc[~where_pre_2012, 'INSTRUMENT_TYPE'] = 'not recorded'
 
         return exposure_data
     #endregion
@@ -184,7 +179,7 @@ class CehdCleaner(OshaDataCleaner):
                     & (exposure_data['YEAR'].astype(int) < 2010)
                     & (exposure_data['INSTRUMENT_TYPE'].isin(raw_values_to_clean))
                     )
-                exposure_data.loc[where_to_clean, 'INSTRUMENT_TYPE_2'] = (
+                exposure_data.loc[where_to_clean, 'INSTRUMENT_TYPE'] = (
                     clean_value
                 )
 
@@ -194,15 +189,16 @@ class CehdCleaner(OshaDataCleaner):
     #region: _handle_remaining_missing_instrument_type
     def _handle_remaining_missing_instrument_type(self, exposure_data):
         '''
-        Final cleanup for 'INSTRUMENT_TYPE_2'.
+        Final cleanup for 'INSTRUMENT_TYPE'.
 
         Sets empty strings to 'eliminate' and removes all samples designated as 
         'eliminate', including those set through conversion tables.
         '''
         exposure_data = exposure_data.copy()
-        where_empty = exposure_data['INSTRUMENT_TYPE_2'] == ''
-        exposure_data.loc[where_empty, 'INSTRUMENT_TYPE_2'] = 'eliminate'
-        rows_to_exclude = exposure_data['INSTRUMENT_TYPE_2'] == 'eliminate'
+        # FIXME: Maybe this should check for NaN instead of empty string?
+        where_empty = exposure_data['INSTRUMENT_TYPE'] == ''
+        exposure_data.loc[where_empty, 'INSTRUMENT_TYPE'] = 'eliminate'
+        rows_to_exclude = exposure_data['INSTRUMENT_TYPE'] == 'eliminate'
         return exposure_data.loc[~rows_to_exclude]
     #endregion
 
