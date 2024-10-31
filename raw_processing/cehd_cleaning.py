@@ -91,7 +91,6 @@ class CehdCleaner(OshaDataCleaner):
 
         # TODO: Creating all these extra columns may not be necessary
         rename_dict = {
-            'SAMPLE_WEIGHT_2': 'SAMPLE_WEIGHT',
             'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
             'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
         }
@@ -324,16 +323,16 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data = self.remove_null_weight(exposure_data)
 
         where_to_convert = (
-            (exposure_data['SAMPLE_WEIGHT_2'] != 0) 
+            (exposure_data['SAMPLE_WEIGHT'] != 0) 
             & (exposure_data['UNIT_OF_MEASUREMENT'] == '%') 
             & (exposure_data['SAMPLE_RESULT_2'] > 0) 
-            & exposure_data['SAMPLE_WEIGHT_2'].notna() 
+            & exposure_data['SAMPLE_WEIGHT'].notna() 
             & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
             & (exposure_data['AIR_VOLUME_SAMPLED'] > 0)
         )
 
         sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
-        sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT_2']
+        sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT']
         air_volume_sampled = (
             exposure_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
         )
@@ -364,12 +363,12 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data = exposure_data.copy()
 
         # TODO: Is this step necessary?
-        exposure_data['SAMPLE_WEIGHT_2'] = (
+        exposure_data['SAMPLE_WEIGHT'] = (
             exposure_data['SAMPLE_WEIGHT'].fillna(0)
         )
 
         rows_to_exclude = (
-            (exposure_data['SAMPLE_WEIGHT_2'] == 0) &
+            (exposure_data['SAMPLE_WEIGHT'] == 0) &
             (exposure_data['UNIT_OF_MEASUREMENT'] == '%') &
             (exposure_data['SAMPLE_RESULT_2'] > 0)
         )

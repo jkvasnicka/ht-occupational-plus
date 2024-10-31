@@ -87,7 +87,7 @@
     "ZIP_CODE", 
     "YEAR", 
     "TIME_SAMPLED", 
-    "SAMPLE_WEIGHT_2"
+    "SAMPLE_WEIGHT"
   ],
 
   "substance_column" : "IMIS_SUBSTANCE_CODE",
