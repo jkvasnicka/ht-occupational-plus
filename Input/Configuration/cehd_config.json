@@ -92,7 +92,7 @@
 
   "substance_column" : "IMIS_SUBSTANCE_CODE",
 
-  "measure_unit_col" : "UNIT_OF_MEASUREMENT_2",
+  "measure_unit_col" : "UNIT_OF_MEASUREMENT",
   "sample_result_col" : "SAMPLE_RESULT_3",
   "substance_name_col" : "SUBSTANCE",
 

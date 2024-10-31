@@ -91,7 +91,6 @@ class CehdCleaner(OshaDataCleaner):
 
         # TODO: Creating all these extra columns may not be necessary
         rename_dict = {
-            'UNIT_OF_MEASUREMENT_2': 'UNIT_OF_MEASUREMENT',
             'SAMPLE_WEIGHT_2': 'SAMPLE_WEIGHT',
             'SAMPLE_RESULT_3': 'SAMPLE_RESULT',
             'INSTRUMENT_TYPE_2': 'INSTRUMENT_TYPE'
@@ -326,7 +325,7 @@ class CehdCleaner(OshaDataCleaner):
 
         where_to_convert = (
             (exposure_data['SAMPLE_WEIGHT_2'] != 0) 
-            & (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') 
+            & (exposure_data['UNIT_OF_MEASUREMENT'] == '%') 
             & (exposure_data['SAMPLE_RESULT_2'] > 0) 
             & exposure_data['SAMPLE_WEIGHT_2'].notna() 
             & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
@@ -349,7 +348,7 @@ class CehdCleaner(OshaDataCleaner):
         # Assign the converted results back to the dataframe
         # exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
         exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
-        exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT_2'] = (
+        exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT'] = (
             'M_from_Perc'
             )
         
@@ -371,7 +370,7 @@ class CehdCleaner(OshaDataCleaner):
 
         rows_to_exclude = (
             (exposure_data['SAMPLE_WEIGHT_2'] == 0) &
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+            (exposure_data['UNIT_OF_MEASUREMENT'] == '%') &
             (exposure_data['SAMPLE_RESULT_2'] > 0)
         )
 
@@ -438,7 +437,7 @@ class CehdCleaner(OshaDataCleaner):
             exposure_data['IMIS_SUBSTANCE_CODE'].isin(substance_codes)
         )
         where_invalid_units = (
-            ~exposure_data['UNIT_OF_MEASUREMENT_2'].isin(valid_units)
+            ~exposure_data['UNIT_OF_MEASUREMENT'].isin(valid_units)
         )
 
         rows_to_exclude = where_in_substance_codes & where_invalid_units
@@ -466,7 +465,7 @@ class CehdCleaner(OshaDataCleaner):
         is greater than 100.
         '''
         rows_to_exclude = (
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '%') &
+            (exposure_data['UNIT_OF_MEASUREMENT'] == '%') &
             (exposure_data['SAMPLE_RESULT_2'] > 100.)
         )
         
@@ -480,7 +479,7 @@ class CehdCleaner(OshaDataCleaner):
         result is not null.
         '''
         rows_to_exclude = (
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] == '') &
+            (exposure_data['UNIT_OF_MEASUREMENT'] == '') &
             (exposure_data['SAMPLE_RESULT_2'] > 0)
         )
         
@@ -497,7 +496,7 @@ class CehdCleaner(OshaDataCleaner):
         non_f_substance_codes = self._data_settings['non_f_substance_codes']
         
         where_invalid_units = (
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] == 'F') &
+            (exposure_data['UNIT_OF_MEASUREMENT'] == 'F') &
             (exposure_data['IMIS_SUBSTANCE_CODE'].isin(non_f_substance_codes))
         )
         
@@ -512,10 +511,10 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data = exposure_data.copy()
 
         condition_inconsistent_units = (
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] != '%') 
+            (exposure_data['UNIT_OF_MEASUREMENT'] != '%') 
             & (exposure_data['QUALIFIER'] == '%')
         ) | (
-            (exposure_data['UNIT_OF_MEASUREMENT_2'] != 'M') 
+            (exposure_data['UNIT_OF_MEASUREMENT'] != 'M') 
             & (exposure_data['QUALIFIER'] == 'M')
         )
 
@@ -685,11 +684,6 @@ class CehdCleaner(OshaDataCleaner):
         values.
         '''
         exposure_data = exposure_data.copy()
-
-        # Initialize a cleaned column
-        exposure_data['UNIT_OF_MEASUREMENT_2'] = (
-            exposure_data['UNIT_OF_MEASUREMENT']
-        )
         
         for clean_value in self._unit_conv_2020['clean'].unique():
             where_clean_value = self._unit_conv_2020['clean'] == clean_value
@@ -697,7 +691,7 @@ class CehdCleaner(OshaDataCleaner):
             where_needs_clean = (
                 exposure_data['UNIT_OF_MEASUREMENT'].isin(raw_values)
             )
-            exposure_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT_2'] = (
+            exposure_data.loc[where_needs_clean, 'UNIT_OF_MEASUREMENT'] = (
                 clean_value
             )
 
