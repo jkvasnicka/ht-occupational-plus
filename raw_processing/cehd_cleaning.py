@@ -339,6 +339,7 @@ class CehdCleaner(OshaDataCleaner):
             '1620', '1730', '1790', '1840', '2270', '2280', '2460', 
             '2571', '2590', '2610', '9020', '9130', '9135', 'C141', 'S103'
         ]
+        # TODO: Should empty string be NaN?
         valid_units_n31 = ['', 'F', 'P', 'M']
         exposure_data = self._remove_invalid_unit_for_substance_codes(
             exposure_data, 
@@ -704,27 +705,34 @@ class CehdCleaner(OshaDataCleaner):
     #endregion
 
     # TODO: Move threshold n=100 to config file
-    #region: remove_rare_or_nonchemical
-    def remove_rare_or_nonchemical(self, exposure_data):
-        '''
-        Exclude substances with few samples or non-chemical IMIS codes.
-        '''
+    #region: remove_limited_sample_substances
+    def remove_limited_sample_substances(self, exposure_data):
+        '''Exclude substances with few samples.'''
         exposure_data = exposure_data.copy()
+
+        n_for_substance = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts()
+        where_insufficient = n_for_substance < 100
+        limited_substances = list(
+            n_for_substance.loc[where_insufficient].keys()
+            )
+
+        rows_to_exclude = (
+            exposure_data['IMIS_SUBSTANCE_CODE'].isin(limited_substances)
+        )
+        return exposure_data.loc[~rows_to_exclude]
+    #endregion
+
+    #region: remove_nonchemical_codes
+    def remove_nonchemical_codes(self, exposure_data):
+        '''Exclude samples with non-chemical IMIS substance codes'''
+        exposure_data = exposure_data.copy()
+
         nonchemical_codes = self._data_settings['nonchemical_codes']
-
-        ## Exclude substances with few samples
-        subst = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts().reset_index()
-        subst.columns = ['code', 'n']
-        where_enough = subst['n'] >= 100
-        subst = subst[where_enough]
-
-        ## Remove non-chemical substance codes
-        where_nonchemical = subst['code'].isin(nonchemical_codes)
-        subst = subst[~where_nonchemical]
-
-        sub_list_all = list(subst['code'])
-        rows_to_include = exposure_data['IMIS_SUBSTANCE_CODE'].isin(sub_list_all)
-        return exposure_data[rows_to_include]
+        rows_to_exclude = (
+            exposure_data['IMIS_SUBSTANCE_CODE'].isin(nonchemical_codes)
+        )
+        
+        return exposure_data.loc[~rows_to_exclude]
     #endregion
 
     #region: remove_nonpersonal

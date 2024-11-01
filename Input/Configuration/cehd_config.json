@@ -43,7 +43,8 @@
   "cleaning_steps" : [
     "remove_blanks",
     "remove_nonpersonal",
-    "remove_rare_or_nonchemical",
+    "remove_limited_sample_substances",
+    "remove_nonchemical_codes",
     "replace_missing_values",
     "add_censored_column",
     "remove_invalid_nondetect",
