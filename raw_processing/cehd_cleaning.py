@@ -704,14 +704,14 @@ class CehdCleaner(OshaDataCleaner):
         return exposure_data
     #endregion
 
-    # TODO: Move threshold n=100 to config file
     #region: remove_limited_sample_substances
     def remove_limited_sample_substances(self, exposure_data):
         '''Exclude substances with few samples.'''
         exposure_data = exposure_data.copy()
 
         n_for_substance = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts()
-        where_insufficient = n_for_substance < 100
+        THRES = self._data_settings['min_samples_threshold']
+        where_insufficient = n_for_substance < THRES
         limited_substances = list(
             n_for_substance.loc[where_insufficient].keys()
             )
@@ -731,7 +731,7 @@ class CehdCleaner(OshaDataCleaner):
         rows_to_exclude = (
             exposure_data['IMIS_SUBSTANCE_CODE'].isin(nonchemical_codes)
         )
-        
+
         return exposure_data.loc[~rows_to_exclude]
     #endregion
 

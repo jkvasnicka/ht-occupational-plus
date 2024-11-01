@@ -138,6 +138,8 @@
       "=<@"
   ],
 
+    "min_samples_threshold" : 100,
+    
     "nonchemical_codes" : [
       "G301", 
       "G302", 
