@@ -27,6 +27,6 @@
     "remove_missing_sample_number": -1325,
     "remove_missing_volume": -1617,
     "remove_zero_volume_sampled": -12242,
-    "clean_instrument_type": -9514,
-    "clean_duplicates": -10405
+    "clean_instrument_type": -10537,
+    "clean_duplicates": -10373
 }

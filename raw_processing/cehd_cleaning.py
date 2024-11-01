@@ -121,7 +121,7 @@ class CehdCleaner(OshaDataCleaner):
         for file in csv_files:
             # Extract the substance code from the filename
             subs_code = file[2:6]
-            # Missing values are replaced with '' like R's read.csv
+            # NOTE: Missing values are replaced with '' like R's read.csv
             df = pd.read_csv(os.path.join(it_directory, file), sep=',').fillna('')
             table_for_subs[subs_code] = df
 
@@ -165,7 +165,6 @@ class CehdCleaner(OshaDataCleaner):
         'eliminate', including those set through conversion tables.
         '''
         exposure_data = exposure_data.copy()
-        # FIXME: Maybe this should check for NaN instead of empty string?
         where_empty = exposure_data['INSTRUMENT_TYPE'] == ''
         exposure_data.loc[where_empty, 'INSTRUMENT_TYPE'] = 'eliminate'
         rows_to_exclude = exposure_data['INSTRUMENT_TYPE'] == 'eliminate'

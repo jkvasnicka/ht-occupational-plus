@@ -287,7 +287,6 @@ def pre_clean(exposure_data, dtype_settings):
     return exposure_data
 #endregion
 
-# TODO: integer_string may not be needed. How about just integer?
 #region: set_initial_dtypes
 def set_initial_dtypes(exposure_data, dtype_settings):
     '''
@@ -299,8 +298,10 @@ def set_initial_dtypes(exposure_data, dtype_settings):
     for col, settings in dtype_settings.items():
         dtype = settings.pop('dtype')
 
-        if dtype == 'datetime':
-            exposure_data[col] = convert_date(exposure_data[col])
+        if dtype == 'string':
+            exposure_data[col] = to_string(exposure_data[col])
+        elif dtype == 'datetime':
+            exposure_data[col] = to_datetime(exposure_data[col])
         elif dtype == 'numeric':
             exposure_data[col] = pd.to_numeric(exposure_data[col], **settings)
         elif dtype == 'integer_string':
@@ -312,21 +313,34 @@ def set_initial_dtypes(exposure_data, dtype_settings):
     return exposure_data
 #endregion
 
-#region: convert_date
-def convert_date(column):
+#region: to_string
+def to_string(series):
+    '''
+    Convert a pandas Series to strings, while leaving NaNs unchanged.
+
+    Note
+    ----
+    This function is used while pandas APIs for StringDtype and pd.NA are
+    labeled as "experimental"
+    '''
+    return series.apply(lambda x: x if pd.isna(x) else str(x))
+#endregion
+
+#region: to_datetime
+def to_datetime(series):
     '''
     Lowercase and date conversion handling multiple formats
     '''
     return pd.to_datetime(
-        column.str.lower(),
+        series.str.lower(),
         errors='coerce',
         format='%Y-%b-%d'
     ).combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y/%m/%d')
+        pd.to_datetime(series.str.lower(), errors='coerce', format='%Y/%m/%d')
     ).combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%Y-%m-%d')
+        pd.to_datetime(series.str.lower(), errors='coerce', format='%Y-%m-%d')
     .combine_first(
-        pd.to_datetime(column.str.lower(), errors='coerce', format='%d-%b-%Y')
+        pd.to_datetime(series.str.lower(), errors='coerce', format='%d-%b-%Y')
     )
     )
 #endregion
