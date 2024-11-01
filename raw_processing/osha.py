@@ -255,6 +255,14 @@ class OshaDataCleaner:
         return exposure_data.dropna(subset='DTXSID')
     #endregion
 
+    #region: remove_missing_naics
+    def remove_missing_naics(self, exposure_data):
+        '''Remove samples with missing NAICS code'''
+        exposure_data = exposure_data.copy()
+        naics_code_col = self._data_settings['naics_code_col']
+        return exposure_data.dropna(subset=naics_code_col)
+    #endregion
+
     # TODO: Consider NOT using Categorical, and switching to Parquet file.
     # Only temporarily set Categorical where it's needed for an operation
     #region: set_categorical_dtypes

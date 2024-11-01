@@ -72,7 +72,8 @@
     "remove_zero_volume_sampled",
     "clean_instrument_type",
     "clean_duplicates",
-    "convert_substance_names_to_ids"
+    "convert_substance_names_to_ids",
+    "remove_missing_naics"
   ],
 
   "unique_sample_columns" : [
@@ -95,6 +96,7 @@
   "sample_result_col" : "SAMPLE_RESULT",
   "substance_name_col" : "SUBSTANCE",
   "substance_code_col" : "IMIS_SUBSTANCE_CODE",
+  "naics_code_col" : "NAICS_CODE",
 
   "non_f_substance_codes" : [
       "1073", 

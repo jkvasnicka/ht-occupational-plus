@@ -2,5 +2,6 @@
     "remove_nonpersonal": -34751,
     "convert_to_mass_concentration": -318629,
     "clean_duplicates": -364,
-    "convert_substance_names_to_ids": -263080
+    "convert_substance_names_to_ids": -263080,
+    "remove_missing_naics": -131311
 }

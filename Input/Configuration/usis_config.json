@@ -15,12 +15,14 @@
     "sample_result_col" : "exposure_level",
     "substance_name_col" : "substance_name",
     "substance_code_col" : "substance_id",
+    "naics_code_col" : "naics_id",
 
     "cleaning_steps" : [
         "remove_nonpersonal",
         "convert_to_mass_concentration",
         "clean_duplicates",
-        "convert_substance_names_to_ids"
+        "convert_substance_names_to_ids",
+        "remove_missing_naics"
     ]
 
 }
