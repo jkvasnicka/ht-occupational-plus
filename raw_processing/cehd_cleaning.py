@@ -88,23 +88,7 @@ class CehdCleaner(OshaDataCleaner):
         Finalize column naming and filter out unneeded columns. 
         '''
         exposure_data = exposure_data.copy()
-
-        # TODO: Creating all these extra columns may not be necessary
-        rename_dict = {
-            'SAMPLE_RESULT_3': 'SAMPLE_RESULT'
-        }
-
-        columns_to_drop = [
-            'SAMPLE_RESULT_2',
-        ]
-        columns_to_drop += list(rename_dict.values())
-
-        exposure_data = (
-            exposure_data.drop(columns=columns_to_drop)
-            .rename(columns=rename_dict)
-        )
         exposure_data.columns = exposure_data.columns.str.lower()
-
         return exposure_data
     #endregion
 
@@ -259,7 +243,7 @@ class CehdCleaner(OshaDataCleaner):
         Remove samples with a sample result less than zero.
         '''
         exposure_data = exposure_data.copy()
-        rows_to_exclude = exposure_data['SAMPLE_RESULT_3'] < 0.
+        rows_to_exclude = exposure_data['SAMPLE_RESULT'] < 0.
         return exposure_data.loc[~rows_to_exclude]
     #endregion
 
@@ -306,13 +290,13 @@ class CehdCleaner(OshaDataCleaner):
         where_to_convert = (
             (exposure_data['SAMPLE_WEIGHT'] != 0) 
             & (exposure_data['UNIT_OF_MEASUREMENT'] == '%') 
-            & (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            & (exposure_data['SAMPLE_RESULT'] > 0) 
             & exposure_data['SAMPLE_WEIGHT'].notna() 
             & exposure_data['AIR_VOLUME_SAMPLED'].notna() 
             & (exposure_data['AIR_VOLUME_SAMPLED'] > 0)
         )
 
-        sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_2']
+        sample_result = exposure_data.loc[where_to_convert, 'SAMPLE_RESULT']
         sample_weight = exposure_data.loc[where_to_convert, 'SAMPLE_WEIGHT']
         air_volume_sampled = (
             exposure_data.loc[where_to_convert, 'AIR_VOLUME_SAMPLED']
@@ -326,8 +310,7 @@ class CehdCleaner(OshaDataCleaner):
         )
 
         # Assign the converted results back to the dataframe
-        # exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
-        exposure_data.loc[where_to_convert, 'SAMPLE_RESULT_3'] = converted_result
+        exposure_data.loc[where_to_convert, 'SAMPLE_RESULT'] = converted_result
         exposure_data.loc[where_to_convert, 'UNIT_OF_MEASUREMENT'] = (
             'M_from_Perc'
             )
@@ -351,7 +334,7 @@ class CehdCleaner(OshaDataCleaner):
         rows_to_exclude = (
             (exposure_data['SAMPLE_WEIGHT'] == 0) &
             (exposure_data['UNIT_OF_MEASUREMENT'] == '%') &
-            (exposure_data['SAMPLE_RESULT_2'] > 0)
+            (exposure_data['SAMPLE_RESULT'] > 0)
         )
 
         return exposure_data.loc[~rows_to_exclude]
@@ -432,7 +415,7 @@ class CehdCleaner(OshaDataCleaner):
         '''
         rows_to_exclude = (
             (exposure_data['UNIT_OF_MEASUREMENT'] == '%') &
-            (exposure_data['SAMPLE_RESULT_2'] > 100.)
+            (exposure_data['SAMPLE_RESULT'] > 100.)
         )
         
         return exposure_data.loc[~rows_to_exclude]
@@ -446,7 +429,7 @@ class CehdCleaner(OshaDataCleaner):
         '''
         rows_to_exclude = (
             (exposure_data['UNIT_OF_MEASUREMENT'] == '') &
-            (exposure_data['SAMPLE_RESULT_2'] > 0)
+            (exposure_data['SAMPLE_RESULT'] > 0)
         )
         
         return exposure_data.loc[~rows_to_exclude]
@@ -667,23 +650,23 @@ class CehdCleaner(OshaDataCleaner):
     #region: remove_invalid_nondetect
     def remove_invalid_nondetect(self, exposure_data):
         '''
-        Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT_2` > 0
+        Remove samples where `QUALIFIER` suggests ND but `SAMPLE_RESULT` > 0
         and not censored (N08), and where `QUALIFIER` suggests ND or is censored
-        but `SAMPLE_RESULT_2` > 0 (N29).
+        but `SAMPLE_RESULT` > 0 (N29).
         '''
         exposure_data = exposure_data.copy()
 
         where_nd = self._qualif_conv_2020['clean'] == 'ND'
         nd_qualifiers = self._qualif_conv_2020.loc[where_nd, 'raw']
         condition_n08 = (
-            (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            (exposure_data['SAMPLE_RESULT'] > 0) 
             & (exposure_data['CENSORED'] != 'Y') 
             & (exposure_data['QUALIFIER'].isin(nd_qualifiers))
         )
         exposure_data = exposure_data.loc[~condition_n08]  # N08
 
         condition_n29 = (
-            (exposure_data['SAMPLE_RESULT_2'] > 0) 
+            (exposure_data['SAMPLE_RESULT'] > 0) 
             & ((exposure_data['CENSORED'] == 'Y') 
             | (exposure_data['QUALIFIER'].isin(nd_qualifiers)))
         )
@@ -715,11 +698,9 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data['QUALIFIER'] = (
             exposure_data['QUALIFIER'].replace('raw was NA', '')
         )
-        exposure_data['SAMPLE_RESULT_2'] = (
+        exposure_data['SAMPLE_RESULT'] = (
             exposure_data['SAMPLE_RESULT'].fillna(0)
         )
-        # FIXME: Get rid of these
-        exposure_data['SAMPLE_RESULT_3'] = exposure_data['SAMPLE_RESULT_2']
 
         return exposure_data
     #endregion
