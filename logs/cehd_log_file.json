@@ -18,7 +18,6 @@
     "remove_invalid_fibers_unit": -8,
     "remove_empty_unit_non_null_result": 0,
     "remove_percent_greater_than_100": -8,
-    "create_detection_indicator": 0,
     "remove_invalid_unit": -39136,
     "convert_to_mass_concentration": -38769,
     "remove_missing_office_identifier": -2173,

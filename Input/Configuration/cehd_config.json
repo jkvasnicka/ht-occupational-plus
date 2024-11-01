@@ -60,7 +60,6 @@
     "remove_invalid_fibers_unit",
     "remove_empty_unit_non_null_result",
     "remove_percent_greater_than_100",
-    "create_detection_indicator",
     "remove_invalid_unit",
     "convert_to_mass_concentration",
     "remove_missing_office_identifier",

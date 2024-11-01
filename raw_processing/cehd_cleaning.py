@@ -95,7 +95,6 @@ class CehdCleaner(OshaDataCleaner):
         }
 
         columns_to_drop = [
-            'QUALIFIER_2',
             'SAMPLE_RESULT_2',
         ]
         columns_to_drop += list(rename_dict.values())
@@ -423,20 +422,6 @@ class CehdCleaner(OshaDataCleaner):
 
         rows_to_exclude = where_in_substance_codes & where_invalid_units
         return exposure_data.loc[~rows_to_exclude]
-    #endregion
-
-    #region: create_detection_indicator
-    def create_detection_indicator(self, exposure_data):
-        '''
-        Create a new column 'QUALIFIER_2' to indicate detection status.
-        '''
-        exposure_data = exposure_data.copy()
-
-        exposure_data['QUALIFIER_2'] = 'detected'  # initialize
-        where_null = exposure_data['SAMPLE_RESULT_2'] == 0
-        exposure_data.loc[where_null, 'QUALIFIER_2'] = 'ND'
-
-        return exposure_data
     #endregion
 
     #region: remove_percent_greater_than_100
