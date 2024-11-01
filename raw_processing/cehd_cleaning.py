@@ -76,19 +76,6 @@ class CehdCleaner(OshaDataCleaner):
             do_log_changes=do_log_changes
             )
 
-        exposure_data = self._clean_columns(exposure_data)
-
-        return exposure_data
-    #endregion
-
-    # TODO: Eliminate the need for this.
-    #region: _clean_columns
-    def _clean_columns(self, exposure_data):
-        '''
-        Finalize column naming and filter out unneeded columns. 
-        '''
-        exposure_data = exposure_data.copy()
-        exposure_data.columns = exposure_data.columns.str.lower()
         return exposure_data
     #endregion
 
