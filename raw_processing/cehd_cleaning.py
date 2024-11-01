@@ -703,6 +703,7 @@ class CehdCleaner(OshaDataCleaner):
         return exposure_data
     #endregion
 
+    # TODO: Move threshold n=100 to config file
     #region: remove_rare_or_nonchemical
     def remove_rare_or_nonchemical(self, exposure_data):
         '''

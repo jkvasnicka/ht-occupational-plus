@@ -28,5 +28,6 @@
     "remove_missing_volume": -1617,
     "remove_zero_volume_sampled": -12242,
     "clean_instrument_type": -10537,
-    "clean_duplicates": -10373
+    "clean_duplicates": -10373,
+    "convert_substance_names_to_ids": -970657
 }

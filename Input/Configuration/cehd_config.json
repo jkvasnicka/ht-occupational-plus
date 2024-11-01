@@ -70,7 +70,8 @@
     "remove_missing_volume",
     "remove_zero_volume_sampled",
     "clean_instrument_type",
-    "clean_duplicates"
+    "clean_duplicates",
+    "convert_substance_names_to_ids"
   ],
 
   "unique_sample_columns" : [
@@ -89,11 +90,10 @@
     "SAMPLE_WEIGHT"
   ],
 
-  "substance_column" : "IMIS_SUBSTANCE_CODE",
-
   "measure_unit_col" : "UNIT_OF_MEASUREMENT",
   "sample_result_col" : "SAMPLE_RESULT",
   "substance_name_col" : "SUBSTANCE",
+  "substance_code_col" : "IMIS_SUBSTANCE_CODE",
 
   "non_f_substance_codes" : [
       "1073", 

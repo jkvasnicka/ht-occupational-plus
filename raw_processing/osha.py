@@ -84,7 +84,7 @@ class OshaDataCleaner:
 
         unique_sample_columns = self._data_settings['unique_sample_columns']
         comparison_columns = self._data_settings['comparison_columns']
-        substance_column = self._data_settings['substance_column']
+        substance_code_col = self._data_settings['substance_code_col']
 
         ## Step 1: Identify and remove conflicting duplicates
 
@@ -116,7 +116,7 @@ class OshaDataCleaner:
         non_duplicates_data = non_conflicting_data.loc[~where_true_duplicate]
         
         # For duplicates with substance '9010', keep only the first occurrence
-        where_9010 = duplicates_data[substance_column] == '9010'
+        where_9010 = duplicates_data[substance_code_col] == '9010'
         duplicates_9010 = duplicates_data.loc[where_9010]
         duplicates_9010_deduped = (
             duplicates_9010.drop_duplicates(
@@ -230,6 +230,29 @@ class OshaDataCleaner:
         exposure_data = exposure_data.loc[where_mass_conc]
 
         return exposure_data
+    #endregion
+
+    #region: convert_substance_names_to_ids
+    def convert_substance_names_to_ids(self, exposure_data):
+        '''
+        Insert a new column of DSSTox chemical identifiers corresponding to 
+        the substance names. 
+
+        Drop samples with missing identifiers.
+        '''
+        exposure_data = exposure_data.copy()
+
+        chem_id_for_name = mapping_from_chem_id_file(
+            self._path_settings['chem_id_file'], 
+            'INPUT', 
+            'DTXSID'
+        )
+        exposure_data['DTXSID'] = (
+            exposure_data[self._data_settings['substance_name_col']]
+            .map(chem_id_for_name)
+        )
+
+        return exposure_data.dropna(subset='DTXSID')
     #endregion
 
     # TODO: Consider NOT using Categorical, and switching to Parquet file.
