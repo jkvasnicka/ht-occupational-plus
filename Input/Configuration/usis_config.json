@@ -1,12 +1,12 @@
 {
     
-    "unique_sample_columns" : [
+    "unique_sample_cols" : [
         "inspection_number", 
         "substance_id", 
         "sheet_number"
     ],
 
-    "comparison_columns" : [
+    "comparison_cols" : [
         "location_id", 
         "year"
     ],

@@ -76,14 +76,14 @@
     "remove_missing_naics"
   ],
 
-  "unique_sample_columns" : [
+  "unique_sample_cols" : [
     "INSPECTION_NUMBER", 
     "IMIS_SUBSTANCE_CODE", 
     "SAMPLING_NUMBER", 
     "FIELD_NUMBER"
   ],
 
-  "comparison_columns" : [
+  "comparison_cols" : [
     "LAB_NUMBER", 
     "STATE", 
     "ZIP_CODE", 

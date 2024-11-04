@@ -82,15 +82,15 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        unique_sample_columns = self._data_settings['unique_sample_columns']
-        comparison_columns = self._data_settings['comparison_columns']
+        unique_sample_cols = self._data_settings['unique_sample_cols']
+        comparison_cols = self._data_settings['comparison_cols']
         substance_code_col = self._data_settings['substance_code_col']
 
         ## Step 1: Identify and remove conflicting duplicates
 
         where_unique_sample_duplicate = (
             exposure_data.duplicated(
-                subset=unique_sample_columns, 
+                subset=unique_sample_cols, 
                 keep=False
                 )
         )
@@ -98,8 +98,8 @@ class OshaDataCleaner:
             exposure_data.loc[where_unique_sample_duplicate]
             .drop_duplicates(
                 subset=(
-                    unique_sample_columns 
-                    + comparison_columns
+                    unique_sample_cols 
+                    + comparison_cols
                 ), 
                 keep=False
                 )
@@ -120,7 +120,7 @@ class OshaDataCleaner:
         duplicates_9010 = duplicates_data.loc[where_9010]
         duplicates_9010_deduped = (
             duplicates_9010.drop_duplicates(
-                subset=unique_sample_columns, 
+                subset=unique_sample_cols, 
                 keep='first'
                 )
         )
@@ -129,10 +129,10 @@ class OshaDataCleaner:
     #endregion
 
     #region: remove_nonpersonal
-    def remove_nonpersonal(self, exposure_data, sample_type_column):
+    def remove_nonpersonal(self, exposure_data, sample_type_col):
         '''Exclude all samples that are non-personal (e.g., area, etc.)'''
         exposure_data = exposure_data.copy()
-        not_blank = exposure_data[sample_type_column] != 'P'
+        not_blank = exposure_data[sample_type_col] != 'P'
         return exposure_data.loc[~not_blank]
     #endregion
 
