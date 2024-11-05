@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from config_management import UnifiedConfiguration
-from raw_processing import usis
+from raw_processing import usis_cleaning
 
 # TODO: This looks redundant to test_cehd
 
@@ -21,7 +21,7 @@ def config():
 @pytest.fixture
 def raw_exposure_data(config):
     '''Fixture to load the raw USIS data for cleaning'''
-    return usis.load_raw_usis_data(config.path['raw_usis_file'])
+    return usis_cleaning.load_raw_usis_data(config.path['raw_usis_file'])
 #endregion
 
 #region: test_data fixture
@@ -43,7 +43,7 @@ def test_usis_cleaning(raw_exposure_data, test_data, config):
     Use `pd.testing.assert_frame_equal` to compare the cleaned DataFrame with 
     the expected DataFrame.
     '''
-    cleaner = usis.UsisCleaner(config.usis, config.path)
+    cleaner = usis_cleaning.UsisCleaner(config.usis, config.path)
 
     usis_data = cleaner.clean_raw_data(raw_exposure_data)
 

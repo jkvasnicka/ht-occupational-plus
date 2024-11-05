@@ -32,7 +32,7 @@ import os
 import json
 import matplotlib.pyplot as plt 
 
-from raw_processing.osha import OshaDataCleaner
+from raw_processing.osha_cleaning import OshaDataCleaner
 
 #region: CehdCleaner.__init__
 class CehdCleaner(OshaDataCleaner):

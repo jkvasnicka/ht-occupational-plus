@@ -3,7 +3,7 @@
 
 import pandas as pd
 
-from raw_processing.osha import OshaDataCleaner
+from raw_processing.osha_cleaning import OshaDataCleaner
 
 #region: UsisCleaner.__init__
 class UsisCleaner(OshaDataCleaner):
