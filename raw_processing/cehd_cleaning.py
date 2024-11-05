@@ -71,8 +71,8 @@ class CehdCleaner(OshaDataCleaner):
         '''
         exposure_data = super().clean_raw_data(
             raw_exposure_data,
-            self._data_settings['cleaning_steps'],
-            log_file=self._path_settings['cehd_log_file'],
+            self.data_settings['cleaning_steps'],
+            log_file=self.path_settings['cehd_log_file'],
             do_log_changes=do_log_changes
             )
 
@@ -113,7 +113,7 @@ class CehdCleaner(OshaDataCleaner):
         '''
         Load IT tables for each substance code.
         '''
-        it_directory = self._path_settings['it_directory']
+        it_directory = self.path_settings['it_directory']
 
         csv_files = [f for f in os.listdir(it_directory) if f.endswith('.csv')]
         table_for_subs = {}
@@ -429,7 +429,7 @@ class CehdCleaner(OshaDataCleaner):
         the unit of measurement.
         '''
         # These codes should not have "F" as the unit of measurement
-        non_f_substance_codes = self._data_settings['non_f_substance_codes']
+        non_f_substance_codes = self.data_settings['non_f_substance_codes']
         
         where_invalid_units = (
             (exposure_data['UNIT_OF_MEASUREMENT'] == 'F') &
@@ -463,7 +463,7 @@ class CehdCleaner(OshaDataCleaner):
         Remove samples where the QUALIFIER indicates an approximate measure.
         '''
         exposure_data = exposure_data.copy()
-        approximate_qualifiers = self._data_settings['approximate_qualifiers']
+        approximate_qualifiers = self.data_settings['approximate_qualifiers']
 
         rows_to_exclude = exposure_data['QUALIFIER'].isin(approximate_qualifiers)
         
@@ -506,7 +506,7 @@ class CehdCleaner(OshaDataCleaner):
         Remove samples with qualifiers related to combustion.
         '''
         exposure_data = exposure_data.copy()
-        combustion_qualifiers = self._data_settings['combustion_qualifiers']
+        combustion_qualifiers = self.data_settings['combustion_qualifiers']
 
         rows_to_exclude = exposure_data['QUALIFIER'].isin(combustion_qualifiers)
 
@@ -671,7 +671,7 @@ class CehdCleaner(OshaDataCleaner):
         '''
         exposure_data = exposure_data.copy()
         qualifier_censored_values = (
-            self._data_settings['qualifier_censored_values']
+            self.data_settings['qualifier_censored_values']
         )
 
         exposure_data['CENSORED'] = 'N'  # initialize
@@ -710,7 +710,7 @@ class CehdCleaner(OshaDataCleaner):
         exposure_data = exposure_data.copy()
 
         n_for_substance = exposure_data['IMIS_SUBSTANCE_CODE'].value_counts()
-        THRES = self._data_settings['min_samples_threshold']
+        THRES = self.data_settings['min_samples_threshold']
         where_insufficient = n_for_substance < THRES
         limited_substances = list(
             n_for_substance.loc[where_insufficient].keys()
@@ -727,7 +727,7 @@ class CehdCleaner(OshaDataCleaner):
         '''Exclude samples with non-chemical IMIS substance codes'''
         exposure_data = exposure_data.copy()
 
-        nonchemical_codes = self._data_settings['nonchemical_codes']
+        nonchemical_codes = self.data_settings['nonchemical_codes']
         rows_to_exclude = (
             exposure_data['IMIS_SUBSTANCE_CODE'].isin(nonchemical_codes)
         )

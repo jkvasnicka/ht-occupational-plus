@@ -13,8 +13,8 @@ class OshaDataCleaner:
     provides a framework for running a sequence of cleaning steps dynamically.
     '''
     def __init__(self, data_settings, path_settings):
-        self._data_settings = data_settings
-        self._path_settings = path_settings
+        self.data_settings = data_settings
+        self.path_settings = path_settings
 #endregion
 
     #region: clean_raw_data
@@ -51,7 +51,7 @@ class OshaDataCleaner:
 
         exposure_data = self.set_categorical_dtypes(
             exposure_data, 
-            self._data_settings.get('categoricals', {})
+            self.data_settings.get('categoricals', {})
             )
         
         for step_name in cleaning_steps:
@@ -82,9 +82,9 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        unique_sample_cols = self._data_settings['unique_sample_cols']
-        comparison_cols = self._data_settings['comparison_cols']
-        substance_code_col = self._data_settings['substance_code_col']
+        unique_sample_cols = self.data_settings['unique_sample_cols']
+        comparison_cols = self.data_settings['comparison_cols']
+        substance_code_col = self.data_settings['substance_code_col']
 
         ## Step 1: Identify and remove conflicting duplicates
 
@@ -145,7 +145,7 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        measure_unit_col = self._data_settings['measure_unit_col']
+        measure_unit_col = self.data_settings['measure_unit_col']
         # FIXME: Temporary workaround while Categorical types are being used
         # Avoids TypeError: Cannot setitem on a Categorical ...
         exposure_data[measure_unit_col] = (
@@ -167,10 +167,10 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        chem_id_file = self._path_settings['chem_id_file']
-        measure_unit_col = self._data_settings['measure_unit_col']
-        sample_result_col = self._data_settings['sample_result_col']
-        substance_name_col = self._data_settings['substance_name_col']
+        chem_id_file = self.path_settings['chem_id_file']
+        measure_unit_col = self.data_settings['measure_unit_col']
+        sample_result_col = self.data_settings['sample_result_col']
+        substance_name_col = self.data_settings['substance_name_col']
 
         # TODO: Move these strings to config?
         chem_id_for_name = mapping_from_chem_id_file(
@@ -216,9 +216,9 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        measure_units = exposure_data[self._data_settings['measure_unit_col']]
+        measure_units = exposure_data[self.data_settings['measure_unit_col']]
         sample_results = (
-            exposure_data[self._data_settings['sample_result_col']]
+            exposure_data[self.data_settings['sample_result_col']]
         )
 
         # Match strings starting with 'M' followed by '_' or end of string
@@ -243,12 +243,12 @@ class OshaDataCleaner:
         exposure_data = exposure_data.copy()
 
         chem_id_for_name = mapping_from_chem_id_file(
-            self._path_settings['chem_id_file'], 
+            self.path_settings['chem_id_file'], 
             'INPUT', 
             'DTXSID'
         )
         exposure_data['DTXSID'] = (
-            exposure_data[self._data_settings['substance_name_col']]
+            exposure_data[self.data_settings['substance_name_col']]
             .map(chem_id_for_name)
         )
 
@@ -259,7 +259,7 @@ class OshaDataCleaner:
     def remove_missing_naics(self, exposure_data):
         '''Remove samples with missing NAICS code'''
         exposure_data = exposure_data.copy()
-        naics_code_col = self._data_settings['naics_code_col']
+        naics_code_col = self.data_settings['naics_code_col']
         return exposure_data.dropna(subset=naics_code_col)
     #endregion
 

@@ -34,8 +34,8 @@ class UsisCleaner(OshaDataCleaner):
         '''
         exposure_data = super().clean_raw_data(
             raw_exposure_data, 
-            self._data_settings['cleaning_steps'],
-            log_file=self._path_settings['usis_log_file'],
+            self.data_settings['cleaning_steps'],
+            log_file=self.path_settings['usis_log_file'],
             do_log_changes=do_log_changes
             )
 
