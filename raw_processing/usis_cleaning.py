@@ -65,6 +65,17 @@ class UsisCleaner(OshaDataCleaner):
         return super().remove_nonpersonal(exposure_data, 'sample_type_id')
     #endregion
 
+    #region: remove_non_full_shift_twa
+    def remove_non_full_shift_twa(self, exposure_data):
+        '''
+        Remove short-term samples, etc.
+        '''
+        exposure_data = exposure_data.copy()
+        where_full_shift_twa = exposure_data['exposure_type_id'] == 'T'
+        exposure_data = exposure_data.loc[where_full_shift_twa]
+        return exposure_data
+    #endregion
+
 #region: load_raw_usis_data
 def load_raw_usis_data(raw_usis_file):
     '''

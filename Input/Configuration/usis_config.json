@@ -22,7 +22,8 @@
         "convert_to_mass_concentration",
         "clean_duplicates",
         "convert_substance_names_to_ids",
-        "remove_missing_naics"
+        "remove_missing_naics",
+        "remove_non_full_shift_twa"
     ]
 
 }
