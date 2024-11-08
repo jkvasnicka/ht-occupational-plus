@@ -17,29 +17,24 @@ class UsisCleaner(OshaDataCleaner):
         super().__init__(data_settings, path_settings)
 #endregion
 
-    #region: clean_raw_data
-    def clean_raw_data(
-            self, 
-            raw_exposure_data, 
-            do_log_changes=True
-            ):
+    #region: prepare_clean_exposure_data
+    def prepare_clean_exposure_data(self):
         '''
-        Clean the raw exposure data using a sequence of cleaning steps.
-
-        This method augments the corresponding method of the base class.
-
-        Returns
-        -------
-        pandas.DataFrame
         '''
-        exposure_data = super().clean_raw_data(
-            raw_exposure_data, 
-            self.data_settings['cleaning_steps'],
-            log_file=self.path_settings['usis_log_file'],
-            do_log_changes=do_log_changes
-            )
-
+        exposure_data = super().prepare_clean_exposure_data(
+            log_file=self.path_settings['usis_log_file']
+        )
         return exposure_data
+    #endregion
+
+    #region: load_raw_data
+    def load_raw_data(self):
+        '''
+        '''
+        raw_exposure_data = load_raw_usis_data(
+            self.path_settings['raw_usis_file']
+            )
+        return raw_exposure_data
     #endregion
 
     # FIXME: Missing identifier column in USIS prevents method inheritance

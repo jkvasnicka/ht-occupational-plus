@@ -17,29 +17,33 @@ class OshaDataCleaner:
         self.path_settings = path_settings
 #endregion
 
-    #region: clean_raw_data
-    def clean_raw_data(
-            self, 
+    #region: prepare_clean_exposure_data
+    def prepare_clean_exposure_data(self, log_file=None):
+        '''
+        Provides the main interface. 
+        
+        Encapsulates raw data loading and cleaning.
+        '''
+        raw_exposure_data = self.load_raw_data()
+
+        exposure_data = self._clean_raw_data(
             raw_exposure_data,
-            cleaning_steps, 
-            log_file=None, 
-            do_log_changes=True
-            ):
+            log_file=log_file
+            )
+        
+        return exposure_data
+    #endregion
+
+    #region: load_raw_data
+    def load_raw_data(self):
+        '''To be defined in the subclass.'''
+        pass
+    #endregion
+
+    #region: _clean_raw_data
+    def _clean_raw_data(self, raw_exposure_data, log_file=None):
         '''
         Clean the raw exposure data using a sequence of cleaning steps.
-
-        Parameters
-        ----------
-        raw_exposure_data : pandas.DataFrame
-            The raw exposure data to be cleaned.
-        cleaning_steps : list of str
-            List of method names (as strings) to apply to the data.
-        log_file : str or None, optional
-            Path to a log file where changes to the data (e.g., rows removed) 
-            will be saved. If None, no log file is created.
-        do_log_changes : bool, optional
-            If True, logs the changes made during the cleaning process to the 
-            specified log file.
 
         Returns
         -------
@@ -54,14 +58,14 @@ class OshaDataCleaner:
             self.data_settings.get('categoricals', {})
             )
         
-        for step_name in cleaning_steps:
+        for step_name in self.data_settings['cleaning_steps']:
             N_before = len(exposure_data)
             # Dynamically get the cleaning method from the step name
             exposure_data = getattr(self, step_name)(exposure_data)
             N_after = len(exposure_data)
             change_log[step_name] =  N_after - N_before
 
-        if do_log_changes is True:
+        if log_file is not None:
             with open(log_file, 'w') as log_file:
                 json.dump(change_log, log_file, indent=4)
 

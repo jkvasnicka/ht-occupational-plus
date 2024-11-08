@@ -45,7 +45,10 @@ def test_usis_cleaning(raw_exposure_data, test_data, config):
     '''
     cleaner = usis_cleaning.UsisCleaner(config.usis, config.path)
 
-    usis_data = cleaner.clean_raw_data(raw_exposure_data)
+    usis_data = cleaner.clean_raw_data(
+        raw_exposure_data,
+        log_file=config.path['usis_log_file']
+        )
 
     pd.testing.assert_frame_equal(usis_data, test_data, check_names=False)
 #endregion

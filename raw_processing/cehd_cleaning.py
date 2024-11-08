@@ -32,6 +32,7 @@ import os
 import json
 import matplotlib.pyplot as plt 
 
+from raw_processing import cehd_loading
 from raw_processing.osha_cleaning import OshaDataCleaner
 
 #region: CehdCleaner.__init__
@@ -53,30 +54,26 @@ class CehdCleaner(OshaDataCleaner):
             path_settings['unit_conv_file']
             )
 #endregion
-     
-    #region: clean_raw_data
-    def clean_raw_data(
-            self,
-            raw_exposure_data,
-            do_log_changes=True
-            ):
+
+    #region: prepare_clean_exposure_data
+    def prepare_clean_exposure_data(self):
         '''
-        Clean the raw exposure data using a sequence of cleaning steps.
-
-        This method augments the corresponding method of the base class.
-
-        Returns
-        -------
-        pandas.DataFrame
         '''
-        exposure_data = super().clean_raw_data(
-            raw_exposure_data,
-            self.data_settings['cleaning_steps'],
-            log_file=self.path_settings['cehd_log_file'],
-            do_log_changes=do_log_changes
-            )
-
+        exposure_data = super().prepare_clean_exposure_data(
+            log_file=self.path_settings['cehd_log_file']
+        )
         return exposure_data
+    #endregion
+
+    #region: load_raw_data
+    def load_raw_data(self):
+        '''
+        '''
+        raw_exposure_data = cehd_loading.raw_chem_exposure_health_data(
+            self.data_settings, 
+            self.path_settings
+            )
+        return raw_exposure_data
     #endregion
 
     #region: clean_instrument_type

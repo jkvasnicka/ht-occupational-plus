@@ -15,6 +15,8 @@ from config_management import UnifiedConfiguration
 from raw_processing.cehd_cleaning import CehdCleaner
 from raw_processing import cehd_loading
 
+# TODO: Refactor this to look like osha_cleaning.prepare_clean_exposure_data
+
 #region: config fixture
 @pytest.fixture
 def config():
@@ -58,7 +60,7 @@ def test_cehd_cleaning(raw_exposure_data, test_data, config):
 
     cehd_data = cleaner.clean_raw_data(
         raw_exposure_data,
-        do_log_changes=True
+        log_file=config.path['cehd_log_file']
     )
     
     pd.testing.assert_frame_equal(cehd_data, test_data, check_names=False)
