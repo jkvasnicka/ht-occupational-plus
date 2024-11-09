@@ -97,6 +97,15 @@
   "substance_name_col" : "SUBSTANCE",
   "substance_code_col" : "IMIS_SUBSTANCE_CODE",
   "naics_code_col" : "NAICS_CODE",
+  "inspection_number_col" : "INSPECTION_NUMBER",
+  
+  "chem_id_col" : "DTXSID",
+
+  "naics_levels" : [
+    "sector",
+    "subsector",
+    "industry_group"
+  ],
 
   "non_f_substance_codes" : [
       "1073", 

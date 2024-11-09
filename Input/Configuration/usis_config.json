@@ -16,6 +16,15 @@
     "substance_name_col" : "substance_name",
     "substance_code_col" : "substance_id",
     "naics_code_col" : "naics_id",
+    "inspection_number_col" : "inspection_number",
+
+    "chem_id_col" : "DTXSID",
+
+    "naics_levels" : [
+        "sector",
+        "subsector",
+        "industry_group"
+      ],
 
     "cleaning_steps" : [
         "remove_nonpersonal",
