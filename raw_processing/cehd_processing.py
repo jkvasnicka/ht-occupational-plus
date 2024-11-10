@@ -1,13 +1,16 @@
 '''
+This module prepares model variables specific to the CEHD dataset.
 '''
 
 from raw_processing import osha_processing
 
-#region: prepare_target_from_raw
-def prepare_target_from_raw(cehd_cleaner):
+#region: target_from_raw
+def target_from_raw(cehd_cleaner):
     '''
+    Prepares the target variable of exposure concentration for each unique 
+    combination of chemical and NAICS code.
     '''
-    y_for_naics = osha_processing.prepare_target_from_raw(
+    y_for_naics = osha_processing.target_from_raw(
         cehd_cleaner, 
         full_shift_twa_per_sampling
     )
@@ -19,11 +22,12 @@ def prepare_target_from_raw(cehd_cleaner):
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(exposure_data):
     '''
-    
+    Returns a time-weighted average (TWA) concentration per sampling number.
+
     Notes
     -----
     Multiple records tied to a single sampling number and chemical agent 
-    in CEHD are treated as sequential partial-shift measurements and 
+    in CEHD are treated as sequential partial-shift measurements and are
     aggregated to calculate total sampling time and a TWA concentration 
     result for the evaluation (Sarazin et al., 2018).
 
@@ -54,7 +58,8 @@ def full_shift_twa_per_sampling(exposure_data):
 #region: time_weighted_average
 def time_weighted_average(ci, ti):
     '''
-    Compute the Time-Weighted Average (TWA) concentration. 
+    Computes a Time-Weighted Average (TWA) concentration from partial-shift 
+    samples.
 
     Parameters
     ----------

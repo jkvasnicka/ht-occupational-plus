@@ -4,12 +4,19 @@
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-# TODO: Test the code. Write docstrings. Get one-hot features
-
-#region: prepare_target_from_raw
-def prepare_target_from_raw(data_cleaner, twa_func):
+#region: target_from_raw
+def target_from_raw(data_cleaner, twa_func):
     '''
-    '''    
+    Orchestrates target variable preparation for OSHA datasets.
+
+    Calculates a representative exposure concentration for each unique 
+    combination of chemical and NAICS code. First, a time-weighted average 
+    (TWA) is calculated across any partial-shift measurements. Then, the TWAs
+    are aggregated across sampling numbers (unique workers) and industries 
+    within a given NAICS. Lastly, the TWAs are converted to continuous 
+    equivalents, representative of chronic exposure and directly comparable to
+    a margin of exposure.
+    '''
     exposure_data = data_cleaner.prepare_clean_exposure_data()
     data_settings = data_cleaner.data_settings
 
@@ -45,6 +52,8 @@ def prepare_target(
         inspection_number_col
         ):
     '''
+    Converts TWAs per sampling number into final exposure concentration (EC)
+    values.
     '''
     twa_per_inspection = aggregate_twa_per_inspection(
         twa_per_sampling_number,
@@ -71,6 +80,10 @@ def aggregate_twa_per_naics(
         naics_code_col
         ):
     '''
+    Aggregates TWAs across all OSHA inspections within a given NAICS code.
+    
+    The resulting concentration values represent the typical (median) 
+    exposure for a given NAICS code.
     '''
     twa_per_naics = (
         twa_per_inspection
@@ -88,8 +101,11 @@ def aggregate_twa_per_inspection(
         inspection_number_col
         ):
     '''
-    # A sampling event may involve several sampling numbers/workers
-    # In such cases, aggregate the TWAs
+    Aggregates TWAs across sampling numbers (workers) to produce a 
+    representative TWA for each chemical-inspection pair.
+
+    The resulting concentration value represents the typical (median) exposure
+    of all workers within a given inspection.
     '''
     chem_naics_inspection = [
         chem_id_col, 
@@ -108,7 +124,8 @@ def aggregate_twa_per_inspection(
 #region: extract_naics_level
 def extract_naics_level(naics_series, level):
     '''
-    Extract the first N digits of the NAICS code based on the specified level.    
+    Extracts the first N digits of the NAICS code based on the specified 
+    level.
     '''
     digits_for_level = {
         'sector': 2,
@@ -124,7 +141,13 @@ def extract_naics_level(naics_series, level):
 #region: continuous_exposure_concentration
 def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     '''
-    Calculate the continuous exposure concentration (EC) using the EPA formula.
+    Converts a chemical's concentration in air into a continuous exposure
+    concentration. 
+
+    Notes
+    -----
+    The calculation aligns with EPA guidelines for chronic or subchronic 
+    risk assessment.
     '''
     AT = float(ED * DAYS_PER_YEAR * HOURS_PER_DAY)
     return (CA * ET * EF * ED) / AT

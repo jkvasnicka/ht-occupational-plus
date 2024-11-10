@@ -1,13 +1,16 @@
 '''
+This module prepares model variables specific to the USIS dataset. 
 '''
 
 from raw_processing import osha_processing
 
-#region: prepare_target_from_raw
-def prepare_target_from_raw(usis_cleaner):
+#region: target_from_raw
+def target_from_raw(usis_cleaner):
     '''
+    Prepares the target variable of exposure concentration for each unique 
+    combination of chemical and NAICS code.
     '''
-    y_for_naics = osha_processing.prepare_target_from_raw(
+    y_for_naics = osha_processing.target_from_raw(
         usis_cleaner, 
         full_shift_twa_per_sampling
     )
@@ -19,6 +22,10 @@ def prepare_target_from_raw(usis_cleaner):
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(exposure_data):
     '''
+    Returns a time-weighted average (TWA) concentration per sampling number.
+
+    Requires that the exposure data have been cleaned such that any samples
+    not representing a full-shift TWA have been removed.
     '''
     chem_naics_inspection = [
         'DTXSID', 
