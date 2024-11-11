@@ -1,5 +1,7 @@
 {
 
+    "opera_features_file" : "input/processed/features/opera_features.parquet",
+
     "cehd_target_dir" : "input/processed/target/cehd",
 
     "usis_target_dir" : "input/processed/target/usis",
