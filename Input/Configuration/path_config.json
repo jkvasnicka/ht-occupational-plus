@@ -1,5 +1,9 @@
 {
 
+    "cehd_target_dir" : "input/processed/target/cehd",
+
+    "usis_target_dir" : "input/processed/target/usis",
+
     "chem_id_file" : "input/raw/osha/CCD-Batch-Search_2024-10-29_12_24_18.csv",
 
     "raw_cehd_dir" : null,

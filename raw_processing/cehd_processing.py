@@ -5,14 +5,15 @@ This module prepares model variables specific to the CEHD dataset.
 from raw_processing import osha_processing
 
 #region: target_from_raw
-def target_from_raw(cehd_cleaner):
+def target_from_raw(cehd_cleaner, write_dir=None):
     '''
     Prepares the target variable of exposure concentration for each unique 
     combination of chemical and NAICS code.
     '''
     y_for_naics = osha_processing.target_from_raw(
         cehd_cleaner, 
-        full_shift_twa_per_sampling
+        full_shift_twa_per_sampling,
+        write_dir=write_dir
     )
     return y_for_naics
 #endregion

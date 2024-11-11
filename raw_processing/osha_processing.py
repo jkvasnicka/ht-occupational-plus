@@ -1,11 +1,14 @@
 '''
 '''
 
+from os import path 
+
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
+# TODO: Store the cleaned dataframe and load it directly?
 #region: target_from_raw
-def target_from_raw(data_cleaner, twa_func):
+def target_from_raw(data_cleaner, twa_func, write_dir=None):
     '''
     Orchestrates target variable preparation for OSHA datasets.
 
@@ -41,6 +44,9 @@ def target_from_raw(data_cleaner, twa_func):
             data_settings['inspection_number_col']
         )
 
+        if write_dir:
+            write_target(y_for_naics[level], write_dir, level)
+
     return y_for_naics
 #endregion
 
@@ -70,7 +76,7 @@ def prepare_target(
 
     ec_per_naics = continuous_exposure_concentration(twa_per_naics)
 
-    return ec_per_naics
+    return ec_per_naics.rename('mg_per_m3')
 #endregion
 
 #region: aggregate_twa_per_naics
@@ -151,4 +157,20 @@ def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     '''
     AT = float(ED * DAYS_PER_YEAR * HOURS_PER_DAY)
     return (CA * ET * EF * ED) / AT
+#endregion
+
+# TODO: Perhaps move these to data_management.py
+# TODO: Incorporate utilities.ensure_directory_exists()
+#region: write_target
+def write_target(y, write_dir, naics_level):
+    '''Write the target variable to a file.'''
+    target_file = target_file_path(write_dir, naics_level)
+    y.reset_index().to_csv(target_file, index=False)
+#endregion
+
+#region: target_file_path
+def target_file_path(target_dir, naics_level):
+    ''''''
+    file_name = f'{naics_level}.csv'
+    return path.join(target_dir, file_name)
 #endregion
