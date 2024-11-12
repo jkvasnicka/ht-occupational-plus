@@ -43,17 +43,24 @@ def prepare_cumulative_data(change_log, initial_count):
     '''
     # Initialize with the full dataset
     cum_count = initial_count
-    cumulative_pairs = [(f'0. Full dataset ({cum_count:,})', cum_count)]
+    n_in_parentheses = lambda cum_count : f'({cum_count:,})'
+    first_label = '0. Full dataset ' + n_in_parentheses(cum_count)
+    cumulative_pairs = [(first_label, cum_count)]
     
-    def reformat_key(k, step_number):
+    def format_key(k, step_number):
         return f"{step_number}. {k.capitalize().replace('_', ' ')}"
     
     for step_number, (k, v) in enumerate(change_log.items(), start=1):
         if abs(v) > 0:
-            formatted_key = reformat_key(k, step_number)
+            formatted_key = format_key(k, step_number)
             # Include the cumulative count of remaining samples
             cum_count += v  # where v = N_after - N_before
             cumulative_pairs.append((formatted_key, cum_count))
+
+    # Append the sample size to the last label
+    last_pair = cumulative_pairs[-1]
+    last_label = last_pair[0] + ' ' + n_in_parentheses(cum_count)
+    cumulative_pairs[-1] = (last_label, last_pair[-1])
 
     # Convert the counts to proportions
     TO_PERCENT = 100
