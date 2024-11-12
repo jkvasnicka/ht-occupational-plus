@@ -326,3 +326,11 @@ def ppm_to_mg_m3(ppm, mw):
     '''
     return ppm * mw/24.45
 #endregion
+
+#region: load_json
+def load_json(file):
+    '''This can be used to load the change log from a JSON file.'''
+    with open(file, 'r') as file:
+        json_dict = json.load(file)
+    return json_dict
+#endregion
