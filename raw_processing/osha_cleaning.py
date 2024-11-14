@@ -59,13 +59,11 @@ class OshaDataCleaner:
             )
         
         for step_name in self.data_settings['cleaning_steps']:
-            print(step_name)
             N_before = len(exposure_data)
             # Dynamically get the cleaning method from the step name
             exposure_data = getattr(self, step_name)(exposure_data)
             N_after = len(exposure_data)
             change_log[step_name] =  N_after - N_before
-            # print(exposure_data['exposure_level'].isna().sum())
 
         if log_file is not None:
             with open(log_file, 'w') as log_file:
@@ -190,15 +188,22 @@ class OshaDataCleaner:
             'AVERAGE_MASS'
             )
 
-        where_to_convert = exposure_data[measure_unit_col] == 'P'  # PPM
-        ppm_values = exposure_data.loc[where_to_convert, sample_result_col]
+        where_ppm = exposure_data[measure_unit_col] == 'P'
+        ppm_values = exposure_data.loc[where_ppm, sample_result_col]
         mol_weights = (
-            exposure_data.loc[where_to_convert, substance_name_col]
+            exposure_data.loc[where_ppm, substance_name_col]
             .map(chem_id_for_name)
             .map(mw_for_chem_id)
         )
 
-        mg_m3_values = ppm_to_mg_m3(ppm_values, mol_weights)
+        # Convert units only where molecular weights are available
+        # This avoids propagating NaNs to the calculated result
+        where_valid_mw = mol_weights.notna()
+        mg_m3_values = ppm_to_mg_m3(
+            ppm_values.loc[where_valid_mw], 
+            mol_weights.loc[where_valid_mw]
+            )
+        where_to_convert = where_ppm & where_valid_mw
         exposure_data.loc[where_to_convert, sample_result_col] = mg_m3_values
         exposure_data.loc[where_to_convert, measure_unit_col] = 'M_from_PPM'
 
