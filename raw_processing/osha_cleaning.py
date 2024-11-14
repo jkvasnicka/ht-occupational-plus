@@ -26,7 +26,7 @@ class OshaDataCleaner:
         '''
         raw_exposure_data = self.load_raw_data()
 
-        exposure_data = self._clean_raw_data(
+        exposure_data = self.clean_raw_data(
             raw_exposure_data,
             log_file=log_file
             )
@@ -40,8 +40,8 @@ class OshaDataCleaner:
         pass
     #endregion
 
-    #region: _clean_raw_data
-    def _clean_raw_data(self, raw_exposure_data, log_file=None):
+    #region: clean_raw_data
+    def clean_raw_data(self, raw_exposure_data, log_file=None):
         '''
         Clean the raw exposure data using a sequence of cleaning steps.
 
@@ -59,11 +59,13 @@ class OshaDataCleaner:
             )
         
         for step_name in self.data_settings['cleaning_steps']:
+            print(step_name)
             N_before = len(exposure_data)
             # Dynamically get the cleaning method from the step name
             exposure_data = getattr(self, step_name)(exposure_data)
             N_after = len(exposure_data)
             change_log[step_name] =  N_after - N_before
+            # print(exposure_data['exposure_level'].isna().sum())
 
         if log_file is not None:
             with open(log_file, 'w') as log_file:

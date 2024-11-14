@@ -26,9 +26,16 @@ def config():
 
 #region: raw_exposure_data fixture
 @pytest.fixture
-def raw_exposure_data(config):
+def raw_exposure_data(cleaner):
     '''Fixture to load the raw chemical exposure health data.'''
-    return cehd_loading.raw_chem_exposure_health_data(config.cehd, config.path)
+    return cleaner.load_raw_data()
+#endregion
+
+#region: cleaner fixture
+@pytest.fixture
+def cleaner(config):
+    '''Fixture to instantiate the data cleaner'''
+    return CehdCleaner(config.cehd, config.path)
 #endregion
 
 #region: test_data fixture
@@ -45,7 +52,7 @@ def load_test_data(path_settings):
 #endregion
 
 #region: test_cehd_cleaning
-def test_cehd_cleaning(raw_exposure_data, test_data, config):
+def test_cehd_cleaning(cleaner, raw_exposure_data, test_data, config):
     '''
     Use `pd.testing.assert_frame_equal` to compare the cleaned DataFrame with 
     the expected DataFrame.
@@ -56,8 +63,6 @@ def test_cehd_cleaning(raw_exposure_data, test_data, config):
     this limitation, the DataFrame index must be reset before writing to 
     Feather and then restored after reading.
     '''
-    cleaner = CehdCleaner(config.cehd, config.path)
-
     cehd_data = cleaner.clean_raw_data(
         raw_exposure_data,
         log_file=config.path['cehd_log_file']
