@@ -144,6 +144,7 @@ def extract_naics_level(naics_series, level):
     return naics_series.str[:digits_for_level[level]]
 #endregion
 
+# TODO: Add EPA reference to docstring
 #region: continuous_exposure_concentration
 def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     '''

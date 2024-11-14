@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # FIXME: Should be able to load the function directly?
 from raw_processing import osha_cleaning
 
+# TODO: Consider adjusting size based on number of categories
 #region: cumulative_changes
 def cumulative_changes(log_file, initial_count):
     '''
@@ -72,6 +73,7 @@ def prepare_cumulative_data(change_log, initial_count):
     return cumulative_pairs
 #endregion
 
+# TODO: Consider adjusting size based on number of categories
 #region: value_counts_hbar
 def value_counts_hbar(counts, title, xlabel, ylabel):
     '''
@@ -83,7 +85,6 @@ def value_counts_hbar(counts, title, xlabel, ylabel):
         The return of pd.value_counts(), where the index are the categories
         and the values are the counts.
     '''
-    # TODO: Consider adjusting size based on number of categories
     default_figsize = plt.rcParams['figure.figsize']
     fig, ax = plt.subplots(
         figsize=default_figsize[::-1]
