@@ -665,6 +665,7 @@ class CehdCleaner(OshaDataCleaner):
         'QUALIFIER' column.
         '''
         exposure_data = exposure_data.copy()
+
         qualifier_censored_values = (
             self.data_settings['qualifier_censored_values']
         )
@@ -676,14 +677,29 @@ class CehdCleaner(OshaDataCleaner):
         )
         exposure_data.loc[where_censored, 'CENSORED'] = 'Y'
 
-        # FIXME: Double check whether this is necessary
+        # TODO: Double check whether this is necessary
+        # Seems redundant with replace_missing_values()
         exposure_data['QUALIFIER'] = (
             exposure_data['QUALIFIER'].replace('raw was NA', '')
         )
+
+        return exposure_data
+    #endregion
+
+    #region: impute_missing_sample_result
+    def impute_missing_sample_result(self, exposure_data):
+        '''
+        Sets missing values (NaN) as zero. 
+
+        Notes
+        -----
+        This was done in the original R code pipeline and seems to assume that 
+        missing values are nondetects.
+        '''
+        exposure_data = exposure_data.copy()
         exposure_data['SAMPLE_RESULT'] = (
             exposure_data['SAMPLE_RESULT'].fillna(0)
         )
-
         return exposure_data
     #endregion
 
