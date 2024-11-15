@@ -144,34 +144,34 @@ def extract_naics_level(naics_series, level):
     return naics_series.str[:digits_for_level[level]]
 #endregion
 
-# TODO: Add EPA reference to docstring
 #region: continuous_exposure_concentration
 def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     '''
     Converts a chemical's concentration in air into a continuous exposure
     concentration. 
 
+    References
+    ----------
+    Environmental Protection Agency (EPA). (2009). Risk assessment guidance 
+    for superfund: Volume I: Human health evaluation manual (Part F, 
+    supplemental guidance for inhalation risk assessment) (EPA-540-R-070-002; 
+    OSWER 9285.7-82). Office of Superfund Remediation and Technology 
+    Innovation.
+
     Notes
     -----
     The calculation aligns with EPA guidelines for chronic or subchronic 
-    risk assessment.
+    risk assessment (Equation 8 of the document).
     '''
     AT = float(ED * DAYS_PER_YEAR * HOURS_PER_DAY)
     return (CA * ET * EF * ED) / AT
 #endregion
 
-# TODO: Perhaps move these to data_management.py
 # TODO: Incorporate utilities.ensure_directory_exists()
 #region: write_target
 def write_target(y, write_dir, naics_level):
     '''Write the target variable to a file.'''
-    target_file = target_file_path(write_dir, naics_level)
-    y.reset_index().to_csv(target_file, index=False)
-#endregion
-
-#region: target_file_path
-def target_file_path(target_dir, naics_level):
-    ''''''
     file_name = f'{naics_level}.csv'
-    return path.join(target_dir, file_name)
+    target_file = path.join(write_dir, file_name)
+    y.reset_index().to_csv(target_file, index=False)
 #endregion
