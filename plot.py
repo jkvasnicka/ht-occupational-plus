@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 # FIXME: Should be able to load the function directly?
 from raw_processing import osha_cleaning
 
-# TODO: Consider adjusting size based on number of categories
 #region: cumulative_changes
 def cumulative_changes(log_file, initial_count):
     '''
@@ -23,8 +22,11 @@ def cumulative_changes(log_file, initial_count):
     steps = steps[::-1]
     cum_values = cum_values[::-1]
 
-    fig, ax = plt.subplots(figsize=(6, 10))
+    # Dynamically adjust figure height based on the number of steps
+    fig_height = max(7, len(steps)*0.35)
+    fig, ax = plt.subplots(figsize=(6, fig_height))
     ax.plot(cum_values, steps, marker='o', linestyle='-')
+
     ax.set_title('Proportion of Samples Remaining After Each Cleaning Step')
     ax.set_xlabel('Samples Remaining (%)')
     ax.set_ylabel('Cleaning Step')
