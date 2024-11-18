@@ -59,5 +59,5 @@ def naics_features_from_target(y):
     '''
     naics_code_col = y.index.names[-1]
     X = pd.get_dummies(y.reset_index()[naics_code_col])
-    return X.set_index(y.index)
+    return X.set_index(y.index).rename(columns=lambda col : str(col))
 #endregion
