@@ -35,6 +35,7 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
                 exposure_data[naics_code_col], 
                 level=level)
                 }
+        # TODO: USIS & CEHD could be combined at this stage
         twa_per_sampling_number = twa_func(exposure_data.assign(**kwargs))
 
         y_for_naics[level] = prepare_target(
