@@ -1,0 +1,9 @@
+{
+
+    "path" : "Input/Configuration/path_config.json",
+
+    "cehd" : "Input/Configuration/cehd_config.json",
+
+    "usis" : "Input/Configuration/usis_config.json"
+
+}

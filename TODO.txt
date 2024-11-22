@@ -1,10 +1,11 @@
-Understand remaining discrepancies
-Implement unit test to check the dataframe equality, minus the discrepancies, through 2018
-Migrate hardcoded values to external config file
-Incorporate 2019-2023 CEHD datasets 
+Check the conversion factor of 10
 Check most important cleaning steps and whether need refactoring to accomodate post-2018 data 
 
-Download cleaned IMIS/OIS dataset and merge with CEHD 
-Get a list of all chemical names for chemical curation team
+Prepare the features and target variable
+Need to aggregate the samples somehow to reflect average exposure
+	- Use sampling number to calculate a time-weighted average?
+Determine precisely what we are trying to predict
 
-Prepare a simple case-study presentation for ISES
+Filter out samples before a certain year?
+
+Build ML models for CEHD, USIS, and the union 

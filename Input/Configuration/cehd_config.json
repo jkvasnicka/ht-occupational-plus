@@ -1,0 +1,166 @@
+{
+
+  "initial_dtypes" : {
+    "CITY" : {"dtype" :  "string"},
+    "ESTABLISHMENT_NAME" : {"dtype" :  "string"},
+    "FIELD_NUMBER" : {"dtype" :  "string"},
+    "IMIS_SUBSTANCE_CODE" : {"dtype" :  "string"},
+    "INSPECTION_NUMBER" : {"dtype" :  "string"},
+    "INSTRUMENT_TYPE" : {"dtype" :  "string"},
+    "QUALIFIER" : {"dtype" :  "string"},
+    "SUBSTANCE" : {"dtype" :  "string"},
+    "UNIT_OF_MEASUREMENT" : {"dtype" :  "string"},
+    "DATE_REPORTED" : {"dtype" : "datetime"},
+    "DATE_SAMPLED" : {"dtype" : "datetime"},
+    "SAMPLING_NUMBER" : {"dtype" :  "integer_string"},
+    "OFFICE_ID" : {"dtype" : "integer_string"},
+    "NAICS_CODE" : {"dtype" : "integer_string"},
+    "SIC_CODE" : {"dtype" : "integer_string"},
+    "ZIP_CODE" : {"dtype" : "integer_string"},
+    "AIR_VOLUME_SAMPLED" : {"dtype" : "numeric", "errors" : "coerce"},
+    "SAMPLE_RESULT" : {"dtype" : "numeric", "errors" : "coerce"},
+    "SAMPLE_WEIGHT" : {"dtype" : "numeric", "errors" : "coerce"},
+    "TIME_SAMPLED" : {"dtype" : "numeric", "errors" : "coerce"}
+  },
+
+  "categoricals" : {
+    "BLANK_USED" : {"categories" : ["Y", "N"]},
+    "EIGHT_HOUR_TWA_CALC" : {"categories" : ["Y", "N"]},
+    "LAB_NUMBER" : {},
+    "OFFICE_ID" : {},
+    "SAMPLE_TYPE" : {},
+    "SIC_CODE" : {},
+    "STATE" : {},
+    "ZIP_CODE" : {},
+    "YEAR" : {}
+  },
+
+  "rename_mapper" : {
+    "EIGHT_HR_TWA_CALC": "EIGHT_HOUR_TWA_CALC",
+    "BLANK_SAMPLE": "BLANK_USED"
+  },
+
+  "cleaning_steps" : [
+    "remove_blanks",
+    "remove_nonpersonal",
+    "remove_limited_sample_substances",
+    "remove_nonchemical_codes",
+    "replace_missing_values",
+    "add_censored_column",
+    "impute_missing_sample_result",
+    "remove_invalid_nondetect",
+    "clean_unit_of_measurement",
+    "remove_blk_not_bulk",
+    "remove_uninterpretable_qualifier",
+    "remove_conflicting_qualifier",
+    "remove_blk_possible_bulk_not_blank",
+    "remove_combustion_related",
+    "remove_fibers_substance_conflict",
+    "remove_yttrium_substance_conflict",
+    "remove_approximate_measure",
+    "remove_qualifier_unit_mismatch",
+    "remove_invalid_fibers_unit",
+    "remove_empty_unit_non_null_result",
+    "remove_percent_greater_than_100",
+    "remove_invalid_unit",
+    "convert_to_mass_concentration",
+    "remove_missing_office_identifier",
+    "remove_missing_time_sampled",
+    "remove_null_time_sampled",
+    "remove_negative_sample_result",
+    "remove_missing_sample_number",
+    "remove_missing_volume",
+    "remove_zero_volume_sampled",
+    "clean_instrument_type",
+    "clean_duplicates",
+    "convert_substance_names_to_ids",
+    "remove_missing_naics"
+  ],
+
+  "unique_sample_cols" : [
+    "INSPECTION_NUMBER", 
+    "IMIS_SUBSTANCE_CODE", 
+    "SAMPLING_NUMBER", 
+    "FIELD_NUMBER"
+  ],
+
+  "comparison_cols" : [
+    "LAB_NUMBER", 
+    "STATE", 
+    "ZIP_CODE", 
+    "YEAR", 
+    "TIME_SAMPLED", 
+    "SAMPLE_WEIGHT"
+  ],
+
+  "measure_unit_col" : "UNIT_OF_MEASUREMENT",
+  "sample_result_col" : "SAMPLE_RESULT",
+  "substance_name_col" : "SUBSTANCE",
+  "substance_code_col" : "IMIS_SUBSTANCE_CODE",
+  "naics_code_col" : "NAICS_CODE",
+  "inspection_number_col" : "INSPECTION_NUMBER",
+  
+  "chem_id_col" : "DTXSID",
+
+  "naics_levels" : [
+    "sector",
+    "subsector",
+    "industry_group"
+  ],
+
+  "non_f_substance_codes" : [
+      "1073", 
+      "2270", 
+      "2470", 
+      "9135"
+  ],
+
+  "approximate_qualifiers" : [
+      "@", 
+      " @", 
+      "@<", 
+      "@=<", 
+      "@<=", 
+      "<@", 
+      "=<@", 
+      "EST"
+    ],
+
+    "combustion_qualifiers" : [
+      "COMB", 
+      "COMD", 
+      "com", 
+      "comb"
+    ],
+
+    "qualifier_censored_values" : [
+      "-<", 
+      "  <", 
+      " =<", 
+      "@<", 
+      "@<=", 
+      "@=<", 
+      "<", 
+      "< =", 
+      "<@", 
+      "<=", 
+      "<= 0", 
+      "= <", 
+      "=<", 
+      "=<@"
+  ],
+
+    "min_samples_threshold" : 100,
+    
+    "nonchemical_codes" : [
+      "G301", 
+      "G302", 
+      "Q115", 
+      "T110", 
+      "M125", 
+      "Q116", 
+      "Q100", 
+      "S325"
+    ]
+
+  }  
