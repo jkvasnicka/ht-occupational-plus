@@ -16,6 +16,7 @@
     "substance_name_col" : "substance_name",
     "substance_code_col" : "substance_id",
     "naics_code_col" : "naics_id",
+    "sic_code_col" : "sic_id",
     "inspection_number_col" : "inspection_number",
 
     "chem_id_col" : "DTXSID",
@@ -31,7 +32,7 @@
         "convert_to_mass_concentration",
         "clean_duplicates",
         "convert_substance_names_to_ids",
-        "remove_missing_naics",
+        "harmonize_naics_codes",
         "remove_non_full_shift_twa"
     ]
 

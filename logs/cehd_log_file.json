@@ -32,5 +32,5 @@
     "clean_instrument_type": -10398,
     "clean_duplicates": -10323,
     "convert_substance_names_to_ids": -956083,
-    "remove_missing_naics": -232705
+    "harmonize_naics_codes": -6231
 }

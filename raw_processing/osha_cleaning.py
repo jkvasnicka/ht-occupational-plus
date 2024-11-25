@@ -3,6 +3,7 @@
 
 import pandas as pd
 import json
+import os
 
 #region: OshaDataCleaner.__init__
 class OshaDataCleaner:
@@ -266,8 +267,85 @@ class OshaDataCleaner:
         return exposure_data.dropna(subset='DTXSID')
     #endregion
 
-    #region: remove_missing_naics
-    def remove_missing_naics(self, exposure_data):
+    #region: harmonize_naics_codes
+    def harmonize_naics_codes(self, exposure_data):
+        '''
+        Harmonize NAICS codes in the given dataset to the latest standard.
+
+        Samples with missing NAICS codes post-harmonization are removed.
+        '''
+        exposure_data = exposure_data.copy()
+
+        exposure_data = self._convert_sic_to_naics(exposure_data)
+        exposure_data = self._update_naics_to_latest(exposure_data)
+        exposure_data = self._remove_missing_naics(exposure_data)
+
+        return exposure_data
+    #endregion
+
+    #region:_convert_sic_to_naics
+    def _convert_sic_to_naics(self, exposure_data):
+        '''
+        Convert SIC codes to NAICS codes where NAICS codes are missing.
+        '''
+        sic_conversion_file = self.path_settings['sic_conversion_file']
+        sic_code_col = self.data_settings['sic_code_col']
+        naics_code_col = self.data_settings['naics_code_col']
+
+        naics_for_sic = load_concordance_table(sic_conversion_file, header=1)
+
+        where_to_convert = (
+            exposure_data[naics_code_col].isna() 
+            & exposure_data[sic_code_col].notna()
+        )
+        exposure_data.loc[where_to_convert, naics_code_col] = (
+            exposure_data.loc[where_to_convert, sic_code_col]
+            .map(naics_for_sic)
+        )
+
+        return exposure_data
+    #endregion
+
+    #region: _update_naics_to_latest
+    def _update_naics_to_latest(self, exposure_data):
+        '''
+        Update NAICS codes to the latest standard using concordance tables.
+
+        This method sequentially applies NAICS-to-NAICS concordance tables to 
+        update all NAICS codes in the dataset to the most recent NAICS cycle. 
+        It assumes the concordance tables are named to reflect the years of 
+        each transition (e.g., "2002_to_2007_NAICS.xls") and stored in a 
+        dedicated directory.
+        '''
+        naics_concordances_dir = self.path_settings['naics_concordances_dir']
+        naics_code_col = self.data_settings['naics_code_col']
+        
+        file_names = sort_files_by_year(os.listdir(naics_concordances_dir))
+
+        # Initialize the full mapping 
+        first_file = os.path.join(naics_concordances_dir, file_names[0])
+        full_mapping = load_concordance_table(first_file)
+
+        # Update the mapping with each subsequent NAICS cycle
+        for file_name in file_names[1:]:
+            next_file = os.path.join(naics_concordances_dir, file_name)
+            next_mapping = load_concordance_table(next_file)
+            # If no mapping is found, retain the original value
+            full_mapping = {
+                k : next_mapping.get(v, v) 
+                for k, v in full_mapping.items()
+                }
+
+        # Replace original NAICS codes with those from the latest cycle
+        exposure_data.loc[:, naics_code_col] = (
+            exposure_data[naics_code_col].map(full_mapping)
+        )
+
+        return exposure_data
+    #endregion
+
+    #region: _remove_missing_naics
+    def _remove_missing_naics(self, exposure_data):
         '''Remove samples with missing NAICS code'''
         exposure_data = exposure_data.copy()
         naics_code_col = self.data_settings['naics_code_col']
@@ -332,6 +410,55 @@ def ppm_to_mg_m3(ppm, mw):
     https://www.ccohs.ca/oshanswers/chemicals/convert.html
     '''
     return ppm * mw/24.45
+#endregion
+
+#region: load_concordance_table
+def load_concordance_table(
+        concordance_file, 
+        header=2, 
+        old_col_idx=0, 
+        new_col_idx=2, 
+        dtype=None
+        ):
+    '''
+    Load a NAICS concordance table from an Excel file and create a mapping 
+    from old NAICS codes to new NAICS codes.
+
+    Notes
+    -----
+    - Many-to-One (Aggregation): This case is handled correctly, as multiple 
+      old NAICS codes pointing to the same new code will all map to that new 
+      code.
+    - One-to-Many (Splitting): In cases where an old NAICS code splits into 
+      several new codes, only the last encountered new code will be retained 
+      in the mapping. This behavior is due to the overwriting nature of Python
+      dictionaries.
+    '''        
+    # TODO: Harmonize with the exposure_data dtypes
+    if dtype is None:
+        dtype = 'str'
+
+    df = pd.read_excel(concordance_file, header=header)
+
+    old_values = df[df.columns[old_col_idx]].astype(dtype)
+    new_values = df[df.columns[new_col_idx]].astype(dtype)
+
+    return dict(zip(old_values, new_values))
+#endregion
+
+#region: sort_files_by_year
+def sort_files_by_year(file_names):
+    '''Sort file names chronologically based on the starting year.'''
+    extract_year = lambda x: x.split('_')[0]
+    
+    for file in file_names:
+        year = extract_year(file)
+        if not year.isdigit() or len(year) != 4:
+            raise ValueError(
+                'Not a valid file name (does not begin with a valid year): '
+                f'{file}')
+            
+    return sorted(file_names, key=lambda x: int(extract_year(x)))
 #endregion
 
 #region: load_json

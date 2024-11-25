@@ -26,6 +26,10 @@
 
     "unit_conv_file" : "input/raw/osha/cehd/conversion_tables/unit_conv_2020.csv",
 
-    "it_directory" : "input/raw/osha/cehd/conversion_tables_it"
+    "it_directory" : "input/raw/osha/cehd/conversion_tables_it",
+
+    "sic_conversion_file" : "input/raw/naics/concordances/1987_SIC_to_2002_NAICS.xls",
+
+    "naics_concordances_dir" : "input/raw/naics/concordances/naics_to_naics"
 
   }  
