@@ -13,9 +13,10 @@ class OshaDataCleaner:
     This class defines common cleaning operations for OSHA datasets and 
     provides a framework for running a sequence of cleaning steps dynamically.
     '''
-    def __init__(self, data_settings, path_settings):
+    def __init__(self, data_settings, path_settings, comptox_settings=None):
         self.data_settings = data_settings
         self.path_settings = path_settings
+        self.comptox_settings = comptox_settings
 #endregion
 
     #region: prepare_clean_exposure_data
@@ -176,17 +177,18 @@ class OshaDataCleaner:
         measure_unit_col = self.data_settings['measure_unit_col']
         sample_result_col = self.data_settings['sample_result_col']
         substance_name_col = self.data_settings['substance_name_col']
+        chem_id_col = self.comptox_settings['chem_id_col']
 
-        # TODO: Move these strings to config?
+        # NOTE: Assumes the input is the substance name
         chem_id_for_name = mapping_from_chem_id_file(
             chem_id_file, 
-            'INPUT', 
-            'DTXSID'
+            self.comptox_settings['input_col'], 
+            chem_id_col
             )
         mw_for_chem_id = mapping_from_chem_id_file(
             chem_id_file, 
-            'DTXSID', 
-            'AVERAGE_MASS'
+            chem_id_col, 
+            self.comptox_settings['molecular_weight_col']
             )
 
         where_ppm = exposure_data[measure_unit_col] == 'P'
@@ -254,17 +256,19 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
+        chem_id_col = self.comptox_settings['chem_id_col']
+
         chem_id_for_name = mapping_from_chem_id_file(
             self.path_settings['chem_id_file'], 
-            'INPUT', 
-            'DTXSID'
+            self.comptox_settings['input_col'], 
+            chem_id_col
         )
-        exposure_data['DTXSID'] = (
+        exposure_data[chem_id_col] = (
             exposure_data[self.data_settings['substance_name_col']]
             .map(chem_id_for_name)
         )
 
-        return exposure_data.dropna(subset='DTXSID')
+        return exposure_data.dropna(subset=chem_id_col)
     #endregion
 
     #region: harmonize_naics_codes

@@ -18,7 +18,7 @@ def target_from_raw(usis_cleaner, write_dir=None):
     return y_for_naics
 #endregion
 
-# TODO: Remove hardcoded column names?
+# FIXME: Remove hardcoded column names. Store these in config
 # TODO: Add data validation checks
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(exposure_data):

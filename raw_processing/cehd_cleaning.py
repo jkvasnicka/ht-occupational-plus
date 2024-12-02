@@ -41,8 +41,8 @@ class CehdCleaner(OshaDataCleaner):
     This subclass extends the `OshaDataCleaner` to apply specific cleaning 
     methods and settings for the CEHD.
     '''
-    def __init__(self, data_settings, path_settings):
-        super().__init__(data_settings, path_settings)
+    def __init__(self, data_settings, path_settings, comptox_settings=None):
+        super().__init__(data_settings, path_settings, comptox_settings)
 
         # Apply CEHD-specific initialization
         self._qualif_conv_2020 = load_qualifier_conversion(

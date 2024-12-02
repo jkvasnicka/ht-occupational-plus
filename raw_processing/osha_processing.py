@@ -22,6 +22,7 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
     '''
     exposure_data = data_cleaner.prepare_clean_exposure_data()
     data_settings = data_cleaner.data_settings
+    comptox_settings = data_cleaner.comptox_settings
 
     y_for_naics = {}  # initialize
     for level in data_settings['naics_levels']:
@@ -40,7 +41,7 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
 
         y_for_naics[level] = prepare_target(
             twa_per_sampling_number,
-            data_settings['chem_id_col'],
+            comptox_settings['chem_id_col'],
             naics_code_col,
             data_settings['inspection_number_col']
         )

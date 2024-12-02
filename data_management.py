@@ -41,6 +41,7 @@ def read_target(target_file):
     return pd.read_csv(target_file, index_col=[0, 1]).squeeze()
 #endregion
 
+# FIXME: Remove hardcoded DTXSID
 #region: read_features
 def read_features(opera_features_file, y=None):
     '''

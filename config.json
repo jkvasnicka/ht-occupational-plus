@@ -1,9 +1,11 @@
 {
 
-    "path" : "Input/Configuration/path_config.json",
+    "path" : "Input/configuration/path_config.json",
 
-    "cehd" : "Input/Configuration/cehd_config.json",
+    "cehd" : "Input/configuration/cehd_config.json",
 
-    "usis" : "Input/Configuration/usis_config.json"
+    "usis" : "Input/configuration/usis_config.json", 
+
+    "comptox" : "Input/configuration/comptox_config.json"
 
 }

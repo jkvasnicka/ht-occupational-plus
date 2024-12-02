@@ -21,7 +21,7 @@ def config():
 @pytest.fixture
 def cleaner(config):
     '''Fixture to instantiate the data cleaner'''
-    return usis_cleaning.UsisCleaner(config.usis, config.path)
+    return usis_cleaning.UsisCleaner(config.usis, config.path, config.comptox)
 #endregion
 
 #region: raw_exposure_data fixture

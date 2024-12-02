@@ -1,0 +1,9 @@
+{
+
+    "chem_id_col" : "DTXSID",
+
+    "input_col" : "INPUT",
+
+    "molecular_weight_col" : "AVERAGE_MASS"
+
+}

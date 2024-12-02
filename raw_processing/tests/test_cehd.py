@@ -13,7 +13,6 @@ import pytest
 
 from config_management import UnifiedConfiguration
 from raw_processing.cehd_cleaning import CehdCleaner
-from raw_processing import cehd_loading
 
 # TODO: Refactor this to look like osha_cleaning.prepare_clean_exposure_data
 
@@ -35,7 +34,7 @@ def raw_exposure_data(cleaner):
 @pytest.fixture
 def cleaner(config):
     '''Fixture to instantiate the data cleaner'''
-    return CehdCleaner(config.cehd, config.path)
+    return CehdCleaner(config.cehd, config.path, config.comptox)
 #endregion
 
 #region: test_data fixture
