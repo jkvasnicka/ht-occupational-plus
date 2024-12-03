@@ -5,6 +5,8 @@ import pandas as pd
 import json
 import os
 
+from . import comptox
+
 #region: OshaDataCleaner.__init__
 class OshaDataCleaner:
     '''
@@ -173,23 +175,32 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        chem_id_file = self.path_settings['chem_id_file']
+        chem_id_col = self.comptox_settings['chem_id_col']
+        input_col = self.comptox_settings['input_col']
+        molecular_weight_col = self.comptox_settings['molecular_weight_col']
         measure_unit_col = self.data_settings['measure_unit_col']
         sample_result_col = self.data_settings['sample_result_col']
         substance_name_col = self.data_settings['substance_name_col']
-        chem_id_col = self.comptox_settings['chem_id_col']
+        
+        comptox_data = comptox.data_from_raw(
+            self.path_settings['comptox_file'], 
+            self.comptox_settings['found_by_col'], 
+            self.comptox_settings['duplicate_warning'], 
+            self.comptox_settings['rank_map'], 
+            input_col
+        )
 
         # NOTE: Assumes the input is the substance name
-        chem_id_for_name = mapping_from_chem_id_file(
-            chem_id_file, 
-            self.comptox_settings['input_col'], 
-            chem_id_col
-            )
-        mw_for_chem_id = mapping_from_chem_id_file(
-            chem_id_file, 
-            chem_id_col, 
-            self.comptox_settings['molecular_weight_col']
-            )
+        chem_id_for_name = (
+            comptox_data
+            .set_index(input_col)[chem_id_col]
+            .to_dict()
+        )
+        mw_for_chem_id = (
+            comptox_data
+            .set_index(chem_id_col)[molecular_weight_col]
+            .to_dict()
+        )
 
         where_ppm = exposure_data[measure_unit_col] == 'P'
         ppm_values = exposure_data.loc[where_ppm, sample_result_col]
@@ -252,22 +263,32 @@ class OshaDataCleaner:
         Insert a new column of DSSTox chemical identifiers corresponding to 
         the substance names. 
 
-        Drop samples with missing identifiers.
+        Samples that cannot be identified are removed.
         '''
         exposure_data = exposure_data.copy()
 
+        input_col = self.comptox_settings['input_col']
         chem_id_col = self.comptox_settings['chem_id_col']
 
-        chem_id_for_name = mapping_from_chem_id_file(
-            self.path_settings['chem_id_file'], 
-            self.comptox_settings['input_col'], 
-            chem_id_col
+        comptox_data = comptox.data_from_raw(
+            self.path_settings['comptox_file'], 
+            self.comptox_settings['found_by_col'], 
+            self.comptox_settings['duplicate_warning'], 
+            self.comptox_settings['rank_map'], 
+            input_col
+        )
+
+        chem_id_for_name = (
+            comptox_data
+            .set_index(input_col)[chem_id_col]
+            .to_dict()
         )
         exposure_data[chem_id_col] = (
             exposure_data[self.data_settings['substance_name_col']]
             .map(chem_id_for_name)
         )
 
+        # Remove unidentifiable samples
         return exposure_data.dropna(subset=chem_id_col)
     #endregion
 
@@ -372,21 +393,6 @@ class OshaDataCleaner:
             exposure_data[col] = pd.Categorical(exposure_data[col], **kwargs)
         return exposure_data
     #endregion
-
-#region: mapping_from_chem_id_file
-def mapping_from_chem_id_file(chem_id_file, key_col, value_col):
-    '''
-    Generate a mapping based on the inputted chemical ID file and column 
-    names.
-    '''
-    mapping = (
-        pd.read_csv(chem_id_file)
-        .set_index(key_col)[value_col]
-        .dropna()
-        .to_dict()
-    )
-    return mapping
-#endregion
 
 #region: ppm_to_mg_m3
 def ppm_to_mg_m3(ppm, mw):
