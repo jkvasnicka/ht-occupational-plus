@@ -9,7 +9,7 @@ def data_from_raw(
         found_by_col, 
         duplicate_warning, 
         rank_map, 
-        input_col
+        substance_input_col
         ):
     '''
     Load and clean data from the CompTox Chemistry Dashboard.
@@ -25,7 +25,7 @@ def data_from_raw(
     rank_map : dict
         Mapping of values in `found_by_col` to rank scores. Higher values 
         indicate greater priority.
-    input_col : str
+    substance_input_col : str
         Name of the column containing input chemical names.
 
     Returns
@@ -39,7 +39,7 @@ def data_from_raw(
             found_by_col, 
             duplicate_warning, 
             rank_map, 
-            input_col
+            substance_input_col
     )
         
     return comptox_data
@@ -51,7 +51,7 @@ def resolve_chemical_ambiguities(
         found_by_col, 
         duplicate_warning, 
         rank_map, 
-        input_col
+        substance_input_col
         ):
     '''
     Resolve ambiguities in chemical input mappings to DTXSIDs.
@@ -77,7 +77,7 @@ def resolve_chemical_ambiguities(
 
     # Remove any chemicals with several matches but equally ranked
     where_ambiguous = comptox_data.duplicated(
-        subset=[input_col, rank_col], 
+        subset=[substance_input_col, rank_col], 
         keep=False
         )
     comptox_data = comptox_data.drop(
@@ -86,8 +86,11 @@ def resolve_chemical_ambiguities(
 
     comptox_data = (
         comptox_data
-        .sort_values(by=[input_col, rank_col], ascending=[True, False])
-        .drop_duplicates(subset=input_col, keep='first')
+        .sort_values(
+            by=[substance_input_col, rank_col], 
+            ascending=[True, False]
+            )
+        .drop_duplicates(subset=substance_input_col, keep='first')
     )
 
     return comptox_data.drop(rank_col, axis=1)

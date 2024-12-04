@@ -175,7 +175,7 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        input_col = self.comptox_settings['input_col']
+        substance_input_col = self.comptox_settings['substance_input_col']
         molecular_weight_col = self.comptox_settings['molecular_weight_col']
         measure_unit_col = self.data_settings['measure_unit_col']
         sample_result_col = self.data_settings['sample_result_col']
@@ -186,14 +186,14 @@ class OshaDataCleaner:
             self.comptox_settings['found_by_col'], 
             self.comptox_settings['duplicate_warning'], 
             self.comptox_settings['rank_map'], 
-            input_col
+            substance_input_col
         )
 
         # TODO: Assumes the input is the substance name. 
         # This assumption should be validated
         mw_for_substance_name = (
             comptox_data
-            .set_index(input_col)[molecular_weight_col]
+            .set_index(substance_input_col)[molecular_weight_col]
             .to_dict()
         )
         where_ppm = exposure_data[measure_unit_col] == 'P'
@@ -260,7 +260,7 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        input_col = self.comptox_settings['input_col']
+        substance_input_col = self.comptox_settings['substance_input_col']
         chem_id_col = self.comptox_settings['chem_id_col']
 
         comptox_data = comptox.data_from_raw(
@@ -268,12 +268,12 @@ class OshaDataCleaner:
             self.comptox_settings['found_by_col'], 
             self.comptox_settings['duplicate_warning'], 
             self.comptox_settings['rank_map'], 
-            input_col
+            substance_input_col
         )
 
         chem_id_for_name = (
             comptox_data
-            .set_index(input_col)[chem_id_col]
+            .set_index(substance_input_col)[chem_id_col]
             .to_dict()
         )
         exposure_data[chem_id_col] = (
