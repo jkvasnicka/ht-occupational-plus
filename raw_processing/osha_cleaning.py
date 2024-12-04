@@ -175,7 +175,6 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        chem_id_col = self.comptox_settings['chem_id_col']
         input_col = self.comptox_settings['input_col']
         molecular_weight_col = self.comptox_settings['molecular_weight_col']
         measure_unit_col = self.data_settings['measure_unit_col']
@@ -190,24 +189,18 @@ class OshaDataCleaner:
             input_col
         )
 
-        # NOTE: Assumes the input is the substance name
-        chem_id_for_name = (
+        # TODO: Assumes the input is the substance name. 
+        # This assumption should be validated
+        mw_for_substance_name = (
             comptox_data
-            .set_index(input_col)[chem_id_col]
+            .set_index(input_col)[molecular_weight_col]
             .to_dict()
         )
-        mw_for_chem_id = (
-            comptox_data
-            .set_index(chem_id_col)[molecular_weight_col]
-            .to_dict()
-        )
-
         where_ppm = exposure_data[measure_unit_col] == 'P'
         ppm_values = exposure_data.loc[where_ppm, sample_result_col]
         mol_weights = (
             exposure_data.loc[where_ppm, substance_name_col]
-            .map(chem_id_for_name)
-            .map(mw_for_chem_id)
+            .map(mw_for_substance_name)
         )
 
         # Convert units only where molecular weights are available
