@@ -181,16 +181,10 @@ class OshaDataCleaner:
         sample_result_col = self.data_settings['sample_result_col']
         substance_name_col = self.data_settings['substance_name_col']
         
-        comptox_data = comptox.data_from_raw(
-            self.path_settings['comptox_file'], 
-            self.comptox_settings['found_by_col'], 
-            self.comptox_settings['duplicate_warning'], 
-            self.comptox_settings['rank_map'], 
-            substance_input_col
+        exposure_data, comptox_data = (
+            self._load_standardized_comptox_data(exposure_data)
         )
 
-        # TODO: Assumes the input is the substance name. 
-        # This assumption should be validated
         mw_for_substance_name = (
             comptox_data
             .set_index(substance_input_col)[molecular_weight_col]
@@ -263,12 +257,8 @@ class OshaDataCleaner:
         substance_input_col = self.comptox_settings['substance_input_col']
         chem_id_col = self.comptox_settings['chem_id_col']
 
-        comptox_data = comptox.data_from_raw(
-            self.path_settings['comptox_file'], 
-            self.comptox_settings['found_by_col'], 
-            self.comptox_settings['duplicate_warning'], 
-            self.comptox_settings['rank_map'], 
-            substance_input_col
+        exposure_data, comptox_data = (
+            self._load_standardized_comptox_data(exposure_data)
         )
 
         chem_id_for_name = (
@@ -283,6 +273,83 @@ class OshaDataCleaner:
 
         # Remove unidentifiable samples
         return exposure_data.dropna(subset=chem_id_col)
+    #endregion
+
+    #region: _load_standardized_comptox_data
+    def _load_standardized_comptox_data(self, exposure_data):
+        '''
+        Helper function which standardizes the raw substance names and loads
+        the corresponding CompTox Data.
+
+        These two steps are grouped together to ensure that the raw OSHA 
+        substance names are correctly standardized to match the input values 
+        used to get information from the CompTox Chemistry Dashboard.
+
+        Returns
+        -------
+        2-tuple
+            Exposure data with standardized substance names, CompTox data
+        '''
+        exposure_data = self._standardize_substance_names(exposure_data)
+
+        comptox_data = comptox.data_from_raw(
+            self.path_settings['comptox_file'], 
+            self.comptox_settings['found_by_col'], 
+            self.comptox_settings['duplicate_warning'], 
+            self.comptox_settings['rank_map'], 
+            self.comptox_settings['substance_input_col']
+        )
+
+        return exposure_data, comptox_data
+    #endregion
+
+    #region: _standardize_substance_names
+    def _standardize_substance_names(self, exposure_data):
+        '''
+        Standardize raw substance names using an external reference mapping.
+
+        Replaces raw substance names with preferred names as defined in a 
+        mapping file, retaining original names if no match is found.
+
+        Notes
+        -----
+        This function is used to ensure that the raw OSHA substance names are
+        correctly standardized to match the input values used to get 
+        information from the CompTox Chemistry Dashboard, such as DTXSIDs and
+        molecular weights. Some of the raw substance names do not match any 
+        chemical in DSSTox. Therefore, an external reference mapping file can
+        be used to map a raw substance name to a preferred name in DSSTox for
+        input into CompTox.
+
+        Additionally, because the original names are retained if no match is 
+        found in the mapping file, this function can be called by multiple 
+        cleaning functions in sequence. If the substance names have already 
+        been standardized by a prior function, this function has no affect. 
+        This approach allows each cleaning function to operate independently 
+        as a standalone function, or in sequence.
+
+        See Also
+        --------
+        raw_processing.comptox.data_from_raw()
+            The 'input' column in the CompTox output data should correspond to 
+            an OSHA substance name or a "standardized" name.
+        '''
+        exposure_data = exposure_data.copy()
+
+        preferred_for_raw = (
+            pd.read_csv(self.path_settings['osha_dsstox_map_file'])
+            .set_index('raw_name')['preferred_name']
+            .to_dict()
+        )
+
+        substance_name_col = self.data_settings['substance_name_col']
+        raw_substances = exposure_data[substance_name_col]
+        exposure_data.loc[:, substance_name_col] = (
+            raw_substances.map(preferred_for_raw)
+            .fillna(raw_substances)
+        )
+
+        return exposure_data
     #endregion
 
     #region: harmonize_naics_codes

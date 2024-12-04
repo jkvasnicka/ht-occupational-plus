@@ -6,8 +6,10 @@
 
     "usis_target_dir" : "input/processed/target/usis",
 
-    "comptox_file" : "input/raw/osha/CCD-Batch-Search_2024-10-29_12_24_18.csv",
+    "comptox_file" : "input/raw/comptox/CCD-Batch-Search_2024-12-04_06_57_44.csv",
 
+    "osha_dsstox_map_file" : "input/raw/osha/substances/osha_dsstox_mapping.csv",
+    
     "raw_cehd_dir" : null,
 
     "raw_cehd_file" : "input/raw/osha/cehd/raw_cehd.feather",
