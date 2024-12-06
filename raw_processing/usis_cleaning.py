@@ -31,7 +31,8 @@ class UsisCleaner(OshaDataCleaner):
         '''
         '''
         raw_exposure_data = usis_loading.raw_usis_data(
-            self.path_settings['raw_usis_file']
+            self.path_settings['raw_usis_file'],
+            self.data_settings['initial_dtypes']
             )
         return raw_exposure_data
     #endregion

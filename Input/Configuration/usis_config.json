@@ -1,4 +1,9 @@
 {
+
+    "initial_dtypes" : {
+        "inspection_number" : {"dtype" : "integer_string"},
+        "sheet_number" : {"dtype" : "integer_string"}
+    },
     
     "unique_sample_cols" : [
         "inspection_number", 
