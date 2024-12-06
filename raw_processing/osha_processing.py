@@ -18,8 +18,9 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
     are aggregated across sampling numbers (unique workers) and industries 
     within a given NAICS. Lastly, the TWAs are converted to continuous 
     equivalents, representative of chronic exposure and directly comparable to
-    a margin of exposure.
+    a human-equivalent point of departure (POD).
     '''
+    # TODO: Pass the cleaned data directly rather than the cleaners?
     exposure_data = data_cleaner.prepare_clean_exposure_data()
     data_settings = data_cleaner.data_settings
     comptox_settings = data_cleaner.comptox_settings
@@ -37,7 +38,11 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
                 level=level)
                 }
         # TODO: USIS & CEHD could be combined at this stage
-        twa_per_sampling_number = twa_func(exposure_data.assign(**kwargs))
+        # FIXME: This could be moved before the loop?! and combine CEHD/USIS
+        twa_per_sampling_number = twa_func(
+            exposure_data.assign(**kwargs),
+            **data_settings
+            )
 
         y_for_naics[level] = prepare_target(
             twa_per_sampling_number,

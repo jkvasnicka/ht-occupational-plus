@@ -18,10 +18,19 @@ def target_from_raw(cehd_cleaner, write_dir=None):
     return y_for_naics
 #endregion
 
-# FIXME: Remove hardcoded column names. Store these in config
 # TODO: Add data validation checks
 #region: full_shift_twa_per_sampling
-def full_shift_twa_per_sampling(exposure_data):
+def full_shift_twa_per_sampling(
+        exposure_data,
+        *,
+        sample_result_col,
+        time_sampled_col,
+        chem_id_col, 
+        naics_code_col, 
+        inspection_number_col,
+        sampling_number_col,
+        **kwargs
+        ):
     '''
     Returns a time-weighted average (TWA) concentration per sampling number.
 
@@ -32,25 +41,34 @@ def full_shift_twa_per_sampling(exposure_data):
     aggregated to calculate total sampling time and a TWA concentration 
     result for the evaluation (Sarazin et al., 2018).
 
+    Returns
+    -------
+    pandas.Series
+        The index is a MultiIndex with the following levels:
+            0. chem_id_col
+            1. naics_code_col
+            3. inspection_number_col
+            4. sampling_number_col
+    The values are the TWAs of the 'sample_result_col' per group.
+
     Reference
     ---------
     Sarazin et al. (2018) - DOI: 10.1093/annweh/wxy003
     '''
     grouping_columns = [
-        'DTXSID', 
-        'NAICS_CODE',
-        'INSPECTION_NUMBER',
-        'SAMPLING_NUMBER'
+        chem_id_col, 
+        naics_code_col,
+        inspection_number_col,
+        sampling_number_col
     ]
 
     twa_per_sampling_number = (
         exposure_data
         .groupby(grouping_columns)
         .apply(lambda df: time_weighted_average(
-            df['SAMPLE_RESULT'], 
-            df['TIME_SAMPLED'])
+            df[sample_result_col], 
+            df[time_sampled_col])
             )
-        .droplevel('SAMPLING_NUMBER')
     )
 
     return twa_per_sampling_number

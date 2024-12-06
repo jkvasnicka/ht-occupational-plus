@@ -18,6 +18,7 @@
     "naics_code_col" : "naics_id",
     "sic_code_col" : "sic_id",
     "inspection_number_col" : "inspection_number",
+    "sampling_number_col" : "sheet_number",
 
     "chem_id_col" : "DTXSID",
 

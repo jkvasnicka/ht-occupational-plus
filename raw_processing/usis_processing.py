@@ -18,25 +18,44 @@ def target_from_raw(usis_cleaner, write_dir=None):
     return y_for_naics
 #endregion
 
-# FIXME: Remove hardcoded column names. Store these in config
 # TODO: Add data validation checks
 #region: full_shift_twa_per_sampling
-def full_shift_twa_per_sampling(exposure_data):
+def full_shift_twa_per_sampling(
+        exposure_data,
+        *,
+        sample_result_col,
+        chem_id_col, 
+        naics_code_col, 
+        inspection_number_col,
+        sampling_number_col,
+        **kwargs
+        ):
     '''
     Returns a time-weighted average (TWA) concentration per sampling number.
 
     Requires that the exposure data have been cleaned such that any samples
     not representing a full-shift TWA have been removed.
+    
+    Returns
+    -------
+    pandas.Series
+        The index is a MultiIndex with the following levels:
+            0. chem_id_col
+            1. naics_code_col
+            3. inspection_number_col
+            4. sampling_number_col
+        The values are the TWAs of the 'sample_result_col' per group.
     '''
-    chem_naics_inspection = [
-        'DTXSID', 
-        'naics_id',
-        'inspection_number'
+    grouping_columns = [
+        chem_id_col, 
+        naics_code_col,
+        inspection_number_col,
+        sampling_number_col
     ]
 
     twa_per_sampling_number = (
-        exposure_data[chem_naics_inspection + ['exposure_level']]
-        .set_index(chem_naics_inspection)
+        exposure_data[grouping_columns + [sample_result_col]]
+        .set_index(grouping_columns)
         .squeeze()
         .rename(None)
     )
