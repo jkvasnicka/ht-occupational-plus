@@ -3,6 +3,7 @@ Common functions for loading OSHA datasets.
 '''
 
 import pandas as pd
+from copy import deepcopy
 
 #region: pre_clean
 def pre_clean(exposure_data, initial_dtypes):
@@ -35,8 +36,10 @@ def set_initial_dtypes(exposure_data, initial_dtypes):
     set post-loading.
     '''
     exposure_data = exposure_data.copy()
-
+    initial_dtypes = deepcopy(initial_dtypes)
+    
     for col, settings in initial_dtypes.items():
+        
         dtype = settings.pop('dtype')
 
         if dtype == 'string':
