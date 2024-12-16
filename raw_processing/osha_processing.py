@@ -6,9 +6,14 @@ from os import path
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-# TODO: Store the cleaned dataframe and load it directly?
-#region: target_from_raw
-def target_from_raw(data_cleaner, twa_func, write_dir=None):
+#region: exposure_targets_by_naics
+def exposure_targets_by_naics(
+        twa_per_sampling_number, 
+        naics_levels,
+        naics_code_col,
+        chem_id_col,
+        inspection_number_col,
+        write_dir=None):
     '''
     Orchestrates target variable preparation for OSHA datasets.
 
@@ -20,35 +25,32 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
     equivalents, representative of chronic exposure and directly comparable to
     a human-equivalent point of departure (POD).
     '''
-    # TODO: Pass the cleaned data directly rather than the cleaners?
-    exposure_data = data_cleaner.prepare_clean_exposure_data()
-    data_settings = data_cleaner.data_settings
-    comptox_settings = data_cleaner.comptox_settings
+    # Convert the Series to a DataFrame to modify the index values (NAICS)
+    original_index = list(twa_per_sampling_number.index.names)
+    twa_df = twa_per_sampling_number.reset_index()
 
     y_for_naics = {}  # initialize
-    for level in data_settings['naics_levels']:
+    for level in naics_levels:
 
-        # NOTE: assign() returns a copy with the specified NAICS level
-        # Dict unpacking is used to interpret 'naics_code_col' as a variable
-        # rather than a literal string.
-        naics_code_col = data_settings['naics_code_col']
+        ## Replace the full NAICS codes with the specified NAICS level
+        # assign() returns a copy, and dict unpacking ensures that 
+        # 'naics_code_col' is interpreted as a variable rather than a string 
         kwargs = {
             naics_code_col: extract_naics_level(
-                exposure_data[naics_code_col], 
+                twa_df[naics_code_col], 
                 level=level)
                 }
-        # TODO: USIS & CEHD could be combined at this stage
-        # FIXME: This could be moved before the loop?! and combine CEHD/USIS
-        twa_per_sampling_number = twa_func(
-            exposure_data.assign(**kwargs),
-            **data_settings
-            )
+        new_twa_per_sampling_number = (
+            twa_df.assign(**kwargs)
+            .set_index(original_index)
+            .squeeze()
+        )
 
-        y_for_naics[level] = prepare_target(
-            twa_per_sampling_number,
-            comptox_settings['chem_id_col'],
+        y_for_naics[level] = exposure_concentration_per_naics(
+            new_twa_per_sampling_number,
+            chem_id_col,
             naics_code_col,
-            data_settings['inspection_number_col']
+            inspection_number_col
         )
 
         if write_dir:
@@ -57,8 +59,8 @@ def target_from_raw(data_cleaner, twa_func, write_dir=None):
     return y_for_naics
 #endregion
 
-#region: prepare_target
-def prepare_target(
+#region: exposure_concentration_per_naics
+def exposure_concentration_per_naics(
         twa_per_sampling_number,
         chem_id_col,
         naics_code_col,

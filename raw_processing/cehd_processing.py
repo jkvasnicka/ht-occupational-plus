@@ -2,19 +2,69 @@
 This module prepares model variables specific to the CEHD dataset.
 '''
 
+from raw_processing.cehd_cleaning import CehdCleaner
 from raw_processing import osha_processing
 
-#region: target_from_raw
-def target_from_raw(cehd_cleaner, write_dir=None):
+#region: exposure_targets_from_raw
+def exposure_targets_from_raw(
+        data_settings, 
+        path_settings, 
+        comptox_settings=None
+        ):
+    '''
+    '''
+    data_cleaner = CehdCleaner(data_settings, path_settings, comptox_settings)
+    exposure_data = data_cleaner.prepare_clean_exposure_data()
+    y_for_naics = prepare_exposure_targets(
+        exposure_data, 
+        data_settings['sample_result_col'],
+        data_settings['time_sampled_col'],
+        data_settings['chem_id_col'], 
+        data_settings['naics_code_col'], 
+        data_settings['inspection_number_col'],
+        data_settings['sampling_number_col'],
+        data_settings['naics_levels'],
+        write_dir=path_settings['cehd_target_dir']
+        )
+    return y_for_naics
+#endregion
+
+# TODO: Consider moving to osha_processing for common use
+#region: prepare_exposure_targets
+def prepare_exposure_targets(
+        exposure_data, 
+        sample_result_col,
+        time_sampled_col,
+        chem_id_col, 
+        naics_code_col, 
+        inspection_number_col,
+        sampling_number_col,
+        naics_levels,
+        write_dir=None
+        ):
     '''
     Prepares the target variable of exposure concentration for each unique 
     combination of chemical and NAICS code.
     '''
-    y_for_naics = osha_processing.target_from_raw(
-        cehd_cleaner, 
-        full_shift_twa_per_sampling,
+    twa_per_sampling_number = full_shift_twa_per_sampling(
+        exposure_data, 
+        sample_result_col,
+        time_sampled_col,
+        chem_id_col, 
+        naics_code_col, 
+        inspection_number_col,
+        sampling_number_col
+    )
+
+    y_for_naics = osha_processing.exposure_targets_by_naics(
+        twa_per_sampling_number, 
+        naics_levels,
+        naics_code_col,
+        chem_id_col,
+        inspection_number_col,
         write_dir=write_dir
     )
+
     return y_for_naics
 #endregion
 
@@ -22,14 +72,12 @@ def target_from_raw(cehd_cleaner, write_dir=None):
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(
         exposure_data,
-        *,
         sample_result_col,
         time_sampled_col,
         chem_id_col, 
         naics_code_col, 
         inspection_number_col,
-        sampling_number_col,
-        **kwargs
+        sampling_number_col
         ):
     '''
     Returns a time-weighted average (TWA) concentration per sampling number.
