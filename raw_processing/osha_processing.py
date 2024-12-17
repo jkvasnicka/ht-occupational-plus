@@ -6,6 +6,36 @@ from os import path
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
+#region: prepare_exposure_targets
+def prepare_exposure_targets(
+        exposure_data, 
+        twa_function, 
+        data_settings, 
+        write_dir=None
+        ):
+    '''
+    Prepares the target variable of exposure concentration for each unique 
+    combination of chemical and NAICS code.
+    '''
+    naics_levels = data_settings['naics_levels']
+    naics_code_col = data_settings['naics_code_col']
+    chem_id_col = data_settings['chem_id_col']
+    inspection_number_col = data_settings['inspection_number_col']
+    
+    twa_per_sampling_number = twa_function(exposure_data, **data_settings)
+
+    y_for_naics = exposure_targets_by_naics(
+        twa_per_sampling_number, 
+        naics_levels,
+        naics_code_col,
+        chem_id_col,
+        inspection_number_col,
+        write_dir=write_dir
+    )
+
+    return y_for_naics
+#endregion
+
 #region: exposure_targets_by_naics
 def exposure_targets_by_naics(
         twa_per_sampling_number, 
