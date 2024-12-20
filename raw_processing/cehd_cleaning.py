@@ -74,6 +74,66 @@ class CehdCleaner(OshaDataCleaner):
         return raw_exposure_data
     #endregion
 
+    #region: clean_duplicates
+    def clean_duplicates(self, exposure_data):
+        '''
+        Clean the dataset by identifying and removing duplicate samples.
+
+        1. Identifies and removes conflicting duplicates—records with the same 
+        unique sample columns (i.e., they appear to describe the same sample) 
+        but differing in comparison columns.
+        2. Identifies true duplicates—identical records across all relevant columns.
+        3. Retains only the first occurrence of true duplicates for substance '9010',
+        while removing other exact duplicates.
+        '''
+        exposure_data = exposure_data.copy()
+
+        unique_sample_cols = self.data_settings['unique_sample_cols']
+        comparison_cols = self.data_settings['comparison_cols']
+        substance_code_col = self.data_settings['substance_code_col']
+
+        ## Step 1: Identify and remove conflicting duplicates
+
+        where_unique_sample_duplicate = (
+            exposure_data.duplicated(
+                subset=unique_sample_cols, 
+                keep=False
+                )
+        )
+        conflicting_samples = (
+            exposure_data.loc[where_unique_sample_duplicate]
+            .drop_duplicates(
+                subset=(
+                    unique_sample_cols 
+                    + comparison_cols
+                ), 
+                keep=False
+                )
+        )
+        non_conflicting_data = exposure_data.drop(conflicting_samples.index)
+        
+        # Step 2: Handle true duplicates (exact matches) selectively
+
+        where_true_duplicate = (
+            where_unique_sample_duplicate.loc[non_conflicting_data.index]
+        )
+        
+        duplicates_data = non_conflicting_data.loc[where_true_duplicate]
+        non_duplicates_data = non_conflicting_data.loc[~where_true_duplicate]
+        
+        # For duplicates with substance '9010', keep only the first occurrence
+        where_9010 = duplicates_data[substance_code_col] == '9010'
+        duplicates_9010 = duplicates_data.loc[where_9010]
+        duplicates_9010_deduped = (
+            duplicates_9010.drop_duplicates(
+                subset=unique_sample_cols, 
+                keep='first'
+                )
+        )
+            
+        return pd.concat([non_duplicates_data, duplicates_9010_deduped])
+    #endregion
+    
     #region: clean_instrument_type
     def clean_instrument_type(self, exposure_data):
         '''

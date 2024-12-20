@@ -4,16 +4,14 @@
         "inspection_number" : {"dtype" : "integer_string"},
         "sheet_number" : {"dtype" : "integer_string"}
     },
-    
-    "unique_sample_cols" : [
-        "inspection_number", 
-        "substance_id", 
-        "sheet_number"
-    ],
 
-    "comparison_cols" : [
-        "location_id", 
-        "year"
+    "cleaning_steps" : [
+        "remove_nonpersonal",
+        "convert_to_mass_concentration",
+        "convert_substance_names_to_ids",
+        "harmonize_naics_codes",
+        "remove_non_full_shift_twa",
+        "clean_duplicates"
     ],
 
     "measure_unit_col" : "measure_unit_id",
@@ -31,15 +29,6 @@
         "sector",
         "subsector",
         "industry_group"
-      ],
-
-    "cleaning_steps" : [
-        "remove_nonpersonal",
-        "convert_to_mass_concentration",
-        "clean_duplicates",
-        "convert_substance_names_to_ids",
-        "harmonize_naics_codes",
-        "remove_non_full_shift_twa"
-    ]
+      ]
 
 }
