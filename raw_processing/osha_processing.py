@@ -1,35 +1,151 @@
 '''
 '''
 
+import pandas as pd
 from os import path 
+
+from . import usis_cleaning, cehd_cleaning
+from . import usis_processing, cehd_processing
+
+# TODO: Add validation tests to ensure no duplicates in the index
 
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-#region: prepare_exposure_targets
-def prepare_exposure_targets(
-        exposure_data, 
-        twa_function, 
-        data_settings, 
+# TODO: Rename to 'clean_exposure_data()' for consistency
+#region: combined_targets_from_raw
+def combined_targets_from_raw(
+        usis_settings, 
+        cehd_settings, 
+        path_settings, 
+        comptox_settings=None,
         write_dir=None
         ):
     '''
-    Prepares the target variable of exposure concentration for each unique 
-    combination of chemical and NAICS code.
+    Prepare combined target variables from raw CEHD and USIS datasets.
     '''
-    naics_levels = data_settings['naics_levels']
-    naics_code_col = data_settings['naics_code_col']
-    chem_id_col = data_settings['chem_id_col']
-    inspection_number_col = data_settings['inspection_number_col']
-    
-    twa_per_sampling_number = twa_function(exposure_data, **data_settings)
+    usis_cleaner = usis_cleaning.UsisCleaner(
+        usis_settings, 
+        path_settings, 
+        comptox_settings
+        )
+    usis_data = usis_cleaner.prepare_clean_exposure_data()
+
+    cehd_cleaner = cehd_cleaning.CehdCleaner(
+        cehd_settings, 
+        path_settings, 
+        comptox_settings
+        )
+    cehd_data = cehd_cleaner.prepare_clean_exposure_data()
+
+    y_for_naics = combined_targets_from_data(
+        usis_data, 
+        cehd_data, 
+        usis_settings, 
+        cehd_settings, 
+        write_dir=write_dir
+        )
+
+    return y_for_naics
+#endregion
+
+#region: combined_targets_from_data
+def combined_targets_from_data(
+        usis_data, 
+        cehd_data, 
+        usis_settings, 
+        cehd_settings, 
+        write_dir=None
+        ):
+    '''
+    Prepare combined target variables from pre-cleaned CEHD and USIS data.
+    '''
+    twa_usis = usis_processing.full_shift_twa_per_sampling(
+        usis_data, 
+        **usis_settings
+        )
+    twa_cehd = cehd_processing.full_shift_twa_per_sampling(
+        cehd_data, 
+        **cehd_settings
+        )
+
+    twa_per_sampling_number = combine_exposure_datasets(twa_usis, twa_cehd)
 
     y_for_naics = exposure_targets_by_naics(
         twa_per_sampling_number, 
-        naics_levels,
-        naics_code_col,
-        chem_id_col,
-        inspection_number_col,
+        usis_settings['naics_levels'],
+        usis_settings['naics_code_col'],
+        usis_settings['chem_id_col'],
+        usis_settings['inspection_number_col'],
+        write_dir=write_dir
+    )
+
+    return y_for_naics
+#endregion
+
+#region: combine_exposure_datasets
+def combine_exposure_datasets(twa_usis, twa_cehd):
+    '''
+    Combine CEHD and USIS datasets, using USIS data as the primary dataset and 
+    adding CEHD data where no USIS data exists.
+
+    Parameters
+    ----------
+    twa_usis, twa_cehd : pd.Series
+        Time-weighted average (TWA) concentration per sampling number for USIS
+        and CEHD, respectively.
+    '''
+    combined_series = twa_usis.copy()
+
+    twa_cehd_additional = twa_cehd.loc[twa_cehd.index.difference(twa_usis.index)]
+
+    return pd.concat([combined_series, twa_cehd_additional])
+#endregion
+
+# TODO: Rename to 'clean_exposure_data()' for consistency
+#region: targets_from_raw
+def targets_from_raw(
+        data_cleaner,
+        twa_function, 
+        write_dir=None
+        ):
+    '''
+    Prepare target variables from raw dataset input (USIS or CEHD).
+    '''
+    exposure_data = data_cleaner.prepare_clean_exposure_data()
+    data_settings = data_cleaner.data_settings 
+
+    y_for_naics = targets_from_data(
+        exposure_data, 
+        twa_function,
+        data_settings,
+        write_dir=write_dir
+        )
+    
+    return y_for_naics
+#endregion
+
+#region: targets_from_data
+def targets_from_data(
+        exposure_data, 
+        twa_function,
+        data_settings,
+        write_dir=None
+        ):
+    '''
+    Prepare target variables from pre-cleaned dataset input (USIS or CEHD).
+    '''
+    twa_per_sampling_number = twa_function(
+        exposure_data, 
+        **data_settings
+        )
+    
+    y_for_naics = exposure_targets_by_naics(
+        twa_per_sampling_number, 
+        data_settings['naics_levels'],
+        data_settings['naics_code_col'],
+        data_settings['chem_id_col'],
+        data_settings['inspection_number_col'],
         write_dir=write_dir
     )
 

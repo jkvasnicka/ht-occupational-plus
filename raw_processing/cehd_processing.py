@@ -2,28 +2,6 @@
 This module prepares model variables specific to the CEHD dataset.
 '''
 
-from raw_processing.cehd_cleaning import CehdCleaner
-from raw_processing import osha_processing
-
-#region: exposure_targets_from_raw
-def exposure_targets_from_raw(
-        data_settings, 
-        path_settings, 
-        comptox_settings=None
-        ):
-    '''
-    '''
-    data_cleaner = CehdCleaner(data_settings, path_settings, comptox_settings)
-    exposure_data = data_cleaner.prepare_clean_exposure_data()
-    y_for_naics = osha_processing.prepare_exposure_targets(
-        exposure_data, 
-        full_shift_twa_per_sampling, 
-        data_settings,
-        write_dir=path_settings['cehd_target_dir']
-        )
-    return y_for_naics
-#endregion
-
 # TODO: Add data validation checks
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(
