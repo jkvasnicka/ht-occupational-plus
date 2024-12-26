@@ -53,11 +53,11 @@ class CehdCleaner(OshaDataCleaner):
             )
 #endregion
 
-    #region: prepare_clean_exposure_data
-    def prepare_clean_exposure_data(self):
+    #region: clean_exposure_data
+    def clean_exposure_data(self):
         '''
         '''
-        exposure_data = super().prepare_clean_exposure_data(
+        exposure_data = super().clean_exposure_data(
             log_file=self.path_settings['cehd_log_file']
         )
         return exposure_data

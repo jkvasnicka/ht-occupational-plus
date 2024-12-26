@@ -21,8 +21,8 @@ class OshaDataCleaner:
         self.comptox_settings = comptox_settings
 #endregion
 
-    #region: prepare_clean_exposure_data
-    def prepare_clean_exposure_data(self, log_file=None):
+    #region: clean_exposure_data
+    def clean_exposure_data(self, log_file=None):
         '''
         Provides the main interface. 
         

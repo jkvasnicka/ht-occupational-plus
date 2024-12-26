@@ -12,7 +12,6 @@ from . import usis_processing, cehd_processing
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-# TODO: Rename to 'clean_exposure_data()' for consistency
 #region: combined_targets_from_raw
 def combined_targets_from_raw(
         usis_settings, 
@@ -29,14 +28,14 @@ def combined_targets_from_raw(
         path_settings, 
         comptox_settings
         )
-    usis_data = usis_cleaner.prepare_clean_exposure_data()
+    usis_data = usis_cleaner.clean_exposure_data()
 
     cehd_cleaner = cehd_cleaning.CehdCleaner(
         cehd_settings, 
         path_settings, 
         comptox_settings
         )
-    cehd_data = cehd_cleaner.prepare_clean_exposure_data()
+    cehd_data = cehd_cleaner.clean_exposure_data()
 
     y_for_naics = combined_targets_from_data(
         usis_data, 
@@ -102,7 +101,6 @@ def combine_exposure_datasets(twa_usis, twa_cehd):
     return pd.concat([combined_series, twa_cehd_additional])
 #endregion
 
-# TODO: Rename to 'clean_exposure_data()' for consistency
 #region: targets_from_raw
 def targets_from_raw(
         data_cleaner,
@@ -112,7 +110,7 @@ def targets_from_raw(
     '''
     Prepare target variables from raw dataset input (USIS or CEHD).
     '''
-    exposure_data = data_cleaner.prepare_clean_exposure_data()
+    exposure_data = data_cleaner.clean_exposure_data()
     data_settings = data_cleaner.data_settings 
 
     y_for_naics = targets_from_data(
