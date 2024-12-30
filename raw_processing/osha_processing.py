@@ -169,26 +169,15 @@ def exposure_targets_by_naics(
     equivalents, representative of chronic exposure and directly comparable to
     a human-equivalent point of departure (POD).
     '''
-    # Convert the Series to a DataFrame to modify the index values (NAICS)
-    original_index = list(twa_per_sampling_number.index.names)
-    twa_df = twa_per_sampling_number.reset_index()
-
     y_for_naics = {}  # initialize
+
     for level in naics_levels:
 
-        ## Replace the full NAICS codes with the specified NAICS level
-        # assign() returns a copy, and dict unpacking ensures that 
-        # 'naics_code_col' is interpreted as a variable rather than a string 
-        kwargs = {
-            naics_code_col: extract_naics_level(
-                twa_df[naics_code_col], 
-                level=level)
-                }
-        new_twa_per_sampling_number = (
-            twa_df.assign(**kwargs)
-            .set_index(original_index)
-            .squeeze()
-        )
+        new_twa_per_sampling_number = reindex_with_naics_level(
+            twa_per_sampling_number, 
+            naics_code_col, 
+            level
+            )
 
         y_for_naics[level] = exposure_concentration_per_naics(
             new_twa_per_sampling_number,
@@ -201,6 +190,31 @@ def exposure_targets_by_naics(
             write_target(y_for_naics[level], write_dir, level)
 
     return y_for_naics
+#endregion
+
+#region: reindex_with_naics_level
+def reindex_with_naics_level(twa_per_sampling_number, naics_code_col, level):
+    '''
+    Replace the full NAICS codes with the specified NAICS level.
+    '''
+    # Convert the Series to a DataFrame to modify the index values (NAICS)
+    original_index = list(twa_per_sampling_number.index.names)
+    twa_df = twa_per_sampling_number.reset_index()
+    
+    # NOTE: assign() returns a copy, and dict unpacking ensures that 
+    # 'naics_code_col' is interpreted as a variable rather than a string 
+    kwargs = {
+        naics_code_col: extract_naics_level(
+            twa_df[naics_code_col], 
+            level=level)
+            }
+    new_twa_per_sampling_number = (
+        twa_df.assign(**kwargs)
+        .set_index(original_index)
+        .squeeze()
+    )
+
+    return new_twa_per_sampling_number
 #endregion
 
 #region: exposure_concentration_per_naics
