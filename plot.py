@@ -402,6 +402,7 @@ def twa_concentrations_by_naics(series, write_path=None):
         fig.savefig(write_path)
 #endregion
 
+# FIXME: Why NaN correlation?
 #region: correlation_by_naics
 def correlation_by_naics(y, X, write_path=None):
     '''
@@ -413,17 +414,10 @@ def correlation_by_naics(y, X, write_path=None):
         write_path (str): Path to save the resulting plot.
     '''
     # --- Step 1: Merge Feature (X) and Target (y) Data ---
-    merged = y.to_frame(name='mg_per_m3').join(X, how='inner')
+    y = preprocess_target(y)
+    X['logKoa'] = np.log10(X['KOA_pred'])
+    merged = y.to_frame(name='log_concentration').join(X, how='inner')
     merged.reset_index(inplace=True)
-
-    # --- Step 2: Handle Zeros (Non-Detects) ---
-    non_zero_min = merged.loc[merged['mg_per_m3'] > 0, 'mg_per_m3'].min()
-    small_value = 0.5 * non_zero_min
-    merged['mg_per_m3'] = merged['mg_per_m3'].replace(0, small_value)
-
-    # Log transformations
-    merged['log_concentration'] = np.log10(merged['mg_per_m3'])
-    merged['logKoa'] = np.log10(merged['KOA_pred'])
 
     # --- Step 3: Multi-Panel Plot with Non-Parametric Statistics ---
     sns.set(style='whitegrid', font_scale=1.2)
