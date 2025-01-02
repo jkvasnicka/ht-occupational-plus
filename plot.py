@@ -374,9 +374,15 @@ def twa_concentrations_by_naics(series, write_path=None):
         )
 
         # Titles and labels for each panel
-        axes[i].set_title(f'{chemical_id}', fontsize=10)
+        axes[i].set_title(f'{chemical_id}', fontsize=12)
         axes[i].set_xlabel('')
-        axes[i].set_ylabel('Log(Conc)', fontsize=8)
+
+        # Show y-axis labels only in the first column
+        if i % 4 == 0:  # First column (4 panels per row)
+            axes[i].set_ylabel(EC_LABEL, fontsize=10)  # Show label
+        else:
+            axes[i].set_ylabel('')  # Remove label
+
         axes[i].tick_params(axis='x', rotation=45, labelsize=8)
         axes[i].grid(True, linestyle='--', alpha=0.6)
 
@@ -388,6 +394,9 @@ def twa_concentrations_by_naics(series, write_path=None):
     fig.suptitle('Worker TWA Concentrations by Sector for Data-Rich Chemicals', fontsize=16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.98])
 
+    # Add caption (note) below the plot
+    fig.text(0.5, 0.01, NOTE, ha='center', fontsize=10, style='italic')
+    
     if write_path:
         fig.savefig(write_path)
 #endregion
