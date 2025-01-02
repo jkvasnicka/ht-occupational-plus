@@ -211,41 +211,52 @@ def histogram_grid(data, write_path=None):
 #region: chemical_coverage_heatmap
 def chemical_coverage_heatmap(series, write_path=None):
     '''
-    Creates a heatmap of chemical coverage by sector, showing absolute sample sizes for each pair.
+    Creates a heatmap showing binary presence/absence (detections only) 
+    of chemicals by sector.
 
     Parameters:
         series (pd.Series): MultiIndex Series with index ['DTXSID', 'naics_id'] containing concentration values.
         write_path (str): Path to save the output figure.
     '''
-    # --- Step 1: Prepare Data ---
-    # Count occurrences of each (chemical, sector) pair
-    coverage = series.groupby(['DTXSID', 'naics_id']).size().unstack(fill_value=0)
+    # --- Step 1: Process Data for Presence/Absence ---
+    # Fill non-detects (0 values) as "0" and detects as "1"
+    binary_presence = (series > 0).astype(int)  # Binary indicator
 
-    # Sort chemicals and sectors by total counts
-    chemical_totals = coverage.sum(axis=1).sort_values(ascending=False)  # Row sums
-    sector_totals = coverage.sum(axis=0).sort_values(ascending=False)   # Column sums
+    # Count occurrences (1 = present, 0 = absent) for each pair
+    coverage = binary_presence.groupby(['DTXSID', 'naics_id']).max().unstack(fill_value=0)
 
-    # Reorder data based on totals
+    # --- Step 2: Sort by Totals ---
+    chemical_totals = coverage.sum(axis=1).sort_values(ascending=False)
+    sector_totals = coverage.sum(axis=0).sort_values(ascending=False)
+
     coverage = coverage.loc[chemical_totals.index, sector_totals.index]
 
-    # --- Step 2: Create Heatmap ---
-    plt.figure(figsize=(12, 10))
+    # --- Step 3: Create Heatmap ---
+    plt.figure(figsize=(10, 8))
     sns.heatmap(
-        coverage, 
-        cmap='Blues', 
-        linewidths=0.5, 
+        coverage,
+        cmap='Blues',
+        linewidths=0.5,
         linecolor='gray',
-        cbar=False,  # Omit legend
-        annot=False  # Turn off annotations for cleaner visuals
+        cbar=False,   # No colorbar since it's binary
+        annot=False   # Keep it clean without annotations
     )
 
-    # --- Step 3: Final Adjustments ---
-    plt.title('Chemical Coverage by Sector (Binary Presence/Absence)', fontsize=16)
+    # --- Step 4: Final Adjustments ---
+    plt.title('Chemical Coverage by Sector (Presence/Absence)', fontsize=14)
     plt.xlabel('NAICS Sector')
-    plt.ylabel('Chemicals (DTXSID)')
-    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels
-    plt.yticks([])  # Omit y-axis ticklabels
+    N_chemicals = len(series.index.get_level_values('DTXSID').unique())
+    plt.ylabel(f'{N_chemicals} Chemicals (DTXSIDs)')
+    # plt.xticks(rotation=45, ha='right')
+    plt.yticks([])  # Omit y-axis ticklabels for 500+ chemicals
     plt.tight_layout()
+
+    # Optional Footnote
+    plt.figtext(
+        0.5, -0.02,
+        'Note: "Presence" reflects nonzero values; nondetects treated as "absent."',
+        wrap=True, horizontalalignment='center', fontsize=10
+    )
 
     if write_path:
         plt.gcf().savefig(write_path)
