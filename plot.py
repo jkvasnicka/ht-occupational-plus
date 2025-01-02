@@ -11,6 +11,11 @@ import seaborn as sns
 # FIXME: Should be able to load the function directly?
 from raw_processing import osha_cleaning
 
+# TODO: Move to plot config
+EC_LABEL = r'$\log_{10}(\mathit{EC})$ [mg$\cdot$(m$^3$)$^{-1}$]'
+
+NOTE = 'Note: Zeros (non-detects) replaced with 0.5 x smallest non-zero value before log-transformation.'
+
 #region: cumulative_changes
 def cumulative_changes(log_file, initial_count):
     '''
@@ -185,11 +190,17 @@ def histogram_grid(data, write_path=None):
                 ax.set_title(f'{dataset}', fontsize=14)
             if j == 0:  # First column labels for hierarchies
                 ax.set_ylabel(f'{hierarchy}\nFrequency', fontsize=12)
-            ax.set_xlabel('Log(Air Concentration)', fontsize=10)
+            ax.set_xlabel(EC_LABEL, fontsize=10)
 
             # Set consistent x-axis limits
             ax.set_xlim(x_min, x_max)
 
+    fig.suptitle(
+        r'Distribution of $\mathit{EC}$ Across Datasets and NAICS Hierarchies',
+        size=16)
+
+    plt.figtext(0.5, -0.02, NOTE, ha='center', fontsize=10, style='italic')
+    
     # --- Step 4: Final Adjustments and Save ---
     plt.tight_layout()
 
