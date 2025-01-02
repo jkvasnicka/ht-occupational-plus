@@ -34,6 +34,8 @@
 
     "sic_conversion_file" : "input/raw/naics/concordances/1987_SIC_to_2002_NAICS.xls",
 
-    "naics_concordances_dir" : "input/raw/naics/concordances/naics_to_naics"
+    "naics_concordances_dir" : "input/raw/naics/concordances/naics_to_naics",
+
+    "pod_file" : "input/processed/application/inhalation_pods.parquet"
 
   }  
