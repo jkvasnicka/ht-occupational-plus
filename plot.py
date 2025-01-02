@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import spearmanr 
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 from matplotlib_venn import venn2
 import seaborn as sns
 
@@ -432,18 +433,20 @@ def correlation_by_naics(y, X, write_path=None):
     n_cols = 4
     n_rows = int(np.ceil(n_codes / n_cols))
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows), sharex=True, sharey=True)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows), sharey=True)
     axes = axes.flatten() if n_rows > 1 else [axes]
+
+    # Calculate global limits
+    x_min, x_max = merged['logKoa'].min(), merged['logKoa'].max()
+    y_min, y_max = merged['log_concentration'].min(), merged['log_concentration'].max()
+
+    # Add padding (adjust as needed, e.g., 5% of the range)
+    x_pad = 0.05 * (x_max - x_min)
+    y_pad = 0.05 * (y_max - y_min)
 
     for i, naics in enumerate(unique_naics):
         ax = axes[i]
         subset = merged[merged['naics_id'] == naics]
-
-        # Check for valid data
-        if len(subset) < 2:
-            ax.text(0.5, 0.5, 'Insufficient Data', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-            ax.axis('off')
-            continue
 
         # Scatterplot with regression line
         sns.scatterplot(x='logKoa', y='log_concentration', data=subset, ax=ax, alpha=0.7)
@@ -454,17 +457,30 @@ def correlation_by_naics(y, X, write_path=None):
 
         # Title with stats
         ax.set_title(f'NAICS: {naics}\n$r_s$={corr:.2f}, p={p_value:.3g}')
-        ax.set_xlabel('logKoa')
-        ax.set_ylabel('Log(Air Concentration)')
+        ax.set_xlabel(r'$\log_{10}(K_{oa})$')
+        ax.set_ylabel(r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)')
+
+        ax.set_xlim(x_min - x_pad, x_max + x_pad)
+        ax.set_ylim(y_min - y_pad, y_max + y_pad)
+        # Set even-numbered ticks
+        ax.xaxis.set_major_locator(MultipleLocator(2))
+        ax.yaxis.set_major_locator(MultipleLocator(2))
 
     # Remove empty subplots
     for j in range(i + 1, len(axes)):
         fig.delaxes(axes[j])
 
-    plt.tight_layout()
+    # Add suptitle and note
+    fig.suptitle(
+        'Correlation Between $\mathit{EC}$ and $K_{oa}$ By NAICS Sector', 
+        fontsize=18,
+        fontweight='bold')
+    plt.figtext(0.5, 0.01, NOTE, ha='center', fontsize=14)
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.98])
 
     if write_path:
-        plt.gcf().savefig(write_path)
+        plt.savefig(write_path)
 #endregion
 
 #region: preprocess_target
