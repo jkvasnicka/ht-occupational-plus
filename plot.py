@@ -306,7 +306,7 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
     # Add sector labels directly
     for i in summary.index:
         plt.annotate(
-            str(i),  # Sector code
+            f'Sec. {i}',  # Sector code
             (summary.loc[i, 'proportion_nondetects'], summary.loc[i, 'num_chemicals']),
             textcoords="offset points",
             xytext=(5, 5),
