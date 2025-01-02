@@ -2,7 +2,7 @@
 '''
 
 import numpy as np
-from scipy.stats import spearmanr 
+from scipy.stats import pearsonr 
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
@@ -418,6 +418,8 @@ def correlation_by_naics(y, X, write_path=None):
     X['logKoa'] = np.log10(X['KOA_pred'])
     merged = y.to_frame(name='log_concentration').join(X, how='inner')
     merged.reset_index(inplace=True)
+    # Filter out any missing values for pearsonr
+    merged = merged.dropna(subset=['logKoa', 'log_concentration'])
 
     # --- Step 3: Multi-Panel Plot with Non-Parametric Statistics ---
     sns.set(style='whitegrid', font_scale=1.2)
@@ -447,10 +449,10 @@ def correlation_by_naics(y, X, write_path=None):
         sns.regplot(x='logKoa', y='log_concentration', data=subset, scatter=False, color='red', ci=None, ax=ax)
 
         # Calculate Spearman's Rank Correlation
-        corr, p_value = spearmanr(subset['logKoa'], subset['log_concentration'])
+        corr, p_value = pearsonr(subset['logKoa'], subset['log_concentration'])
 
         # Title with stats
-        ax.set_title(f'NAICS: {naics}\n$r_s$={corr:.2f}, p={p_value:.3g}')
+        ax.set_title(f'NAICS: {naics}\n$r$={corr:.2f}, p={p_value:.3g}')
         ax.set_xlabel(r'$\log_{10}(K_{oa})$')
         ax.set_ylabel(r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)')
 
