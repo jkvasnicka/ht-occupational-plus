@@ -289,7 +289,7 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
     summary['median_log10(MOE)'] = moe_series.groupby('naics_id').median()
 
     # Plot
-    plt.figure(figsize=(12, 9))
+    plt.figure(figsize=(10, 8))
     scatter = sns.scatterplot(
         data=summary,
         x='proportion_nondetects',
@@ -315,15 +315,15 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
         )
 
     # Titles and labels
-    plt.title('Sector Richness: Non-Detects & Chemical Coverage', fontsize=16)
-    plt.xlabel('Proportion of Non-Detects (Lower = Better Data Quality)', fontsize=12)
+    plt.title('Sector Analytics: Data Quality and General Noncancer Risk', fontsize=16)
+    plt.xlabel('Proportion of Non-Detects', fontsize=12)
     plt.ylabel('Number of Chemicals Represented', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.6)
 
     # Add colorbar for raw hue variable
     sm = plt.cm.ScalarMappable(cmap='coolwarm_r')
     sm.set_array(summary['median_log10(MOE)'])
-    plt.colorbar(sm, label='Median log10(MOE), General Noncancer')
+    plt.colorbar(sm, label=r'$\log_{10}(\mathit{MOE})$')
 
     # Save and display
     plt.tight_layout()
