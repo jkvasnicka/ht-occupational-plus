@@ -316,7 +316,7 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
         )
 
     # Titles and labels
-    plt.title('Sector Analytics: Data Quality and General Noncancer Risk', fontsize=16)
+    plt.title('Data Quality & General Noncancer Risk By NAICS Sector', fontsize=16)
     plt.xlabel('Proportion of Non-Detects', fontsize=12)
     plt.ylabel('Number of Chemicals Represented', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.6)
@@ -392,7 +392,7 @@ def twa_concentrations_by_naics(series, write_path=None):
         fig.delaxes(axes[j])
 
     # Main title and layout
-    fig.suptitle('Worker TWA Concentrations by Sector for Data-Rich Chemicals', fontsize=16)
+    fig.suptitle('Distributions of Worker $\mathit{EC}$s by Sector for Data-Rich Chemicals', fontsize=16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.98])
 
     # Add caption (note) below the plot
