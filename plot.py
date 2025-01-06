@@ -345,9 +345,8 @@ def twa_concentrations_by_naics(series, write_path=None):
     # Pre-process target data
     series = preprocess_target(series)
 
-    # Extract all unique chemicals and sectors
+    # Extract all unique chemicals
     chemicals = series.index.get_level_values('DTXSID').unique()
-    sectors = sorted(series.index.get_level_values('naics_id').unique())
 
     # Set up multi-panel layout based on the number of chemicals
     n_chemicals = len(chemicals)
@@ -369,7 +368,7 @@ def twa_concentrations_by_naics(series, write_path=None):
             data=data,
             x='naics_id',
             y='concentration',
-            order=sector_order,
+            # order=sector_order,
             palette='coolwarm_r',  # Reverse the color gradient
             showfliers=True
         )
