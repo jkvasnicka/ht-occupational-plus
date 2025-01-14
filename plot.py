@@ -146,54 +146,57 @@ def dataset_overlap_venn(
 #endregion
 
 #region: histogram_grid
-def histogram_grid(data, write_path=None):
+def histogram_grid(targets_dict, write_path=None):
     '''
     Plots pooled histograms side-by-side for datasets (USIS, CEHD, Combined)
     and hierarchies (e.g., Sector, Subsector) from top to bottom.
-    
-    Parameters:
-        data: Nested dictionary {dataset -> {hierarchy -> target_series}}
-        write_path: Path to save the output figure
     '''
-    # --- Step 1: Prepare Data and Layout ---
-    datasets = list(data.keys())  # ['USIS', 'CEHD', 'Combined']
-    hierarchies = list(data[datasets[0]].keys())  # ['Sector', 'Subsector']
+    datasets = list(targets_dict.keys())  # ['USIS', 'CEHD', 'Combined']
+    hierarchies = list(targets_dict[datasets[0]].keys())  # ['Sector', 'Subsector']
     n_rows = len(hierarchies)
     n_cols = len(datasets)
 
-    # --- Step 2: Compute Global X-Axis Range ---
+    # Compute global x-axis range
     all_data = []
     for dataset in datasets:
         for hierarchy in hierarchies:
             # Preprocess and collect data
-            series = preprocess_target(data[dataset][hierarchy])
+            series = preprocess_target(targets_dict[dataset][hierarchy])
             all_data.extend(series)  # Append for global range calculation
 
     # Calculate consistent x-axis limits
     x_min, x_max = np.floor(min(all_data)), np.ceil(max(all_data))
 
-    # --- Step 3: Create the Grid of Histograms ---
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 3 * n_rows), sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, 
+        n_cols, 
+        figsize=(4 * n_cols, 3 * n_rows), 
+        sharex=True, 
+        sharey=True
+        )
     axes = axes if n_rows > 1 else [axes]  # Handle single row case
 
     for i, hierarchy in enumerate(hierarchies):
         for j, dataset in enumerate(datasets):
-            ax = axes[i, j] if n_rows > 1 else axes[j]  # Handle single row case
+            ax = axes[i, j] if n_rows > 1 else axes[j]
 
-            # Preprocess data
-            series = preprocess_target(data[dataset][hierarchy])
+            series = preprocess_target(targets_dict[dataset][hierarchy])
 
-            # Plot histogram
-            sns.histplot(series, bins=30, color='royalblue', alpha=0.7, edgecolor='black', ax=ax)
+            sns.histplot(
+                series, 
+                bins=30, 
+                color='royalblue', 
+                alpha=0.7, 
+                edgecolor='black', 
+                ax=ax
+                )
 
-            # Titles and labels
             if i == 0:  # Top row titles for datasets
                 ax.set_title(f'{dataset}', fontsize=14)
             if j == 0:  # First column labels for hierarchies
                 ax.set_ylabel(f'{hierarchy}\nFrequency', fontsize=12)
             ax.set_xlabel(EC_LABEL, fontsize=10)
 
-            # Set consistent x-axis limits
             ax.set_xlim(x_min, x_max)
 
     fig.suptitle(
@@ -202,7 +205,6 @@ def histogram_grid(data, write_path=None):
 
     plt.figtext(0.5, -0.02, NOTE, ha='center', fontsize=10, style='italic')
     
-    # --- Step 4: Final Adjustments and Save ---
     plt.tight_layout()
 
     if write_path:
@@ -210,29 +212,26 @@ def histogram_grid(data, write_path=None):
 #endregion
 
 #region: chemical_coverage_heatmap
-def chemical_coverage_heatmap(series, write_path=None):
+def chemical_coverage_heatmap(y, write_path=None):
     '''
     Creates a heatmap showing binary presence/absence (detections only) 
     of chemicals by sector.
-
-    Parameters:
-        series (pd.Series): MultiIndex Series with index ['DTXSID', 'naics_id'] containing concentration values.
-        write_path (str): Path to save the output figure.
     '''
-    # --- Step 1: Process Data for Presence/Absence ---
-    # Fill non-detects (0 values) as "0" and detects as "1"
-    binary_presence = (series > 0).astype(int)  # Binary indicator
-
+    # Process data for presence/absence
+    binary_presence = (y > 0).astype(int)
     # Count occurrences (1 = present, 0 = absent) for each pair
-    coverage = binary_presence.groupby(['DTXSID', 'naics_id']).max().unstack(fill_value=0)
+    coverage = (
+        binary_presence
+        .groupby(['DTXSID', 'naics_id'])
+        .max()
+        .unstack(fill_value=0)
+    )
 
-    # --- Step 2: Sort by Totals ---
     chemical_totals = coverage.sum(axis=1).sort_values(ascending=False)
     sector_totals = coverage.sum(axis=0).sort_values(ascending=False)
 
     coverage = coverage.loc[chemical_totals.index, sector_totals.index]
 
-    # --- Step 3: Create Heatmap ---
     plt.figure(figsize=(10, 8))
     sns.heatmap(
         coverage,
@@ -243,16 +242,14 @@ def chemical_coverage_heatmap(series, write_path=None):
         annot=False   # Keep it clean without annotations
     )
 
-    # --- Step 4: Final Adjustments ---
     plt.title('Chemical Coverage by Sector (Presence/Absence)', fontsize=14)
     plt.xlabel('NAICS Sector')
-    N_chemicals = len(series.index.get_level_values('DTXSID').unique())
+    N_chemicals = len(y.index.get_level_values('DTXSID').unique())
     plt.ylabel(f'{N_chemicals} Chemicals (DTXSIDs)')
     # plt.xticks(rotation=45, ha='right')
     plt.yticks([])  # Omit y-axis ticklabels for 500+ chemicals
     plt.tight_layout()
 
-    # Optional Footnote
     plt.figtext(
         0.5, -0.02,
         'Note: "Presence" reflects nonzero values; nondetects treated as "absent."',
@@ -264,38 +261,30 @@ def chemical_coverage_heatmap(series, write_path=None):
 #endregion
 
 #region: naics_level_data_summary
-def naics_level_data_summary(exposure_series, moe_series, write_path=None):
+def naics_level_data_summary(y, moe_series, write_path=None):
     '''
-    Final scatterplot showing sector richness with a single legend for pre-aggregated concentration data.
-
-    Parameters:
-    exposure_series (pd.Series): MultiIndex Series (DTXSID, naics_id) containing pre-aggregated concentration values.
-    hue_series (pd.Series): Series indexed by naics_id for coloring the scatterplot.
-    write_path (str): File path to save the resulting plot.
+    Generates scatterplot showing sector richness with a single legend for
+    pre-aggregated concentration data.
     '''
-    # Extract sectors
-    sectors = exposure_series.index.get_level_values('naics_id')
-
     # Compute summary metrics for each sector
-    summary = exposure_series.groupby(level='naics_id').agg(
+    summary = y.groupby(level='naics_id').agg(
         total_observations=('count'),
         nondetects=(lambda x: (x == 0).sum()),
         num_chemicals=(lambda x: x.index.get_level_values('DTXSID').nunique())
     )
 
-    # Calculate proportion of nondetects
-    summary['proportion_nondetects'] = summary['nondetects'] / summary['total_observations']
+    summary['proportion_nondetects'] = (
+        summary['nondetects'] / summary['total_observations']
+    )
 
-    # Merge hue variable into summary (use raw values directly)
     summary['median_log10(MOE)'] = moe_series.groupby('naics_id').median()
 
-    # Plot
     plt.figure(figsize=(10, 8))
     scatter = sns.scatterplot(
         data=summary,
         x='proportion_nondetects',
         y='num_chemicals',
-        hue='median_log10(MOE)',  # Use raw values directly
+        hue='median_log10(MOE)',
         palette='coolwarm_r',
         s=150,
         alpha=0.8,
@@ -303,11 +292,13 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
         legend=False
     )
 
-    # Add sector labels directly
+    # Add sector labels
     for i in summary.index:
+        x = summary.loc[i, 'proportion_nondetects']
+        y = summary.loc[i, 'num_chemicals']
         plt.annotate(
             f'Sec. {i}',  # Sector code
-            (summary.loc[i, 'proportion_nondetects'], summary.loc[i, 'num_chemicals']),
+            (x, y),
             textcoords="offset points",
             xytext=(5, 5),
             ha='center',
@@ -315,18 +306,15 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
             weight='bold'
         )
 
-    # Titles and labels
     plt.title('Data Quality & General Noncancer Risk By NAICS Sector', fontsize=16)
     plt.xlabel('Proportion of Non-Detects', fontsize=12)
     plt.ylabel('Number of Chemicals Represented', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.6)
 
-    # Add colorbar for raw hue variable
     sm = plt.cm.ScalarMappable(cmap='coolwarm_r')
     sm.set_array(summary['median_log10(MOE)'])
     plt.colorbar(sm, label=r'$\log_{10}(\mathit{MOE})$')
 
-    # Save and display
     plt.tight_layout()
 
     if write_path:
@@ -334,46 +322,40 @@ def naics_level_data_summary(exposure_series, moe_series, write_path=None):
 #endregion
 
 #region: twa_concentrations_by_naics
-def twa_concentrations_by_naics(series, write_path=None):
+def twa_concentrations_by_naics(y_by_sampling_no, write_path=None):
     '''
-    Visualizes exposure distributions across sectors for multiple chemicals using multi-panel boxplots.
-
-    Parameters:
-        series (pd.Series): MultiIndex pandas Series (DTXSID, sector, worker ID) with concentration values.
-        write_path (str): Path to save the output figure.
+    Visualizes exposure distributions across sectors for multiple chemicals 
+    using multi-panel boxplots.
     '''
-    # Pre-process target data
-    series = preprocess_target(series)
+    y_by_sampling_no = preprocess_target(y_by_sampling_no)
 
-    # Extract all unique chemicals
-    chemicals = series.index.get_level_values('DTXSID').unique()
+    chemicals = y_by_sampling_no.index.get_level_values('DTXSID').unique()
 
-    # Set up multi-panel layout based on the number of chemicals
     n_chemicals = len(chemicals)
     n_rows = int(np.ceil(n_chemicals / 4))  # 4 columns per row
-    fig, axes = plt.subplots(n_rows, 4, figsize=(16, 4 * n_rows), sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, 
+        4, 
+        figsize=(16, 4 * n_rows), 
+        sharex=True, 
+        sharey=True
+        )
     axes = axes.flatten()  # Flatten for easy indexing
 
     # Generate plots for each chemical
     for i, chemical_id in enumerate(chemicals):
         # Filter data for the chemical
-        data = series.xs(chemical_id, level='DTXSID').reset_index()
+        data = y_by_sampling_no.xs(chemical_id, level='DTXSID').reset_index()
 
-        # Sort sectors by median concentration (highest to lowest)
-        sector_order = data.groupby('naics_id')['concentration'].median().sort_values(ascending=False).index
-
-        # Create boxplot
         sns.boxplot(
             ax=axes[i],
             data=data,
             x='naics_id',
             y='concentration',
-            # order=sector_order,
-            palette='coolwarm_r',  # Reverse the color gradient
+            palette='coolwarm_r',
             showfliers=True
         )
 
-        # Titles and labels for each panel
         axes[i].set_title(f'{chemical_id}', fontsize=12)
         axes[i].set_xlabel('')
 
@@ -401,18 +383,12 @@ def twa_concentrations_by_naics(series, write_path=None):
         fig.savefig(write_path)
 #endregion
 
-# FIXME: Why NaN correlation?
 #region: correlation_by_naics
 def correlation_by_naics(y, X, write_path=None):
     '''
-    Creates multi-panel scatterplots with Spearman's rank correlation for each NAICS code.
-
-    Parameters:
-        y (pd.Series): Target variable containing concentrations indexed by ['DTXSID', 'naics_id'].
-        X (pd.DataFrame): Feature dataset indexed by ['DTXSID'].
-        write_path (str): Path to save the resulting plot.
+    Creates multi-panel scatterplots with correlation coefficient for each 
+    NAICS code.
     '''
-    # --- Step 1: Merge Feature (X) and Target (y) Data ---
     y = preprocess_target(y)
     X['logKoa'] = np.log10(X['KOA_pred'])
     merged = y.to_frame(name='log_concentration').join(X, how='inner')
@@ -420,7 +396,6 @@ def correlation_by_naics(y, X, write_path=None):
     # Filter out any missing values for pearsonr
     merged = merged.dropna(subset=['logKoa', 'log_concentration'])
 
-    # --- Step 3: Multi-Panel Plot with Non-Parametric Statistics ---
     sns.set(style='whitegrid', font_scale=1.2)
     unique_naics = sorted(merged['naics_id'].unique())
     n_codes = len(unique_naics)
@@ -428,12 +403,19 @@ def correlation_by_naics(y, X, write_path=None):
     n_cols = 4
     n_rows = int(np.ceil(n_codes / n_cols))
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows), sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, 
+        n_cols, 
+        figsize=(4 * n_cols, 4 * n_rows), 
+        sharey=True
+        )
     axes = axes.flatten() if n_rows > 1 else [axes]
 
     # Calculate global limits
-    x_min, x_max = merged['logKoa'].min(), merged['logKoa'].max()
-    y_min, y_max = merged['log_concentration'].min(), merged['log_concentration'].max()
+    x_min = merged['logKoa'].min()
+    x_max = merged['logKoa'].max()
+    y_min = merged['log_concentration'].min()
+    y_max = merged['log_concentration'].max()
 
     # Add padding (adjust as needed, e.g., 5% of the range)
     x_pad = 0.05 * (x_max - x_min)
@@ -444,11 +426,28 @@ def correlation_by_naics(y, X, write_path=None):
         subset = merged[merged['naics_id'] == naics]
 
         # Scatterplot with regression line
-        sns.scatterplot(x='logKoa', y='log_concentration', data=subset, ax=ax, alpha=0.7)
-        sns.regplot(x='logKoa', y='log_concentration', data=subset, scatter=False, color='red', ci=None, ax=ax)
+        sns.scatterplot(
+            x='logKoa', 
+            y='log_concentration', 
+            data=subset, 
+            ax=ax, 
+            alpha=0.7
+            )
+        sns.regplot(
+            x='logKoa', 
+            y='log_concentration', 
+            data=subset, 
+            scatter=False, 
+            color='red', 
+            ci=None, 
+            ax=ax
+            )
 
         # Calculate Spearman's Rank Correlation
-        corr, p_value = pearsonr(subset['logKoa'], subset['log_concentration'])
+        corr, p_value = pearsonr(
+            subset['logKoa'], 
+            subset['log_concentration']
+            )
 
         # Title with stats
         ax.set_title(f'NAICS: {naics}\n$r$={corr:.2f}, p={p_value:.3g}')
@@ -479,24 +478,18 @@ def correlation_by_naics(y, X, write_path=None):
 #endregion
 
 #region: preprocess_target
-def preprocess_target(series, log10=True):
+def preprocess_target(y, log10=True):
     '''
     Handles non-detects and applies log-transformation to a target variable.
-    
-    Parameters:
-        series (pd.Series): Target variable containing air concentrations.
-    
-    Returns:
-        pd.Series: Log-transformed concentrations with non-detects handled.
     '''
     # Replace zeros (non-detects) with half the smallest non-zero value
-    non_zero_min = series[series > 0].min()
+    non_zero_min = y[y > 0].min()
     small_value = 0.5 * non_zero_min
-    series = series.replace(0, small_value)
+    y = y.replace(0, small_value)
     
     # Apply log transformation
     if log10:
-        series = np.log10(series)
+        y = np.log10(y)
         
-    return series
+    return y
 #endregion
