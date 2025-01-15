@@ -1,6 +1,7 @@
 '''
 '''
 
+import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr 
 
@@ -387,19 +388,39 @@ def twa_concentrations_by_naics(y_by_sampling_no, write_path=None):
 def correlation_by_naics(y, X, write_path=None):
     '''
     Creates multi-panel scatterplots with correlation coefficient for each 
-    NAICS code.
+    NAICS code, sorted by |r|.
     '''
     y = preprocess_target(y)
     X['logKoa'] = np.log10(X['KOA_pred'])
     merged = y.to_frame(name='log_concentration').join(X, how='inner')
     merged.reset_index(inplace=True)
+
     # Filter out any missing values for pearsonr
     merged = merged.dropna(subset=['logKoa', 'log_concentration'])
 
     sns.set(style='whitegrid', font_scale=1.2)
     unique_naics = sorted(merged['naics_id'].unique())
-    n_codes = len(unique_naics)
 
+    # Calculate correlations for each sector
+    corr_data = []
+    for naics in unique_naics:
+        subset = merged[merged['naics_id'] == naics]
+        if len(subset) > 1:  # Avoid issues with insufficient data
+            r, p = pearsonr(subset['logKoa'], subset['log_concentration'])
+            corr_data.append({'naics': naics, 'r': r, 'p': p})
+        else:
+            corr_data.append({'naics': naics, 'r': float('nan'), 'p': float('nan')})
+
+    # Convert to DataFrame for sorting
+    corr_df = pd.DataFrame(corr_data)
+
+    # Sort by |r| (absolute value of correlation), optionally filtering by p-value
+    corr_df = corr_df.sort_values(by='r', key=lambda x: abs(x), ascending=False)
+
+    # Use the sorted order for plotting
+    sorted_naics = corr_df['naics'].tolist()
+
+    n_codes = len(sorted_naics)
     n_cols = 4
     n_rows = int(np.ceil(n_codes / n_cols))
 
@@ -408,7 +429,7 @@ def correlation_by_naics(y, X, write_path=None):
         n_cols, 
         figsize=(4 * n_cols, 4 * n_rows), 
         sharey=True
-        )
+    )
     axes = axes.flatten() if n_rows > 1 else [axes]
 
     # Calculate global limits
@@ -416,12 +437,10 @@ def correlation_by_naics(y, X, write_path=None):
     x_max = merged['logKoa'].max()
     y_min = merged['log_concentration'].min()
     y_max = merged['log_concentration'].max()
-
-    # Add padding (adjust as needed, e.g., 5% of the range)
     x_pad = 0.05 * (x_max - x_min)
     y_pad = 0.05 * (y_max - y_min)
 
-    for i, naics in enumerate(unique_naics):
+    for i, naics in enumerate(sorted_naics):
         ax = axes[i]
         subset = merged[merged['naics_id'] == naics]
 
@@ -432,7 +451,7 @@ def correlation_by_naics(y, X, write_path=None):
             data=subset, 
             ax=ax, 
             alpha=0.7
-            )
+        )
         sns.regplot(
             x='logKoa', 
             y='log_concentration', 
@@ -441,22 +460,19 @@ def correlation_by_naics(y, X, write_path=None):
             color='red', 
             ci=None, 
             ax=ax
-            )
+        )
 
-        # Calculate Spearman's Rank Correlation
-        corr, p_value = pearsonr(
-            subset['logKoa'], 
-            subset['log_concentration']
-            )
+        # Get correlation stats for the title
+        r = corr_df.loc[corr_df['naics'] == naics, 'r'].values[0]
+        p = corr_df.loc[corr_df['naics'] == naics, 'p'].values[0]
 
         # Title with stats
-        ax.set_title(f'NAICS: {naics}\n$r$={corr:.2f}, p={p_value:.3g}')
+        ax.set_title(f'NAICS: {naics}\n$r$={r:.2f}, p={p:.3g}')
         ax.set_xlabel(r'$\log_{10}(K_{oa})$')
         ax.set_ylabel(r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)')
 
         ax.set_xlim(x_min - x_pad, x_max + x_pad)
         ax.set_ylim(y_min - y_pad, y_max + y_pad)
-        # Set even-numbered ticks
         ax.xaxis.set_major_locator(MultipleLocator(2))
         ax.yaxis.set_major_locator(MultipleLocator(2))
 
