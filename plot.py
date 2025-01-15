@@ -385,28 +385,41 @@ def twa_concentrations_by_naics(y_by_sampling_no, write_path=None):
 #endregion
 
 #region: correlation_by_naics
-def correlation_by_naics(y, X, write_path=None):
+def correlation_by_naics(
+        target, 
+        predictor, 
+        xlabel=None, 
+        ylabel=None,
+        write_path=None):
     '''
     Creates multi-panel scatterplots with correlation coefficient for each 
-    NAICS code, sorted by |r|.
+    NAICS code.
     '''
-    y = preprocess_target(y)
-    X['logKoa'] = np.log10(X['KOA_pred'])
-    merged = y.to_frame(name='log_concentration').join(X, how='inner')
-    merged.reset_index(inplace=True)
+    if ylabel is None:
+        # Default is 'log10(EC) (mg/m3)'
+        ylabel = r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)'
 
-    # Filter out any missing values for pearsonr
-    merged = merged.dropna(subset=['logKoa', 'log_concentration'])
+    target = preprocess_target(target)
+    # Ensure inputs are aligned
+    target = target.rename('target')
+    predictor = predictor.rename('predictor')
+    merged = target.to_frame().join(predictor, how='inner')
+    merged.reset_index(inplace=True)  # Make MultiIndex columns accessible
 
+    # Extract NAICS codes from the index
+    naics_column = merged['naics_id']
+    merged = merged.dropna(subset=['predictor', 'target'])
+
+    # Get unique NAICS codes
     sns.set(style='whitegrid', font_scale=1.2)
-    unique_naics = sorted(merged['naics_id'].unique())
+    unique_naics = sorted(naics_column.unique())
 
     # Calculate correlations for each sector
     corr_data = []
     for naics in unique_naics:
         subset = merged[merged['naics_id'] == naics]
         if len(subset) > 1:  # Avoid issues with insufficient data
-            r, p = pearsonr(subset['logKoa'], subset['log_concentration'])
+            r, p = pearsonr(subset['predictor'], subset['target'])
             corr_data.append({'naics': naics, 'r': r, 'p': p})
         else:
             corr_data.append({'naics': naics, 'r': float('nan'), 'p': float('nan')})
@@ -433,10 +446,10 @@ def correlation_by_naics(y, X, write_path=None):
     axes = axes.flatten() if n_rows > 1 else [axes]
 
     # Calculate global limits
-    x_min = merged['logKoa'].min()
-    x_max = merged['logKoa'].max()
-    y_min = merged['log_concentration'].min()
-    y_max = merged['log_concentration'].max()
+    x_min = merged['predictor'].min()
+    x_max = merged['predictor'].max()
+    y_min = merged['target'].min()
+    y_max = merged['target'].max()
     x_pad = 0.05 * (x_max - x_min)
     y_pad = 0.05 * (y_max - y_min)
 
@@ -446,15 +459,15 @@ def correlation_by_naics(y, X, write_path=None):
 
         # Scatterplot with regression line
         sns.scatterplot(
-            x='logKoa', 
-            y='log_concentration', 
+            x='predictor', 
+            y='target', 
             data=subset, 
             ax=ax, 
             alpha=0.7
         )
         sns.regplot(
-            x='logKoa', 
-            y='log_concentration', 
+            x='predictor', 
+            y='target', 
             data=subset, 
             scatter=False, 
             color='red', 
@@ -468,8 +481,8 @@ def correlation_by_naics(y, X, write_path=None):
 
         # Title with stats
         ax.set_title(f'NAICS: {naics}\n$r$={r:.2f}, p={p:.3g}')
-        ax.set_xlabel(r'$\log_{10}(K_{oa})$')
-        ax.set_ylabel(r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
 
         ax.set_xlim(x_min - x_pad, x_max + x_pad)
         ax.set_ylim(y_min - y_pad, y_max + y_pad)
