@@ -390,6 +390,7 @@ def correlation_by_naics(
         predictor, 
         xlabel=None, 
         ylabel=None,
+        suptitle=None,
         write_path=None):
     '''
     Creates multi-panel scatterplots with correlation coefficient for each 
@@ -410,8 +411,6 @@ def correlation_by_naics(
     naics_column = merged['naics_id']
     merged = merged.dropna(subset=['predictor', 'target'])
 
-    # Get unique NAICS codes
-    sns.set(style='whitegrid', font_scale=1.2)
     unique_naics = sorted(naics_column.unique())
 
     # Calculate correlations for each sector
@@ -458,31 +457,31 @@ def correlation_by_naics(
         subset = merged[merged['naics_id'] == naics]
 
         # Scatterplot with regression line
-        sns.scatterplot(
-            x='predictor', 
-            y='target', 
-            data=subset, 
-            ax=ax, 
+        ax.scatter(subset['predictor'], subset['target'], alpha=0.7)
+        ax.plot(
+            subset['predictor'], 
+            np.polyval(
+                np.polyfit(subset['predictor'], subset['target'], 1), 
+                subset['predictor']), 
+            color='red'
+        )
+
+        ax.grid(
+            visible=True, 
+            which='major', 
+            linestyle='--', 
+            linewidth=0.7, 
             alpha=0.7
-        )
-        sns.regplot(
-            x='predictor', 
-            y='target', 
-            data=subset, 
-            scatter=False, 
-            color='red', 
-            ci=None, 
-            ax=ax
-        )
+            )
 
         # Get correlation stats for the title
         r = corr_df.loc[corr_df['naics'] == naics, 'r'].values[0]
         p = corr_df.loc[corr_df['naics'] == naics, 'p'].values[0]
 
         # Title with stats
-        ax.set_title(f'NAICS: {naics}\n$r$={r:.2f}, p={p:.3g}')
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        ax.set_title(f'NAICS: {naics}\n$r$={r:.2f}, p={p:.3g}', fontsize=14)
+        ax.set_xlabel(xlabel, fontsize=12)
+        ax.set_ylabel(ylabel, fontsize=12)
 
         ax.set_xlim(x_min - x_pad, x_max + x_pad)
         ax.set_ylim(y_min - y_pad, y_max + y_pad)
@@ -495,7 +494,7 @@ def correlation_by_naics(
 
     # Add suptitle and note
     fig.suptitle(
-        'Correlation Between $\mathit{EC}$ and $K_{oa}$ By NAICS Sector', 
+        suptitle, 
         fontsize=18,
         fontweight='bold')
     plt.figtext(0.5, 0.01, NOTE, ha='center', fontsize=14)
