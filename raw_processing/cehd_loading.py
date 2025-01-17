@@ -36,6 +36,7 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
     if path_settings['raw_cehd_dir']:
         exposure_data = _raw_cehd_from_multiple_files(
             path_settings['raw_cehd_dir'], 
+            cehd_settings['file_name_prefix'],
             cehd_settings['rename_mapper'],
             cehd_settings['initial_dtypes']
             )
@@ -49,6 +50,7 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
 #region _raw_cehd_from_multiple_files
 def _raw_cehd_from_multiple_files(
         raw_cehd_dir, 
+        file_name_prefix,
         rename_mapper,
         initial_dtypes
         ):
@@ -57,7 +59,8 @@ def _raw_cehd_from_multiple_files(
 
     This function walks through the specified directory, identifies files
     following the naming convention 'sample_data_YEAR.extension', where
-    'YEAR' is a four-digit year and 'extension' is either 'csv' or 'xml'.
+    'YEAR' is a four-digit year and 'extension' is either 'csv', 'txt', or 
+    'xml'.
 
     Parameters
     ----------
@@ -74,24 +77,24 @@ def _raw_cehd_from_multiple_files(
     exposure_data = []  # initialize
     for root, _, files in os.walk(raw_cehd_dir):
         for file in files:
-
-            parts = file.split('.')
-            extension = parts[-1]
-            if extension in ['csv', 'xml']:
-                # The file contains OSHA data
-                year = parts[0].split('_')[-1]
-                print(f'Loading {year} data...')
-                if extension == 'csv':
-                    year_data = _cehd_from_csv(
-                        root, file, rename_mapper
-                        )
-                elif extension == 'xml':
-                    year_data = _cehd_from_xml(
-                        root, file, rename_mapper
-                        )
-                # Create a new column with the file year
-                year_data['YEAR'] = year
-                exposure_data.append(year_data)
+            if file.startswith(file_name_prefix):
+                parts = file.split('.')
+                extension = parts[-1]
+                if extension in ['csv', 'txt', 'xml']:
+                    # The file contains OSHA data
+                    year = parts[0].split('_')[-1]
+                    print(f'Loading {year} data...')
+                    if extension in ['csv', 'txt']:
+                        year_data = _cehd_from_csv(
+                            root, file, rename_mapper
+                            )
+                    elif extension == 'xml':
+                        year_data = _cehd_from_xml(
+                            root, file, rename_mapper
+                            )
+                    # Create a new column with the file year
+                    year_data['YEAR'] = year
+                    exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
     exposure_data = pre_clean(exposure_data, initial_dtypes)
     return exposure_data
@@ -118,6 +121,11 @@ def _cehd_from_csv(root, file, rename_mapper):
     -------
     dict
         A dictionary of DataFrames for each year.
+
+    Notes
+    -----
+    on_bad_lines='skip' was introduced to handle a few bad lines in the 2024
+    release of the CEHD. These lines had extra '|' characters in the raw file.
     '''
     raw_cehd_file = os.path.join(root, file)
 
@@ -131,7 +139,8 @@ def _cehd_from_csv(root, file, rename_mapper):
         raw_cehd_file, 
         encoding=encoding, 
         delimiter=delimiter,
-        low_memory=False
+        low_memory=False,
+        on_bad_lines='skip'
     )
 
     csv_data = _standardize(csv_data, rename_mapper)
@@ -289,7 +298,6 @@ def pre_clean(exposure_data, initial_dtypes):
     return exposure_data
 #endregion
 
-# TODO: Double check to see if this is necessary
 #region: _replace_file_year_with_sampled_year
 def _replace_file_year_with_sampled_year(file_year, date_sampled):
     '''

@@ -4,10 +4,6 @@
 
     "target_dir" : "input/processed/target",
 
-    "cehd_target_dir" : "input/processed/target/cehd",
-
-    "usis_target_dir" : "input/processed/target/usis",
-
     "comptox_file" : "input/raw/comptox/CCD-Batch-Search_2024-12-04_06_57_44.csv",
 
     "osha_dsstox_map_file" : "input/raw/osha/substances/osha_dsstox_mapping.csv",

@@ -1,5 +1,7 @@
 {
 
+  "file_name_prefix" : "sample_data_",
+
   "initial_dtypes" : {
     "CITY" : {"dtype" :  "string"},
     "ESTABLISHMENT_NAME" : {"dtype" :  "string"},
