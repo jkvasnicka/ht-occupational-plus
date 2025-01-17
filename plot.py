@@ -396,41 +396,13 @@ def correlation_by_naics(
     Creates multi-panel scatterplots with correlation coefficient for each 
     NAICS code.
     '''
-    if ylabel is None:
-        # Default is 'log10(EC) (mg/m3)'
-        ylabel = r'$\log_{10}(\mathit{EC})$ (mg $\cdot$ m$^{-3}$)'
+    ylabel = EC_LABEL if ylabel is None else ylabel
 
-    target = preprocess_target(target)
-    # Ensure inputs are aligned
-    target = target.rename('target')
-    predictor = predictor.rename('predictor')
-    merged = target.to_frame().join(predictor, how='inner')
-    merged.reset_index(inplace=True)  # Make MultiIndex columns accessible
+    merged = preprocess_data(target, predictor)
 
-    # Extract NAICS codes from the index
-    naics_column = merged['naics_id']
-    merged = merged.dropna(subset=['predictor', 'target'])
+    corr_df = correlation_by_group(merged, 'naics_id')
 
-    unique_naics = sorted(naics_column.unique())
-
-    # Calculate correlations for each sector
-    corr_data = []
-    for naics in unique_naics:
-        subset = merged[merged['naics_id'] == naics]
-        if len(subset) > 1:  # Avoid issues with insufficient data
-            r, p = pearsonr(subset['predictor'], subset['target'])
-            corr_data.append({'naics': naics, 'r': r, 'p': p})
-        else:
-            corr_data.append({'naics': naics, 'r': float('nan'), 'p': float('nan')})
-
-    # Convert to DataFrame for sorting
-    corr_df = pd.DataFrame(corr_data)
-
-    # Sort by |r| (absolute value of correlation), optionally filtering by p-value
-    corr_df = corr_df.sort_values(by='r', key=lambda x: abs(x), ascending=False)
-
-    # Use the sorted order for plotting
-    sorted_naics = corr_df['naics'].tolist()
+    sorted_naics = corr_df['naics_id'].tolist()
 
     n_codes = len(sorted_naics)
     n_cols = 4
@@ -444,53 +416,146 @@ def correlation_by_naics(
     )
     axes = axes.flatten() if n_rows > 1 else [axes]
 
-    # Calculate global limits
+    xlim, ylim = calculate_global_limits(merged)
+
+    for i, naics in enumerate(sorted_naics):
+        ax = axes[i]
+        subset = merged.loc[merged['naics_id'] == naics]
+        scatter_with_regression(ax, subset)
+        format_axes(
+            ax, 
+            corr_df, 
+            'naics_id',
+            naics, 
+            xlabel, 
+            ylabel, 
+            xlim, 
+            ylim,
+            title_prefix=f'NAICS: {naics}'
+        )
+
+    finalize_figure_layout(fig, axes, sorted_naics, suptitle, write_path)
+#endregion
+
+#region: preprocess_data
+def preprocess_data(target, predictor):
+    '''
+    '''
+    target = preprocess_target(target)
+    # Ensure inputs are aligned
+    target = target.rename('target')
+    predictor = predictor.rename('predictor')
+    merged = target.to_frame().join(predictor, how='inner')
+    merged.reset_index(inplace=True)  # Make MultiIndex columns accessible
+    merged = merged.dropna(subset=['predictor', 'target'])
+    return merged
+#endregion
+
+#region: correlation_by_group
+def correlation_by_group(merged, group_col):
+    '''
+    The correlation coeffients are pre-calculated to allow the values to be 
+    sorted prior to plotting.
+    '''
+    unique_groups = merged[group_col].unique()
+
+    corr_data = []
+    for group in unique_groups:
+        subset = merged.loc[merged[group_col] == group]
+        if len(subset) > 1:  # Avoid issues with insufficient data
+            r, p = pearsonr(subset['predictor'], subset['target'])
+            corr_data.append({group_col: group, 'r': r, 'p': p})
+        else:
+            corr_data.append({group_col: group, 'r': float('nan'), 'p': float('nan')})
+
+    # Convert to DataFrame for sorting
+    corr_df = pd.DataFrame(corr_data)
+
+    # Sort by |r| (absolute value of correlation)
+    corr_df = corr_df.sort_values(by='r', key=lambda x: abs(x), ascending=False)
+
+    return corr_df
+#endregion
+
+#region: calculate_global_limits
+def calculate_global_limits(merged):
+    '''
+    '''
     x_min = merged['predictor'].min()
     x_max = merged['predictor'].max()
     y_min = merged['target'].min()
     y_max = merged['target'].max()
+
     x_pad = 0.05 * (x_max - x_min)
     y_pad = 0.05 * (y_max - y_min)
 
-    for i, naics in enumerate(sorted_naics):
-        ax = axes[i]
-        subset = merged[merged['naics_id'] == naics]
+    xlim = x_min-x_pad, x_max+x_pad
+    ylim = y_min-y_pad, y_max+y_pad
 
-        # Scatterplot with regression line
-        ax.scatter(subset['predictor'], subset['target'], alpha=0.7)
-        ax.plot(
-            subset['predictor'], 
-            np.polyval(
-                np.polyfit(subset['predictor'], subset['target'], 1), 
-                subset['predictor']), 
-            color='red'
+    return xlim, ylim
+#endregion
+
+#region: scatter_with_regression
+def scatter_with_regression(ax, subset):
+    '''
+    '''
+    # Scatterplot with regression line
+    ax.scatter(subset['predictor'], subset['target'], alpha=0.7)
+    ax.plot(
+        subset['predictor'], 
+        np.polyval(
+            np.polyfit(subset['predictor'], subset['target'], 1), 
+            subset['predictor']), 
+        color='red'
+    )
+
+    ax.grid(
+        visible=True, 
+        which='major', 
+        linestyle='--', 
+        linewidth=0.7, 
+        alpha=0.7
         )
+#endregion
 
-        ax.grid(
-            visible=True, 
-            which='major', 
-            linestyle='--', 
-            linewidth=0.7, 
-            alpha=0.7
-            )
+#region: format_axes
+def format_axes(
+        ax, 
+        corr_df,
+        group_col, 
+        group, 
+        xlabel, 
+        ylabel, 
+        xlim, 
+        ylim,
+        title_prefix=None
+        ):
+    '''
+    '''
+    title_prefix = '' if title_prefix is None else title_prefix
 
-        # Get correlation stats for the title
-        r = corr_df.loc[corr_df['naics'] == naics, 'r'].values[0]
-        p = corr_df.loc[corr_df['naics'] == naics, 'p'].values[0]
+    # Get correlation stats for the title
+    r = corr_df.loc[corr_df[group_col] == group, 'r'].values[0]
+    p = corr_df.loc[corr_df[group_col] == group, 'p'].values[0]
 
-        # Title with stats
-        ax.set_title(f'NAICS: {naics}\n$r$={r:.2f}, p={p:.3g}', fontsize=14)
-        ax.set_xlabel(xlabel, fontsize=12)
-        ax.set_ylabel(ylabel, fontsize=12)
+    # Title with stats
+    ax.set_title(f'{title_prefix}\n$r$={r:.2f}, p={p:.3g}', fontsize=14)
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
 
-        ax.set_xlim(x_min - x_pad, x_max + x_pad)
-        ax.set_ylim(y_min - y_pad, y_max + y_pad)
-        ax.xaxis.set_major_locator(MultipleLocator(2))
-        ax.yaxis.set_major_locator(MultipleLocator(2))
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.xaxis.set_major_locator(MultipleLocator(2))
+    ax.yaxis.set_major_locator(MultipleLocator(2))
+#endregion
 
+#region: finalize_figure_layout
+def finalize_figure_layout(fig, axes, groups, suptitle, write_path=None):
+    '''
+    '''
     # Remove empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    for ax in axes[len(groups):]:
+        fig.delaxes(ax)
 
     # Add suptitle and note
     fig.suptitle(
