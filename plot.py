@@ -411,24 +411,30 @@ def correlation_by_naics(
     fig, axes = plt.subplots(
         n_rows, 
         n_cols, 
-        figsize=(4 * n_cols, 4 * n_rows), 
-        sharey=True
+        figsize=(4 * n_cols, 4 * n_rows)
     )
     axes = axes.flatten() if n_rows > 1 else [axes]
 
     xlim, ylim = calculate_global_limits(merged)
 
     for i, naics in enumerate(sorted_naics):
+
         ax = axes[i]
+
         subset = merged.loc[merged['naics_id'] == naics]
+
         scatter_with_regression(ax, subset)
+
+        # Set ylabel only for the first column
+        current_ylabel = ylabel if i % n_cols == 0 else ''
+
         format_axes(
             ax, 
             corr_df, 
             'naics_id',
             naics, 
             xlabel, 
-            ylabel, 
+            current_ylabel, 
             xlim, 
             ylim,
             title_prefix=f'NAICS: {naics}'
