@@ -6,7 +6,6 @@ import numpy as np
 from scipy.stats import pearsonr, spearmanr
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 from matplotlib_venn import venn2
 import seaborn as sns
 
@@ -559,16 +558,39 @@ def correlation_by_group(merged, group_col):
     for group in unique_groups:
         subset = merged.loc[merged[group_col] == group]
         if len(subset) > 1:  # Avoid issues with insufficient data
-            r, p = spearmanr(subset['feature_value'], subset['target_value'])
-            corr_data.append({group_col: group, 'r': r, 'p': p})
+            spearman_r, spearman_p = spearmanr(
+                subset['feature_value'], 
+                subset['target_value']
+                )
+            pearson_r, pearson_p = pearsonr(
+                subset['feature_value'], 
+                subset['target_value']
+                )
+            corr_data.append({
+                group_col: group, 
+                'spearman_r': spearman_r, 
+                'spearman_p': spearman_p,
+                'pearson_r': pearson_r,
+                'pearson_p': pearson_p
+            })
         else:
-            corr_data.append({group_col: group, 'r': float('nan'), 'p': float('nan')})
+            corr_data.append({
+                group_col: group, 
+                'spearman_r': float('nan'), 
+                'spearman_p': float('nan'),
+                'pearson_r': float('nan'), 
+                'pearson_p': float('nan')
+            })
 
     # Convert to DataFrame for sorting
     corr_df = pd.DataFrame(corr_data)
 
-    # Sort by |r| (absolute value of correlation)
-    corr_df = corr_df.sort_values(by='r', key=lambda x: abs(x), ascending=False)
+    # Sort by |spearman_r| (absolute value of Spearman correlation)
+    corr_df = corr_df.sort_values(
+        by='spearman_r', 
+        key=lambda x: abs(x), 
+        ascending=False
+        )
 
     return corr_df
 #endregion
@@ -631,21 +653,23 @@ def format_axes(
     title_prefix = '' if title_prefix is None else title_prefix
 
     # Get correlation stats for the title
-    r = corr_df.loc[corr_df[group_col] == group, 'r'].values[0]
-    p = corr_df.loc[corr_df[group_col] == group, 'p'].values[0]
+    row = corr_df.loc[corr_df[group_col] == group]
+    spearman_r = row['spearman_r'].values[0]
+    spearman_p = row['spearman_p'].values[0]
+    pearson_r = row['pearson_r'].values[0]
+    pearson_p = row['pearson_p'].values[0]
 
-    # Title with stats
-    ax.set_title(f'{title_prefix}\n$r$={r:.2f}, p={p:.3g}', fontsize=14)
+    # Format the title with both coefficients
+    title = (f'$\mathbf{{{title_prefix}}}$\n'
+             f'Spearman $r$={spearman_r:.2f}, $p$={spearman_p:.3g}\n'
+             f'Pearson $r$={pearson_r:.2f}, $p$={pearson_p:.3g}')
 
+    ax.set_title(title, fontsize=12)
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    
-    # Set even-valued tick labels
-    # ax.xaxis.set_major_locator(MultipleLocator(2))
-    # ax.yaxis.set_major_locator(MultipleLocator(2))
 #endregion
 
 #region: finalize_figure_layout
