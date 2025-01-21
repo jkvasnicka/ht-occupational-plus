@@ -387,7 +387,7 @@ def twa_concentrations_by_naics(y_by_sampling_no, write_path=None):
 #region: correlation_by_naics
 def correlation_by_naics(
         target, 
-        predictor, 
+        feature, 
         xlabel=None, 
         ylabel=None,
         suptitle=None,
@@ -398,7 +398,7 @@ def correlation_by_naics(
     '''
     ylabel = EC_LABEL if ylabel is None else ylabel
 
-    merged = preprocess_data(target, predictor)
+    merged = preprocess_data(target, feature)
 
     corr_df = correlation_by_group(merged, 'naics_id')
 
@@ -444,16 +444,16 @@ def correlation_by_naics(
 #endregion
 
 #region: preprocess_data
-def preprocess_data(target, predictor):
+def preprocess_data(target, feature):
     '''
     '''
     target = preprocess_target(target)
     # Ensure inputs are aligned
-    target = target.rename('target')
-    predictor = predictor.rename('predictor')
-    merged = target.to_frame().join(predictor, how='inner')
+    target = target.rename('target_value')
+    feature = feature.rename('feature_value')
+    merged = target.to_frame().join(feature, how='inner')
     merged.reset_index(inplace=True)  # Make MultiIndex columns accessible
-    merged = merged.dropna(subset=['predictor', 'target'])
+    merged = merged.dropna(subset=['feature_value', 'target_value'])
     return merged
 #endregion
 
@@ -469,7 +469,7 @@ def correlation_by_group(merged, group_col):
     for group in unique_groups:
         subset = merged.loc[merged[group_col] == group]
         if len(subset) > 1:  # Avoid issues with insufficient data
-            r, p = pearsonr(subset['predictor'], subset['target'])
+            r, p = pearsonr(subset['feature_value'], subset['target_value'])
             corr_data.append({group_col: group, 'r': r, 'p': p})
         else:
             corr_data.append({group_col: group, 'r': float('nan'), 'p': float('nan')})
@@ -487,10 +487,10 @@ def correlation_by_group(merged, group_col):
 def calculate_global_limits(merged):
     '''
     '''
-    x_min = merged['predictor'].min()
-    x_max = merged['predictor'].max()
-    y_min = merged['target'].min()
-    y_max = merged['target'].max()
+    x_min = merged['feature_value'].min()
+    x_max = merged['feature_value'].max()
+    y_min = merged['target_value'].min()
+    y_max = merged['target_value'].max()
 
     x_pad = 0.05 * (x_max - x_min)
     y_pad = 0.05 * (y_max - y_min)
@@ -506,12 +506,12 @@ def scatter_with_regression(ax, subset):
     '''
     '''
     # Scatterplot with regression line
-    ax.scatter(subset['predictor'], subset['target'], alpha=0.7)
+    ax.scatter(subset['feature_value'], subset['target_value'], alpha=0.7)
     ax.plot(
-        subset['predictor'], 
+        subset['feature_value'], 
         np.polyval(
-            np.polyfit(subset['predictor'], subset['target'], 1), 
-            subset['predictor']), 
+            np.polyfit(subset['feature_value'], subset['target_value'], 1), 
+            subset['feature_value']), 
         color='red'
     )
 
