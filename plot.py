@@ -3,7 +3,7 @@
 
 import pandas as pd
 import numpy as np
-from scipy.stats import pearsonr 
+from scipy.stats import pearsonr, spearmanr
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
@@ -391,69 +391,159 @@ def correlation_by_naics(
         xlabel=None, 
         ylabel=None,
         suptitle=None,
-        write_path=None):
+        write_path=None
+        ):
+    '''
+    '''
+    n_codes = target.index.get_level_values('naics_id').nunique()
+    ncols = 4
+    nrows = int(np.ceil(n_codes / ncols))
+    figsize = (4*ncols, 4*nrows)
+
+    plot_correlation_by_group(
+        target, 
+        feature,
+        'naics_id',
+        nrows, 
+        ncols, 
+        figsize, 
+        xlabel=xlabel, 
+        ylabel=ylabel,
+        suptitle=suptitle,
+        use_global_limits=True,
+        write_path=write_path
+    )
+#endregion
+
+#region: correlation_by_feature
+def correlation_by_feature(
+        target, 
+        features, 
+        ylabel=None,
+        suptitle=None,
+        write_path=None
+        ):
+    '''
+    '''
+    n_features = len(features.columns)
+    ncols = 3
+    nrows = int(np.ceil(n_features / ncols))
+    figsize = (4*ncols, 4*nrows)
+
+    plot_correlation_by_group(
+        target, 
+        features,
+        'feature',
+        nrows, 
+        ncols, 
+        figsize, 
+        ylabel=ylabel,
+        suptitle=suptitle,
+        use_global_limits=False,
+        write_path=write_path
+    )
+#endregion
+
+#region: plot_correlation_by_group
+def plot_correlation_by_group(
+        target, 
+        feature_data,
+        group_col,
+        nrows, 
+        ncols, 
+        figsize, 
+        xlabel=None, 
+        ylabel=None,
+        suptitle=None,
+        use_global_limits=False,
+        write_path=None
+        ):
     '''
     Creates multi-panel scatterplots with correlation coefficient for each 
     NAICS code.
     '''
     ylabel = EC_LABEL if ylabel is None else ylabel
 
-    merged = preprocess_data(target, feature)
+    merged = preprocess_data(target, feature_data)
 
-    corr_df = correlation_by_group(merged, 'naics_id')
+    corr_df = correlation_by_group(merged, group_col)
 
-    sorted_naics = corr_df['naics_id'].tolist()
+    sorted_groups = corr_df[group_col].tolist()
 
-    n_codes = len(sorted_naics)
-    n_cols = 4
-    n_rows = int(np.ceil(n_codes / n_cols))
-
-    fig, axes = plt.subplots(
-        n_rows, 
-        n_cols, 
-        figsize=(4 * n_cols, 4 * n_rows)
+    fig, axs = plt.subplots(
+        nrows, 
+        ncols, 
+        figsize=figsize
     )
-    axes = axes.flatten() if n_rows > 1 else [axes]
+    axs = axs.flatten() if nrows > 1 else [axs]
 
-    xlim, ylim = calculate_global_limits(merged)
+    xlim, ylim = None, None 
+    if use_global_limits:
+        xlim, ylim = calculate_global_limits(merged)
 
-    for i, naics in enumerate(sorted_naics):
+    for i, group in enumerate(sorted_groups):
 
-        ax = axes[i]
+        ax = axs[i]
 
-        subset = merged.loc[merged['naics_id'] == naics]
+        subset = merged.loc[merged[group_col] == group]
 
         scatter_with_regression(ax, subset)
 
+        if xlabel:
+            # Static xlabel, dynamically incorporate group in the title
+            current_xlabel = xlabel
+            title_prefix = group
+        else:
+            # Dynamically incorporate group in the xlabel, no title prefix
+            current_xlabel = group 
+            title_prefix = ''
+        
         # Set ylabel only for the first column
-        current_ylabel = ylabel if i % n_cols == 0 else ''
+        current_ylabel = ylabel if i % ncols == 0 else ''
 
         format_axes(
             ax, 
             corr_df, 
-            'naics_id',
-            naics, 
-            xlabel, 
+            group_col,
+            group, 
+            current_xlabel, 
             current_ylabel, 
             xlim, 
             ylim,
-            title_prefix=f'NAICS: {naics}'
+            title_prefix=title_prefix
         )
 
-    finalize_figure_layout(fig, axes, sorted_naics, suptitle, write_path)
+    finalize_figure_layout(fig, axs, sorted_groups, suptitle, write_path)
 #endregion
 
 #region: preprocess_data
-def preprocess_data(target, feature):
+def preprocess_data(target, feature_data):
     '''
+    Ensures the target and features are aligned.
     '''
     target = preprocess_target(target)
-    # Ensure inputs are aligned
-    target = target.rename('target_value')
-    feature = feature.rename('feature_value')
-    merged = target.to_frame().join(feature, how='inner')
-    merged.reset_index(inplace=True)  # Make MultiIndex columns accessible
+    target = target.rename('target_value').reset_index()
+
+    if isinstance(feature_data, pd.Series):  # single feature
+        feature_data = feature_data.rename('feature_value').reset_index()
+    elif isinstance(feature_data, pd.DataFrame):  # multiple features
+        feature_data = (
+            feature_data
+            .reset_index()
+            .melt(
+                id_vars='DTXSID', 
+                var_name='feature', 
+                value_name='feature_value' 
+            )
+        )
+    else:
+        raise ValueError(
+            "'feature_data' must be pd.Series or pd.DataFrame, not '",
+            f'{type(feature_data)}')
+
+    merged = target.merge(feature_data, on='DTXSID')
     merged = merged.dropna(subset=['feature_value', 'target_value'])
+    
     return merged
 #endregion
 
@@ -469,7 +559,7 @@ def correlation_by_group(merged, group_col):
     for group in unique_groups:
         subset = merged.loc[merged[group_col] == group]
         if len(subset) > 1:  # Avoid issues with insufficient data
-            r, p = pearsonr(subset['feature_value'], subset['target_value'])
+            r, p = spearmanr(subset['feature_value'], subset['target_value'])
             corr_data.append({group_col: group, 'r': r, 'p': p})
         else:
             corr_data.append({group_col: group, 'r': float('nan'), 'p': float('nan')})
@@ -546,13 +636,16 @@ def format_axes(
 
     # Title with stats
     ax.set_title(f'{title_prefix}\n$r$={r:.2f}, p={p:.3g}', fontsize=14)
+
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.xaxis.set_major_locator(MultipleLocator(2))
-    ax.yaxis.set_major_locator(MultipleLocator(2))
+    
+    # Set even-valued tick labels
+    # ax.xaxis.set_major_locator(MultipleLocator(2))
+    # ax.yaxis.set_major_locator(MultipleLocator(2))
 #endregion
 
 #region: finalize_figure_layout
