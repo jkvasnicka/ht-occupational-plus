@@ -1,8 +1,8 @@
 {
     "remove_nonpersonal": -34751,
-    "convert_to_mass_concentration": -320941,
-    "convert_substance_names_to_ids": -260081,
-    "harmonize_naics_codes": -1051,
-    "remove_non_full_shift_twa": -34071,
-    "clean_duplicates": -212
+    "convert_to_mass_concentration": -320909,
+    "convert_substance_names_to_ids": -70268,
+    "harmonize_naics_codes": -2299,
+    "remove_non_full_shift_twa": -54081,
+    "clean_duplicates": -1152
 }

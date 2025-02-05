@@ -4,13 +4,7 @@
 import pandas as pd 
 
 #region: data_from_raw
-def data_from_raw(
-        comptox_file, 
-        found_by_col, 
-        duplicate_warning, 
-        rank_map, 
-        substance_input_col
-        ):
+def data_from_raw(comptox_file):
     '''
     Load and clean data from the CompTox Chemistry Dashboard.
 
@@ -18,15 +12,6 @@ def data_from_raw(
     ----------
     comptox_file : str
         Path to the CSV file containing raw CompTox data.
-    found_by_col : str
-        Name of the column indicating the source of the match.
-    duplicate_warning : str
-        Text suffix to remove from values in `found_by_col`.
-    rank_map : dict
-        Mapping of values in `found_by_col` to rank scores. Higher values 
-        indicate greater priority.
-    substance_input_col : str
-        Name of the column containing input chemical names.
 
     Returns
     -------
@@ -34,17 +19,20 @@ def data_from_raw(
     '''
     comptox_data = pd.read_csv(comptox_file)
 
-    comptox_data = resolve_chemical_ambiguities(
-            comptox_data, 
-            found_by_col, 
-            duplicate_warning, 
-            rank_map, 
-            substance_input_col
-    )
+    comptox_data = comptox_data.drop_duplicates()
+
+    # comptox_data = resolve_chemical_ambiguities(
+    #         comptox_data, 
+    #         found_by_col, 
+    #         duplicate_warning, 
+    #         rank_map, 
+    #         substance_input_col
+    # )
         
     return comptox_data
 #endregion
 
+# NOTE: Deprecated?
 #region: resolve_chemical_ambiguities
 def resolve_chemical_ambiguities(
         comptox_data, 
@@ -58,6 +46,26 @@ def resolve_chemical_ambiguities(
 
     Ambiguous matches are removed, and the highest-ranked suggestion is 
     retained based on the inputted rank map.
+
+    Parameters
+    ----------
+    found_by_col : str
+        Name of the column indicating the source of the match.
+    duplicate_warning : str
+        Text suffix to remove from values in `found_by_col`.
+    rank_map : dict
+        Mapping of values in `found_by_col` to rank scores. Higher values 
+        indicate greater priority.
+    substance_input_col : str
+        Name of the column containing input chemical names.
+
+    Notes
+    -----
+    This function was designed to handle situations where the CompTox input
+    column is the raw substance name, i.e., we used CompTox to get the likely
+    DTXSIDs. However, since then, a direct mapping from raw name to DTXSID has
+    become available, eliminating the need for this function. This function 
+    may therefore be deprecated but is left here for future use.
     '''
     comptox_data = comptox_data.copy()
 

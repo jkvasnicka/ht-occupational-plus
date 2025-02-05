@@ -115,27 +115,20 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        substance_input_col = self.comptox_settings['substance_input_col']
+        chem_id_col = self.comptox_settings['chem_id_col']
         molecular_weight_col = self.comptox_settings['molecular_weight_col']
         measure_unit_col = self.data_settings['measure_unit_col']
         sample_result_col = self.data_settings['sample_result_col']
-        substance_name_col = self.data_settings['substance_name_col']
-        
-        exposure_data, comptox_data = (
-            self._load_standardized_comptox_data(exposure_data)
-        )
 
-        mw_for_substance_name = (
-            comptox_data
-            .set_index(substance_input_col)[molecular_weight_col]
+        mw_for_id = (
+            comptox.data_from_raw(self.path_settings['comptox_file'])
+            .set_index(chem_id_col)[molecular_weight_col]
             .to_dict()
         )
         where_ppm = exposure_data[measure_unit_col] == 'P'
         ppm_values = exposure_data.loc[where_ppm, sample_result_col]
-        mol_weights = (
-            exposure_data.loc[where_ppm, substance_name_col]
-            .map(mw_for_substance_name)
-        )
+        chemical_ids = self.map_raw_substance_names_to_ids(exposure_data)
+        mol_weights = chemical_ids.loc[where_ppm].map(mw_for_id)
 
         # Convert units only where molecular weights are available
         # This avoids propagating NaNs to the calculated result
@@ -194,25 +187,38 @@ class OshaDataCleaner:
         '''
         exposure_data = exposure_data.copy()
 
-        substance_input_col = self.comptox_settings['substance_input_col']
         chem_id_col = self.comptox_settings['chem_id_col']
 
-        exposure_data, comptox_data = (
-            self._load_standardized_comptox_data(exposure_data)
-        )
+        chemical_ids = self.map_raw_substance_names_to_ids(exposure_data)
 
+        exposure_data[chem_id_col] = chemical_ids
+
+        # Remove any unidentifiable samples
+        return exposure_data.dropna(subset=chem_id_col)
+    #endregion
+
+    #region: map_raw_substance_names_to_ids
+    def map_raw_substance_names_to_ids(self, exposure_data):
+        '''
+        Maps raw substance names to chemical IDs (e.g., DTXSID).
+
+        Returns
+        -------
+        pandas.Series
+            Chemical IDs corresponding to the raw substance names.
+        '''
         chem_id_for_name = (
-            comptox_data
-            .set_index(substance_input_col)[chem_id_col]
+            pd.read_csv(self.path_settings['osha_dsstox_map_file'])
+            .set_index('raw_name')
+            .squeeze()
             .to_dict()
         )
-        exposure_data[chem_id_col] = (
+
+        chemical_ids = (
             exposure_data[self.data_settings['substance_name_col']]
             .map(chem_id_for_name)
         )
-
-        # Remove unidentifiable samples
-        return exposure_data.dropna(subset=chem_id_col)
+        return chemical_ids
     #endregion
 
     #region: _load_standardized_comptox_data
@@ -233,16 +239,13 @@ class OshaDataCleaner:
         exposure_data = self._standardize_substance_names(exposure_data)
 
         comptox_data = comptox.data_from_raw(
-            self.path_settings['comptox_file'], 
-            self.comptox_settings['found_by_col'], 
-            self.comptox_settings['duplicate_warning'], 
-            self.comptox_settings['rank_map'], 
-            self.comptox_settings['substance_input_col']
+            self.path_settings['comptox_file']
         )
 
         return exposure_data, comptox_data
     #endregion
 
+    # NOTE: Deprecated?
     #region: _standardize_substance_names
     def _standardize_substance_names(self, exposure_data):
         '''
