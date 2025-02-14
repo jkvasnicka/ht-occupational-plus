@@ -213,8 +213,7 @@ class TwoStageEstimator(BaseEstimator):
     def _fit_stage1(self, X, y):
         '''
         '''
-        # TODO: Create helper function to convert continuous EC to binary? 'detection' --> 'y_binary'?
-        detection = self._get_detected_mask(y).astype(int)
+        detection = (y > 0).astype(int)
         self.stage1_estimator.fit(X, detection)
     #endregion
     
@@ -222,7 +221,7 @@ class TwoStageEstimator(BaseEstimator):
     def _fit_stage2(self, X, y, groups_stage2=None):
         '''
         '''
-        where_detected = self._get_detected_mask(y)
+        where_detected = y > 0 
         if where_detected.sum() == 0:
             raise ValueError('No detected samples to fit stage-2.')
         X_det = X[where_detected]
@@ -279,23 +278,13 @@ class TwoStageEstimator(BaseEstimator):
         detect_pred = self.stage1_estimator.predict(X)
         y_pred = np.zeros(X.shape[0])  # initialize
 
-        # TODO: Use a boolean mask: (detect_pred == 1)
-        idx = np.where(detect_pred == 1)[0]
-        if idx.size > 0:
-            X_det = X[idx]
+        where_detected = detect_pred == 1
+        if where_detected.sum() > 0:
+            X_det = X[where_detected]
             y_pred_trans = self.stage2_estimator.predict(X_det)
-            y_pred[idx] = self.target_inverse_transform(y_pred_trans)
+            y_pred[where_detected] = self.target_inverse_transform(y_pred_trans)
 
         return y_pred
-    #endregion
-
-    # TODO: Clarify that 'y' is continuous in this case
-    # TODO: Create an analogous method for the binary case?
-    #region: _get_detected_mask
-    def _get_detected_mask(self, y):
-        '''
-        '''
-        return (y > 0)
     #endregion
 #endregion
 
@@ -362,7 +351,6 @@ def _evaluate_fold(
         y_proba = estimator.stage1_estimator.predict_proba(X_test)[:, 1]
     except Exception:
         y_proba = None
-    # TODO: Create a helper function to convert continuous to binary? See _fit_stage1
     # Convert continuous 'y' back to binary detect/nondetect
     clf_metrics = _classification_metrics(
         (y_test > 0).astype(int),
