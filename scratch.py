@@ -115,10 +115,24 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
         return intraclass_correlation(var_group, var_resid)
     #endregion
 
-    # TODO: Building non-default feature names may not be necessary
     #region: _ensure_dataframe
     def _ensure_dataframe(self, X):
         '''
+        Convert X to a DataFrame with generic column names.
+
+        This is necessary because statsmodels' formula interface requires a 
+        DataFrame with valid column names. Using integer column names (the 
+        default) may not produce a usable formula string.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Input feature matrix.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame version of X with columns named 'x0', 'x1', ...
         '''
         if not isinstance(X, pd.DataFrame):
             n_features = X.shape[1]
