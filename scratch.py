@@ -229,21 +229,45 @@ class TwoStageEstimator(BaseEstimator):
         y_det = y[where_detected]
 
         y_det_trans = self.target_transform(y_det)
+
+        fit_params = self._prepare_fit_params(groups_stage2, where_detected)
         
-        # TODO: Move to helper function (defining 'fit_params')
+        self.stage2_estimator.fit(X_det, y_det_trans, **fit_params)
+    #endregion
+
+    #region: _prepare_fit_params
+    def _prepare_fit_params(self, groups_stage2, where_detected):
+        '''
+        Prepare the fit parameters for the stage-2 estimator if it requires a
+        grouping variable (e.g., if it is a MixedLMRegressor).
+
+        Parameters
+        ----------
+        groups_stage2 : array-like
+            Grouping variable for the random intercept.
+        where_detected : array-like of bool
+            Boolean mask indicating the detected samples.
+
+        Returns
+        -------
+        dict
+            Fit parameters to be passed to the estimator's fit method.
+        '''
         final_est = self.stage2_estimator
         if hasattr(self.stage2_estimator, 'steps'):
+            # final_estimator is embedded in a pipeline
             final_est = self.stage2_estimator.steps[-1][1]
+
         fit_params = {}
         if (groups_stage2 is not None and 
                 isinstance(final_est, MixedLMRegressor)):
-            groups_det = np.asarray(groups_stage2[where_detected])
+            groups_det = np.asarray(groups_stage2)[where_detected]
             if hasattr(self.stage2_estimator, 'steps'):
+                # final_estimator is embedded in a pipeline
                 fit_params = {'regressor__groups': groups_det}
             else:
                 fit_params = {'groups': groups_det}
-
-        self.stage2_estimator.fit(X_det, y_det_trans, **fit_params)
+        return fit_params
     #endregion
          
     #region: predict
