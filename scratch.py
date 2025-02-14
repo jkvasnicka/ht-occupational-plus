@@ -100,18 +100,19 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
         return self.result_.predict(X_df)
     #endregion
 
-    # TODO: Separate the equation into a function - 'intraclass_correlation'
     #region: get_icc
     def get_icc(self):
         '''
         '''
         check_is_fitted(self, 'result_')
+
         if self.result_.cov_re.shape[0] > 0:
             var_group = self.result_.cov_re.iloc[0, 0]
         else:
             var_group = 0.0
         var_resid = self.result_.scale
-        return var_group / (var_group + var_resid)
+        
+        return intraclass_correlation(var_group, var_resid)
     #endregion
 
     # TODO: Building non-default feature names may not be necessary
@@ -141,6 +142,22 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
 
         return Xy_df, formula
     #endregion
+#endregion
+
+# TODO: Make static method of MixedLMRegressor?
+#region: intraclass_correlation
+def intraclass_correlation(var_group, var_resid):
+    '''
+    Computes Intraclass Correlation Coefficient (ICC).
+    
+    Parameters
+    ----------
+    var_group :
+        Random intercept variance (mdf.cov_re.iloc[0,0]).
+    var_resid : 
+        Residual variance (mdf.scale).
+    '''
+    return var_group / (var_group + var_resid)
 #endregion
 
 ###############################################################################
