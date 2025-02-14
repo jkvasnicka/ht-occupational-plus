@@ -29,14 +29,6 @@ config = UnifiedConfiguration()
 # 1. Helper Functions and Metric Loader
 ###############################################################################
 
-#region: load_config
-def load_config(json_file):
-    '''
-    '''
-    with open(json_file, 'r') as fp:
-        return json.load(fp)
-#endregion
-
 #region: create_estimator_from_config
 def create_estimator_from_config(config):
     '''
@@ -45,13 +37,6 @@ def create_estimator_from_config(config):
     est_class = getattr(module, config['class'])
     params = config.get('parameters', {})
     return est_class(**params)
-#endregion
-
-#region: build_metric_func
-def build_metric_func(f, kwargs):
-    '''
-    '''
-    return lambda y_true, y_pred: f(y_true, y_pred, **kwargs)
 #endregion
 
 #region: load_metric_functions
@@ -67,6 +52,13 @@ def load_metric_functions(metric_config):
     return funcs
 #endregion
 
+#region: build_metric_func
+def build_metric_func(f, kwargs):
+    '''
+    '''
+    return lambda y_true, y_pred: f(y_true, y_pred, **kwargs)
+#endregion
+
 ###############################################################################
 # 2. MixedLMRegressor
 ###############################################################################
@@ -75,17 +67,28 @@ def load_metric_functions(metric_config):
 class MixedLMRegressor(BaseEstimator, RegressorMixin):
     '''
     '''
+    # TODO: Allow optional mixedlm parameters in the constructor?    
     #region: fit
     def fit(self, X, y, groups=None):
         '''
         '''
-        df, formula = self._prepare_fit_data(X, y)
+        X = np.asarray(X)
+        y = np.asarray(y)
+
+        Xy_df, formula = self._prepare_fit_data(X, y)
+
         if groups is None:
             raise ValueError('MixedLMRegressor requires a "groups" parameter.')
         groups = np.asarray(groups)
-        self.model_ = smf.mixedlm(formula=formula, data=df,
-                                  groups=groups, re_formula='1')
+
+        self.model_ = smf.mixedlm(
+            formula=formula, 
+            data=Xy_df,
+            groups=groups,
+            re_formula='1'
+            )
         self.result_ = self.model_.fit(method='bfgs', reml=False, maxiter=200)
+
         return self
     #endregion
     
@@ -96,7 +99,8 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
         X_df = self._ensure_dataframe(np.asarray(X))
         return self.result_.predict(X_df)
     #endregion
-    
+
+    # TODO: Separate the equation into a function - 'intraclass_correlation'
     #region: get_icc
     def get_icc(self):
         '''
@@ -110,6 +114,7 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
         return var_group / (var_group + var_resid)
     #endregion
 
+    # TODO: Building non-default feature names may not be necessary
     #region: _ensure_dataframe
     def _ensure_dataframe(self, X):
         '''
@@ -125,14 +130,16 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
     def _prepare_fit_data(self, X, y):
         '''
         '''
-        X_df = self._ensure_dataframe(np.asarray(X))
-        df = X_df.copy()
-        df['y'] = np.asarray(y).ravel()
-        predictors = [col for col in df.columns if col != 'y']
-        formula = 'y ~ 1'
+        X_df = self._ensure_dataframe(X)
+        Xy_df = X_df.copy()
+        Xy_df['y'] = y
+
+        predictors = [col for col in Xy_df.columns if col != 'y']
+        formula = 'y ~ 1'  # Start with intercept-only model
         if predictors:
             formula += ' + ' + ' + '.join(predictors)
-        return df, formula
+
+        return Xy_df, formula
     #endregion
 #endregion
 
@@ -145,9 +152,13 @@ class TwoStageEstimator(BaseEstimator):
     '''
     '''
     #region: __init__
-    def __init__(self, stage1_estimator, stage2_estimator,
-                 target_transform=np.log10,
-                 target_inverse_transform=lambda x: 10 ** x):
+    def __init__(
+            self, 
+            stage1_estimator,  # classifier
+            stage2_estimator,  # regressor
+            target_transform=np.log10,
+            target_inverse_transform=lambda x: 10**x
+            ):
         self.stage1_estimator = stage1_estimator
         self.stage2_estimator = stage2_estimator
         self.target_transform = target_transform
@@ -158,8 +169,12 @@ class TwoStageEstimator(BaseEstimator):
     def fit(self, X, y, groups_stage2=None):
         '''
         '''
+        X = np.asarray(X)
+        y = np.asarray(y)
+
         self._fit_stage1(X, y)
         self._fit_stage2(X, y, groups_stage2=groups_stage2)
+
         return self
     #endregion
 
@@ -167,7 +182,7 @@ class TwoStageEstimator(BaseEstimator):
     def _fit_stage1(self, X, y):
         '''
         '''
-        y = np.asarray(y).ravel()
+        # TODO: Create helper function to convert continuous EC to binary? 'detection' --> 'y_binary'?
         detection = self._get_detected_mask(y).astype(int)
         self.stage1_estimator.fit(X, detection)
     #endregion
@@ -176,25 +191,27 @@ class TwoStageEstimator(BaseEstimator):
     def _fit_stage2(self, X, y, groups_stage2=None):
         '''
         '''
-        y = np.asarray(y).ravel()
-        mask = self._get_detected_mask(y)
-        if mask.sum() == 0:
+        where_detected = self._get_detected_mask(y)
+        if where_detected.sum() == 0:
             raise ValueError('No detected samples to fit stage-2.')
-        X_det = np.asarray(X)[mask]
-        y_det = y[mask]
+        X_det = X[where_detected]
+        y_det = y[where_detected]
+
         y_det_trans = self.target_transform(y_det)
+        
+        # TODO: Move to helper function (defining 'fit_params')
         final_est = self.stage2_estimator
         if hasattr(self.stage2_estimator, 'steps'):
             final_est = self.stage2_estimator.steps[-1][1]
         fit_params = {}
         if (groups_stage2 is not None and 
                 isinstance(final_est, MixedLMRegressor)):
-            groups_arr = np.asarray(groups_stage2)
-            groups_det = groups_arr[mask]
+            groups_det = np.asarray(groups_stage2[where_detected])
             if hasattr(self.stage2_estimator, 'steps'):
                 fit_params = {'regressor__groups': groups_det}
             else:
                 fit_params = {'groups': groups_det}
+
         self.stage2_estimator.fit(X_det, y_det_trans, **fit_params)
     #endregion
          
@@ -203,32 +220,22 @@ class TwoStageEstimator(BaseEstimator):
         '''
         '''
         X = np.asarray(X)
-        detect_pred = self._predict_stage1(X)
-        y_pred = np.zeros(X.shape[0])
+
+        detect_pred = self.stage1_estimator.predict(X)
+        y_pred = np.zeros(X.shape[0])  # initialize
+
+        # TODO: Use a boolean mask: (detect_pred == 1)
         idx = np.where(detect_pred == 1)[0]
         if idx.size > 0:
             X_det = X[idx]
-            y_pred_trans = self._predict_stage2(X_det)
+            y_pred_trans = self.stage2_estimator.predict(X_det)
             y_pred[idx] = self.target_inverse_transform(y_pred_trans)
+
         return y_pred
     #endregion
 
-    #region: _predict_stage1
-    def _predict_stage1(self, X):
-        '''
-        '''
-        X = np.asarray(X)
-        return self.stage1_estimator.predict(X)
-    #endregion
-    
-    #region: _predict_stage2
-    def _predict_stage2(self, X):
-        '''
-        '''
-        X = np.asarray(X)
-        return self.stage2_estimator.predict(X)
-    #endregion
-
+    # TODO: Clarify that 'y' is continuous in this case
+    # TODO: Create an analogous method for the binary case?
     #region: _get_detected_mask
     def _get_detected_mask(self, y):
         '''
@@ -241,6 +248,7 @@ class TwoStageEstimator(BaseEstimator):
 # 4. Cross-Validation Helpers
 ###############################################################################
 
+# TODO: Clarify that groups_stage2 is for mixed LM
 #region: cross_validate_twostage
 def cross_validate_twostage(
         estimator, 
@@ -255,49 +263,71 @@ def cross_validate_twostage(
     '''
     '''
     X = np.asarray(X)
-    y = np.asarray(y).ravel()
+    y = np.asarray(y)
+
     fold_results = []
     for train_idx, test_idx in cv.split(X, y, groups=groups_cv):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
+
         if groups_stage2 is not None:
             groups_stage2_train = np.asarray(groups_stage2)[train_idx]
         else:
             groups_stage2_train = None
+
         estimator.fit(X_train, y_train, groups_stage2=groups_stage2_train)
-        metrics = _evaluate_fold(estimator, X_test, y_test,
-                                 clf_funcs, reg_funcs,
-                                 estimator.target_transform)
+
+        metrics = _evaluate_fold(
+            estimator, 
+            X_test, 
+            y_test,
+            clf_funcs, 
+            reg_funcs
+            )
         fold_results.append(metrics)
+        
     return fold_results
 #endregion
 
 #region: _evaluate_fold
-def _evaluate_fold(estimator, X_test, y_test, clf_funcs, reg_funcs,
-                   target_transform):
+def _evaluate_fold(
+        estimator, 
+        X_test, 
+        y_test, 
+        clf_funcs, 
+        reg_funcs
+        ):
     '''
     '''
     y_pred = estimator.predict(X_test)
-    # Attempt to obtain probability estimates for AUC.
+
+    ## Evaluate stage-1 classification
+    # Attempt to obtain probability estimates for AUC
     try:
         y_proba = estimator.stage1_estimator.predict_proba(X_test)[:, 1]
     except Exception:
         y_proba = None
+    # TODO: Create a helper function to convert continuous to binary? See _fit_stage1
+    # Convert continuous 'y' back to binary detect/nondetect
     clf_metrics = _classification_metrics(
         (y_test > 0).astype(int),
         (y_pred > 0).astype(int),
         clf_funcs,
         y_proba=y_proba
     )
+
+    ## Evaluate stage-2 regression
     reg_metrics = _regression_metrics(
         y_test, 
         y_pred, 
         reg_funcs,
-        target_transform
+        estimator.target_transform
         )
+    
     fold_metrics = {}
     fold_metrics.update(clf_metrics)
     fold_metrics.update(reg_metrics)
+
     return fold_metrics
 #endregion
 
@@ -308,6 +338,7 @@ def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
     metrics = {}
     for key, func in metric_funcs.items():
         try:
+            # FIXME: Hardcoded 'auc'
             if key == 'auc' and y_proba is not None:
                 metrics[key] = func(y_true, y_proba)
             else:
@@ -321,7 +352,7 @@ def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
 def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     '''
     '''
-    mask = (y_true > 0) & (y_pred > 0)
+    mask = (y_true > 0) & (y_pred > 0)  # true positives
     metrics = {}
     if np.sum(mask) > 0:
         y_true_trans = target_transform(y_true[mask])
@@ -337,15 +368,21 @@ def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     return metrics
 #endregion
 
+# TODO: Specify parameters in config
+# TODO: Expand the docstring with more explanation
 #region: holdout_chemicals
-def holdout_chemicals(y, chem_group, holdout_fraction=0.1,
-                        random_state=42):
+def holdout_chemicals(
+        y, 
+        chem_group, 
+        holdout_fraction=0.1,
+        random_state=42
+        ):
     '''Create hold-out sets by chemical.'''
-    unique = np.unique(chem_group)
-    n_holdout = int(len(unique) * holdout_fraction)
+    unique_chems = np.unique(chem_group)
+    n_holdout = int(len(unique_chems) * holdout_fraction)
     rng = np.random.RandomState(random_state)
-    holdout = rng.choice(unique, size=n_holdout, replace=False)
-    mask = np.isin(chem_group, holdout)
+    holdout_set = rng.choice(unique_chems, size=n_holdout, replace=False)
+    mask = np.isin(chem_group, holdout_set)
     return y[~mask], y[mask], ~mask, mask
 #endregion
  
@@ -358,20 +395,29 @@ def load_and_prepare_data():
     '''
     '''
     config = UnifiedConfiguration()
-    ec = data_management.read_targets(config.path['target_dir'])
+
+    # TODO: Specify the 'naics_id' in config?
+    ec_for_naics = data_management.read_targets(config.path['target_dir'])
+    # TODO: Sorting may not be needed if only using 'sector'
     sorted_levels = config.cehd['naics_levels']
-    ec = {k: ec[k] for k in sorted_levels}
-    y_df = ec['sector'].copy()
-    feat = pd.read_parquet(config.path['opera_features_file'])
-    props = ['VP_pred', 'KOA_pred', 'MolWeight', 'TopoPolSurfAir']
-    X_df, y_df = feat[props].align(y_df, join='inner', axis=0)
+    ec_for_naics = {k: ec_for_naics[k] for k in sorted_levels}
+    y = ec_for_naics['sector'].copy()
+
+    X = pd.read_parquet(config.path['opera_features_file'])
+    # TODO: Move to config
+    feature_columns = ['VP_pred', 'KOA_pred', 'MolWeight', 'TopoPolSurfAir']
+
+    X, y = X[feature_columns].align(y, join='inner', axis=0)
+
     # Upstream log10 transform of selected features
-    X_df['VP_pred'] = np.log10(X_df['VP_pred'])
-    X_df['KOA_pred'] = np.log10(X_df['KOA_pred'])
-    X_df['MolWeight'] = np.log10(X_df['MolWeight'])
-    groups_cv = y_df.index.get_level_values('DTXSID').to_numpy()
-    groups_stage2 = y_df.index.get_level_values('naics_id').to_numpy()
-    return X_df.to_numpy(), y_df.to_numpy().ravel(), groups_cv, groups_stage2
+    X['VP_pred'] = np.log10(X['VP_pred'])
+    X['KOA_pred'] = np.log10(X['KOA_pred'])
+    X['MolWeight'] = np.log10(X['MolWeight'])
+
+    groups_cv = y.index.get_level_values('DTXSID').to_numpy()
+    groups_stage2 = y.index.get_level_values('naics_id').to_numpy()
+
+    return X.to_numpy(), y.to_numpy(), groups_cv, groups_stage2
 #endregion
 
 ###############################################################################
@@ -381,6 +427,7 @@ def load_and_prepare_data():
 #region: __main__
 if __name__ == '__main__':
 
+    # TODO: Move to config. Compare with POD repo structure
     # Example metric configurations.
     metric_config_classification = {
         'accuracy': {'module': 'sklearn.metrics',
@@ -399,7 +446,6 @@ if __name__ == '__main__':
                 'class': 'roc_auc_score',
                 'kwargs': {}}
     }
-
     metric_config_regression = {
         'r2_score': {'module': 'sklearn.metrics',
                     'class': 'r2_score',
@@ -422,19 +468,20 @@ if __name__ == '__main__':
     chem_group_dev = chem_group[dev_mask]
     naics_group_dev = naics_group[dev_mask]
 
+    # TODO: Consider a pipeline builder. Move params to config
     # Define pipelines for Stage 1 and Stage 2.
-    preproc = Pipeline([
+    preprocessor = Pipeline([
         ('imputer', SimpleImputer(strategy='median')),
         ('scaler', StandardScaler())
     ])
 
     stage1_pipe = Pipeline([
-        ('preprocessor', preproc),
+        ('preprocessor', preprocessor),
         ('classifier', LogisticRegression())
     ])
 
     stage2_pipe_ols = Pipeline([
-        ('preprocessor', preproc),
+        ('preprocessor', preprocessor),
         ('regressor', LinearRegression())
     ])
     two_stage_ols = TwoStageEstimator(
@@ -443,7 +490,7 @@ if __name__ == '__main__':
         )
 
     stage2_pipe_mixed = Pipeline([
-        ('preprocessor', preproc),
+        ('preprocessor', preprocessor),
         ('regressor', MixedLMRegressor())
     ])
     two_stage_mixed = TwoStageEstimator(
@@ -451,6 +498,7 @@ if __name__ == '__main__':
         stage2_estimator=stage2_pipe_mixed
         )
 
+    # TODO: Set a random seed properly
     cv = GroupKFold(n_splits=5)
     results_ols = cross_validate_twostage(
         two_stage_ols, 
