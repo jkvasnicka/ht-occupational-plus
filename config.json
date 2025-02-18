@@ -1,11 +1,13 @@
 {
 
-    "path" : "Input/configuration/path_config.json",
+    "path" : "input/configuration/path_config.json",
 
-    "cehd" : "Input/configuration/cehd_config.json",
+    "cehd" : "input/configuration/cehd_config.json",
 
-    "usis" : "Input/configuration/usis_config.json", 
+    "usis" : "input/configuration/usis_config.json", 
 
-    "comptox" : "Input/configuration/comptox_config.json"
+    "comptox" : "input/configuration/comptox_config.json",
+
+    "model" : "input/configuration/model_config.json"
 
 }

@@ -424,53 +424,19 @@ def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
 #region: holdout_chemicals
 def holdout_chemicals(
         y, 
-        chem_group, 
+        chem_groups, 
         holdout_fraction=0.1,
         random_state=42
         ):
     '''Create hold-out sets by chemical.'''
-    unique_chems = np.unique(chem_group)
+    unique_chems = np.unique(chem_groups)
     n_holdout = int(len(unique_chems) * holdout_fraction)
     rng = np.random.RandomState(random_state)
     holdout_set = rng.choice(unique_chems, size=n_holdout, replace=False)
-    mask = np.isin(chem_group, holdout_set)
+    mask = np.isin(chem_groups, holdout_set)
     return y[~mask], y[mask], ~mask, mask
 #endregion
  
-###############################################################################
-# 5. Data Loading and Preparation Helper
-###############################################################################
-
-#region: load_and_prepare_data
-def load_and_prepare_data():
-    '''
-    '''
-    config = UnifiedConfiguration()
-
-    # TODO: Specify the 'naics_id' in config?
-    ec_for_naics = data_management.read_targets(config.path['target_dir'])
-    # TODO: Sorting may not be needed if only using 'sector'
-    sorted_levels = config.cehd['naics_levels']
-    ec_for_naics = {k: ec_for_naics[k] for k in sorted_levels}
-    y = ec_for_naics['sector'].copy()
-
-    X = pd.read_parquet(config.path['opera_features_file'])
-    # TODO: Move to config
-    feature_columns = ['VP_pred', 'KOA_pred', 'MolWeight', 'TopoPolSurfAir']
-
-    X, y = X[feature_columns].align(y, join='inner', axis=0)
-
-    # Upstream log10 transform of selected features
-    X['VP_pred'] = np.log10(X['VP_pred'])
-    X['KOA_pred'] = np.log10(X['KOA_pred'])
-    X['MolWeight'] = np.log10(X['MolWeight'])
-
-    groups_cv = y.index.get_level_values('DTXSID').to_numpy()
-    groups_stage2 = y.index.get_level_values('naics_id').to_numpy()
-
-    return X.to_numpy(), y.to_numpy(), groups_cv, groups_stage2
-#endregion
-
 ###############################################################################
 # 6. Main Execution
 ###############################################################################
@@ -511,13 +477,20 @@ if __name__ == '__main__':
     clf_funcs = load_metric_functions(metric_config_classification)
     reg_funcs = load_metric_functions(metric_config_regression)
 
-    X_full, y_full, chem_group, naics_group = load_and_prepare_data()
+    X_full, y_full = data_management.read_features_and_target(
+        config.path['features_file'],
+        config.path['target_file'],
+        config.model['feature_columns'],
+        config.model['log10_features']
+    )
+    chem_groups = y_full.index.get_level_values('DTXSID')
+    naics_groups = y_full.index.get_level_values('naics_id')
 
-    y_dev, y_val, dev_mask, val_mask = holdout_chemicals(y_full, chem_group)
+    y_dev, y_val, dev_mask, val_mask = holdout_chemicals(y_full, chem_groups)
     X_dev = X_full[dev_mask]
     X_val = X_full[val_mask]
-    chem_group_dev = chem_group[dev_mask]
-    naics_group_dev = naics_group[dev_mask]
+    chem_groups_dev = chem_groups[dev_mask]
+    naics_groups_dev = naics_groups[dev_mask]
 
     # TODO: Consider a pipeline builder. Move params to config
     # Define pipelines for Stage 1 and Stage 2.
@@ -556,7 +529,7 @@ if __name__ == '__main__':
         X_dev, 
         y_dev,
         cv, 
-        chem_group_dev, 
+        chem_groups_dev, 
         clf_funcs, 
         reg_funcs,
         groups_stage2=None
@@ -566,10 +539,10 @@ if __name__ == '__main__':
         X_dev, 
         y_dev,
         cv, 
-        chem_group_dev,
+        chem_groups_dev,
         clf_funcs, 
         reg_funcs,
-        groups_stage2=naics_group_dev
+        groups_stage2=naics_groups_dev
         )
 
     stored_ols = pd.read_csv('results_ols.csv', index_col=0).squeeze()

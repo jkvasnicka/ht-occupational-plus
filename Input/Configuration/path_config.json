@@ -1,6 +1,8 @@
 {
 
-    "opera_features_file" : "input/processed/features/opera_features.parquet",
+    "features_file" : "input/processed/features/opera_features.parquet",
+
+    "target_file" : "input/processed/target/sector.csv",
 
     "target_dir" : "input/processed/target",
 

@@ -3,7 +3,55 @@
 
 import os
 import pandas as pd
+import numpy as np 
 
+#region: read_features_and_target
+def read_features_and_target(
+        features_file, 
+        target_file,
+        feature_columns=None, 
+        log10_features=None
+        ):
+    '''
+    '''
+    X = read_features(
+        features_file, 
+        feature_columns=feature_columns,
+        log10_features=log10_features
+        )
+    
+    y = read_target(target_file)
+
+    return X.align(y, join='inner', axis=0)
+#endregion
+
+# TODO: Add parameter validation
+#region: read_features
+def read_features(features_file, feature_columns=None, log10_features=None):
+    '''
+    '''
+    if log10_features is None:
+        log10_features = []
+
+    X = pd.read_parquet(features_file)
+
+    if feature_columns:
+        X = X[feature_columns]
+
+    for feature in log10_features:
+        X[feature] = np.log10(X[feature])
+        
+    return X
+#endregion
+
+#region: read_target
+def read_target(target_file):
+    '''
+    '''
+    return pd.read_csv(target_file, index_col=[0, 1]).squeeze()
+#endregion
+
+# NOTE: This may be obsolete if there is only one target
 #region: read_targets
 def read_targets(root_dir):
     '''
@@ -33,32 +81,4 @@ def read_targets(root_dir):
                 target_file = os.path.join(dirpath, name)
                 data_for_name[k] = read_target(target_file)
     return data_for_name
-#endregion
-
-#region: read_target
-def read_target(target_file):
-    ''''''
-    return pd.read_csv(target_file, index_col=[0, 1]).squeeze()
-#endregion
-
-# FIXME: Remove hardcoded DTXSID
-#region: read_features
-def read_features(opera_features_file, y=None):
-    '''
-    '''
-    X_opera = pd.read_parquet(opera_features_file)
-    X_naics = naics_features_from_target(y)
-    return X_naics.join(X_opera, on='DTXSID', how='inner')
-#endregion
-
-#region: naics_features_from_target
-def naics_features_from_target(y):
-    '''
-    Prepares one-hot-encoded NAICS codes as features.
-
-    The features are derived from the target variable's index.
-    '''
-    naics_code_col = y.index.names[-1]
-    X = pd.get_dummies(y.reset_index()[naics_code_col])
-    return X.set_index(y.index).rename(columns=lambda col : str(col))
 #endregion

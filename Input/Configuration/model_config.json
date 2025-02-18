@@ -1,0 +1,16 @@
+{
+
+    "feature_columns" : [
+        "VP_pred", 
+        "KOA_pred",
+        "MolWeight", 
+        "TopoPolSurfAir"
+    ],
+
+    "log10_features" : [
+        "VP_pred", 
+        "KOA_pred",
+        "MolWeight"
+    ]
+    
+}
