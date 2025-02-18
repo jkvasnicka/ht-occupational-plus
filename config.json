@@ -8,6 +8,8 @@
 
     "comptox" : "input/configuration/comptox_config.json",
 
-    "model" : "input/configuration/model_config.json"
+    "model" : "input/configuration/model_config.json",
+
+    "metrics" : "input/configuration/metrics_config.json"
 
 }

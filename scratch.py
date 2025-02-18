@@ -22,6 +22,7 @@ from pandas import testing
 
 from config_management import UnifiedConfiguration
 import data_management
+from metrics_management import metrics_from_config
 
 config = UnifiedConfiguration()
 
@@ -37,26 +38,6 @@ def create_estimator_from_config(config):
     est_class = getattr(module, config['class'])
     params = config.get('parameters', {})
     return est_class(**params)
-#endregion
-
-#region: load_metric_functions
-def load_metric_functions(metric_config):
-    '''
-    '''
-    funcs = {}
-    for name, cfg in metric_config.items():
-        mod = importlib.import_module(cfg['module'])
-        func = getattr(mod, cfg['class'])
-        kwargs = cfg.get('kwargs', {})
-        funcs[name] = build_metric_func(func, kwargs)
-    return funcs
-#endregion
-
-#region: build_metric_func
-def build_metric_func(f, kwargs):
-    '''
-    '''
-    return lambda y_true, y_pred: f(y_true, y_pred, **kwargs)
 #endregion
 
 ###############################################################################
@@ -389,8 +370,7 @@ def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
     metrics = {}
     for key, func in metric_funcs.items():
         try:
-            # FIXME: Hardcoded 'auc'
-            if key == 'auc' and y_proba is not None:
+            if key == 'roc_auc_score' and y_proba is not None:
                 metrics[key] = func(y_true, y_proba)
             else:
                 metrics[key] = func(y_true, y_pred)
@@ -444,39 +424,6 @@ def holdout_chemicals(
 #region: __main__
 if __name__ == '__main__':
 
-    # TODO: Move to config. Compare with POD repo structure
-    # Example metric configurations.
-    metric_config_classification = {
-        'accuracy': {'module': 'sklearn.metrics',
-                    'class': 'accuracy_score',
-                    'kwargs': {}},
-        'precision': {'module': 'sklearn.metrics',
-                    'class': 'precision_score',
-                    'kwargs': {'zero_division': 0}},
-        'recall': {'module': 'sklearn.metrics',
-                'class': 'recall_score',
-                'kwargs': {'zero_division': 0}},
-        'f1': {'module': 'sklearn.metrics',
-            'class': 'f1_score',
-            'kwargs': {'zero_division': 0}},
-        'auc': {'module': 'sklearn.metrics',
-                'class': 'roc_auc_score',
-                'kwargs': {}}
-    }
-    metric_config_regression = {
-        'r2_score': {'module': 'sklearn.metrics',
-                    'class': 'r2_score',
-                    'kwargs': {}},
-        'root_mean_squared_error': {'module': 'sklearn.metrics',
-                                    'class': 'mean_squared_error',
-                                    'kwargs': {'squared': False}},
-        'median_absolute_error': {'module': 'sklearn.metrics',
-                                'class': 'median_absolute_error',
-                                'kwargs': {}}
-    }
-    clf_funcs = load_metric_functions(metric_config_classification)
-    reg_funcs = load_metric_functions(metric_config_regression)
-
     X_full, y_full = data_management.read_features_and_target(
         config.path['features_file'],
         config.path['target_file'],
@@ -522,6 +469,9 @@ if __name__ == '__main__':
         stage2_estimator=stage2_pipe_mixed
         )
 
+    clf_funcs = metrics_from_config(config.metrics['classification'])
+    reg_funcs = metrics_from_config(config.metrics['regression'])
+
     # TODO: Set a random seed properly
     cv = GroupKFold(n_splits=5)
     results_ols = cross_validate_twostage(
@@ -550,7 +500,7 @@ if __name__ == '__main__':
 
     new_ols = pd.DataFrame(results_ols).mean()
     new_mixed = pd.DataFrame(results_mixed).mean()
-
+    
     testing.assert_series_equal(new_ols, stored_ols, check_names=False)
     testing.assert_series_equal(new_mixed, stored_mixed, check_names=False)
 #endregion
