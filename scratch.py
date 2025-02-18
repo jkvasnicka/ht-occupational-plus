@@ -67,7 +67,11 @@ def build_metric_func(f, kwargs):
 class MixedLMRegressor(BaseEstimator, RegressorMixin):
     '''
     '''
-    # TODO: Allow optional mixedlm parameters in the constructor?    
+    def __init__(self, method='bfgs', reml=False, maxiter=200):
+        self.method = method
+        self.reml = reml
+        self.maxiter = maxiter
+
     #region: fit
     def fit(self, X, y, groups=None):
         '''
@@ -85,9 +89,13 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
             formula=formula, 
             data=Xy_df,
             groups=groups,
-            re_formula='1'
+            re_formula='1'  # random intercept–only model
             )
-        self.result_ = self.model_.fit(method='bfgs', reml=False, maxiter=200)
+        self.result_ = self.model_.fit(
+            method=self.method, 
+            reml=self.reml, 
+            maxiter=self.maxiter
+            )
 
         return self
     #endregion
