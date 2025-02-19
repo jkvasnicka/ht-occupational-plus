@@ -64,7 +64,23 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
             var_group = 0.0
         var_resid = self.result_.scale
         
-        return intraclass_correlation(var_group, var_resid)
+        return MixedLMRegressor.intraclass_correlation(var_group, var_resid)
+    #endregion
+
+    #region: intraclass_correlation
+    @staticmethod
+    def intraclass_correlation(var_group, var_resid):
+        '''
+        Computes Intraclass Correlation Coefficient (ICC).
+        
+        Parameters
+        ----------
+        var_group :
+            Random intercept variance (mdf.cov_re.iloc[0,0]).
+        var_resid : 
+            Residual variance (mdf.scale).
+        '''
+        return var_group / (var_group + var_resid)
     #endregion
 
     #region: _ensure_dataframe
@@ -108,20 +124,4 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
 
         return Xy_df, formula
     #endregion
-#endregion
-
-# TODO: Make static method of MixedLMRegressor?
-#region: intraclass_correlation
-def intraclass_correlation(var_group, var_resid):
-    '''
-    Computes Intraclass Correlation Coefficient (ICC).
-    
-    Parameters
-    ----------
-    var_group :
-        Random intercept variance (mdf.cov_re.iloc[0,0]).
-    var_resid : 
-        Residual variance (mdf.scale).
-    '''
-    return var_group / (var_group + var_resid)
 #endregion
