@@ -10,7 +10,7 @@ from twostage_estimation import TwoStageEstimator
 #region: twostage_estimator_from_config
 def twostage_estimator_from_config(
         model_settings,
-        target_transform=lambda x: np.log10(x),
+        target_transform=np.log10,
         target_inverse_transform=lambda x: 10**x
         ):
     '''
