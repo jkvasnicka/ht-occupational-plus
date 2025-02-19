@@ -1,0 +1,42 @@
+{
+
+    "stage1": [
+        {
+            "name": "imputer",
+            "module": "sklearn.impute",
+            "class": "SimpleImputer",
+            "kwargs": {"strategy": "median"}
+        },
+        {
+            "name": "scaler",
+            "module": "sklearn.preprocessing",
+            "class": "StandardScaler"
+        },
+        {
+            "name": "classifier",
+            "module": "sklearn.linear_model",
+            "class": "LogisticRegression",
+            "kwargs" : {"random_state": 42}
+        }
+    ],
+
+    "stage2": [
+        {
+            "name": "imputer",
+            "module": "sklearn.impute",
+            "class": "SimpleImputer",
+            "kwargs": {"strategy": "median"}
+        },
+        {
+            "name": "scaler",
+            "module": "sklearn.preprocessing",
+            "class": "StandardScaler"
+        },
+        {
+            "name": "regressor",
+            "module": "sklearn.linear_model",
+            "class": "LinearRegression"
+        }
+    ]
+
+}

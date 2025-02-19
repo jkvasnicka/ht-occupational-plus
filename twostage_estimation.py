@@ -4,7 +4,7 @@
 import numpy as np 
 from sklearn.base import BaseEstimator
 
-from mixedlm_estimator import MixedLMRegressor
+from mixedlm_estimation import MixedLMRegressor
 
 #region: TwoStageEstimator
 class TwoStageEstimator(BaseEstimator):
