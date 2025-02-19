@@ -1,0 +1,127 @@
+'''
+'''
+
+import numpy as np 
+import pandas as pd
+import statsmodels.formula.api as smf
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils.validation import check_is_fitted
+
+#region: MixedLMRegressor
+class MixedLMRegressor(BaseEstimator, RegressorMixin):
+    '''
+    '''
+    def __init__(self, method='bfgs', reml=False, maxiter=200):
+        self.method = method
+        self.reml = reml
+        self.maxiter = maxiter
+
+    #region: fit
+    def fit(self, X, y, groups=None):
+        '''
+        '''
+        X = np.asarray(X)
+        y = np.asarray(y)
+
+        Xy_df, formula = self._prepare_fit_data(X, y)
+
+        if groups is None:
+            raise ValueError('MixedLMRegressor requires a "groups" parameter.')
+        groups = np.asarray(groups)
+
+        self.model_ = smf.mixedlm(
+            formula=formula, 
+            data=Xy_df,
+            groups=groups,
+            re_formula='1'  # random intercept–only model
+            )
+        self.result_ = self.model_.fit(
+            method=self.method, 
+            reml=self.reml, 
+            maxiter=self.maxiter
+            )
+
+        return self
+    #endregion
+    
+    #region: predict
+    def predict(self, X):
+        '''
+        '''
+        X_df = self._ensure_dataframe(np.asarray(X))
+        return self.result_.predict(X_df)
+    #endregion
+
+    #region: get_icc
+    def get_icc(self):
+        '''
+        '''
+        check_is_fitted(self, 'result_')
+
+        if self.result_.cov_re.shape[0] > 0:
+            var_group = self.result_.cov_re.iloc[0, 0]
+        else:
+            var_group = 0.0
+        var_resid = self.result_.scale
+        
+        return intraclass_correlation(var_group, var_resid)
+    #endregion
+
+    #region: _ensure_dataframe
+    def _ensure_dataframe(self, X):
+        '''
+        Convert X to a DataFrame with generic column names.
+
+        This is necessary because statsmodels' formula interface requires a 
+        DataFrame with valid column names. Using integer column names (the 
+        default) may not produce a usable formula string.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Input feature matrix.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame version of X with columns named 'x0', 'x1', ...
+        '''
+        if not isinstance(X, pd.DataFrame):
+            n_features = X.shape[1]
+            cols = [f'x{i}' for i in range(n_features)]
+            X = pd.DataFrame(X, columns=cols)
+        return X
+    #endregion
+    
+    #region: _prepare_fit_data    
+    def _prepare_fit_data(self, X, y):
+        '''
+        '''
+        X_df = self._ensure_dataframe(X)
+        Xy_df = X_df.copy()
+        Xy_df['y'] = y
+
+        predictors = [col for col in Xy_df.columns if col != 'y']
+        formula = 'y ~ 1'  # Start with intercept-only model
+        if predictors:
+            formula += ' + ' + ' + '.join(predictors)
+
+        return Xy_df, formula
+    #endregion
+#endregion
+
+# TODO: Make static method of MixedLMRegressor?
+#region: intraclass_correlation
+def intraclass_correlation(var_group, var_resid):
+    '''
+    Computes Intraclass Correlation Coefficient (ICC).
+    
+    Parameters
+    ----------
+    var_group :
+        Random intercept variance (mdf.cov_re.iloc[0,0]).
+    var_resid : 
+        Residual variance (mdf.scale).
+    '''
+    return var_group / (var_group + var_resid)
+#endregion
