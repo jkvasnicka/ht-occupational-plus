@@ -7,9 +7,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 
-# Seed for reproducibility
-np.random.seed(42)
-
 from pandas import testing 
 
 from config_management import UnifiedConfiguration
@@ -49,7 +46,7 @@ if __name__ == '__main__':
 
     stage1_pipe = Pipeline([
         ('preprocessor', preprocessor),
-        ('classifier', LogisticRegression())
+        ('classifier', LogisticRegression(random_state=42))
     ])
 
     stage2_pipe_ols = Pipeline([
