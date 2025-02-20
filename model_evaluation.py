@@ -121,7 +121,6 @@ def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     return metrics
 #endregion
 
-# TODO: Specify parameters in config
 # TODO: Expand the docstring with more explanation
 #region: holdout_chemicals
 def holdout_chemicals(
@@ -130,7 +129,9 @@ def holdout_chemicals(
         holdout_fraction=0.1,
         random_state=42
         ):
-    '''Create hold-out sets by chemical.'''
+    '''
+    Create hold-out sets by chemical.
+    '''
     unique_chems = np.unique(chem_groups)
     n_holdout = int(len(unique_chems) * holdout_fraction)
     rng = np.random.RandomState(random_state)

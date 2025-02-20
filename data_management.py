@@ -25,7 +25,7 @@ def read_features_and_target(
     return X.align(y, join='inner', axis=0)
 #endregion
 
-# TODO: Add parameter validation
+# TODO: Add parameter validation, e.g., 'log10_features' in 'feature_columns'
 #region: read_features
 def read_features(features_file, feature_columns=None, log10_features=None):
     '''
@@ -51,7 +51,7 @@ def read_target(target_file):
     return pd.read_csv(target_file, index_col=[0, 1]).squeeze()
 #endregion
 
-# NOTE: This may be obsolete if there is only one target
+# NOTE: This may be obsolete if only one target ends up being used
 #region: read_targets
 def read_targets(root_dir):
     '''

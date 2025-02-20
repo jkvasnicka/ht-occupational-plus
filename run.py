@@ -24,7 +24,12 @@ if __name__ == '__main__':
     naics_groups = y_full.index.get_level_values('naics_id')
 
     # TODO: Evaluate final model on holdout
-    y_dev, y_val, dev_mask, val_mask = holdout_chemicals(y_full, chem_groups)
+    y_dev, y_val, dev_mask, val_mask = holdout_chemicals(
+        y_full, 
+        chem_groups,
+        holdout_fraction=config.data['holdout_fraction'],
+        random_state=config.data['holdout_random_state']
+        )
     X_dev = X_full[dev_mask]
     X_val = X_full[val_mask]
     chem_groups_dev = chem_groups[dev_mask]
@@ -40,8 +45,7 @@ if __name__ == '__main__':
     clf_funcs = metrics_from_config(config.metrics['classification'])
     reg_funcs = metrics_from_config(config.metrics['regression'])
 
-    # TODO: Set a random seed properly
-    cv = GroupKFold(n_splits=5)  # TODO: Move parameters to config
+    cv = GroupKFold(n_splits=config.data['n_splits_cv'])
     fold_results = cross_validate_twostage(
         twostage_estimator, 
         X_dev, 
