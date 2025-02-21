@@ -15,7 +15,7 @@ model_settings = config.model
 import json
 import argparse
 
-#region: UnifiedConfiguration.__init__
+#region: UnifiedConfiguration
 class UnifiedConfiguration:
     '''
     This class provides a unified interface to access configuration settings 
@@ -23,24 +23,24 @@ class UnifiedConfiguration:
     configuration files for each category are loaded and made accessible as 
     attributes.
     '''
-    def __init__(self, config_file=None, encoding=None):
+    #region: __init__
+    def __init__(self, config_file, encoding=None):
         '''
         Initialize the UnifiedConfiguration object.
 
         Parameters
         ----------
-        config_file : str, optional
+        config_file : str
             Path to the JSON file mapping categories to configuration file 
             paths. By default, will look for 'config.json' in the working 
             directory.
         encoding : str, optional
             Default is 'utf-8'.
         '''
-        # Set defaults
-        if config_file is None:
-            config_file = 'config.json'  
+        self.file = config_file
+        
         if encoding is None:
-            encoding = 'utf-8'
+            encoding = 'utf-8'  # default
 
         with open(config_file, 'r', encoding=encoding) as mapping_file:
             config_files_dict = json.load(mapping_file)
@@ -49,6 +49,7 @@ class UnifiedConfiguration:
         for category, file_path in config_files_dict.items():
             with open(file_path, 'r', encoding=encoding) as config_file:
                 setattr(self, category, json.load(config_file))
+    #endregion
 #endregion
 
 #region: parse_args

@@ -1,5 +1,7 @@
 {
-
+  
+    "results_dir" : "results",
+    
     "features_file" : "input/processed/features/opera_features.parquet",
 
     "target_file" : "input/processed/target/sector.csv",

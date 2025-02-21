@@ -1,14 +1,14 @@
-import pandas as pd
+'''
+'''
 
 from sklearn.model_selection import GroupKFold
-
-from pandas import testing 
 
 from config_management import config_from_cli_args
 import data_management
 from metrics_management import metrics_from_config
 from model_evaluation import holdout_chemicals, cross_validate_twostage
 from pipeline_factory import twostage_estimator_from_config
+import results_management
 
 if __name__ == '__main__':
 
@@ -57,7 +57,9 @@ if __name__ == '__main__':
         groups_stage2=groups_stage2
         )
     
-    stored = pd.read_csv(
-        f"{last_step['class']}.csv", index_col=0, header=[0, 1]
-        )
-    testing.assert_frame_equal(performances, stored)
+    results_management.write_performances(
+        performances, 
+        config.path['results_dir'], 
+        config.file
+    )
+    results_management.write_metadata(config)
