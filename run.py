@@ -46,7 +46,7 @@ if __name__ == '__main__':
     reg_funcs = metrics_from_config(config.metrics['regression'])
 
     cv = GroupKFold(n_splits=config.data['n_splits_cv'])
-    fold_results = cross_validate_twostage(
+    performances = cross_validate_twostage(
         twostage_estimator, 
         X_dev, 
         y_dev,
@@ -57,6 +57,7 @@ if __name__ == '__main__':
         groups_stage2=groups_stage2
         )
     
-    stored = pd.read_csv(f"{last_step['class']}.csv", index_col=0).squeeze()
-    new = pd.DataFrame(fold_results).mean()
-    testing.assert_series_equal(new, stored, check_names=False)
+    stored = pd.read_csv(
+        f"{last_step['class']}.csv", index_col=0, header=[0, 1]
+        )
+    testing.assert_frame_equal(performances, stored)

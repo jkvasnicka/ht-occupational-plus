@@ -1,6 +1,7 @@
 '''
 '''
 
+import pandas as pd 
 import numpy as np 
 
 # TODO: Clarify that groups_stage2 is for mixed LM
@@ -20,7 +21,7 @@ def cross_validate_twostage(
     X = np.asarray(X)
     y = np.asarray(y)
 
-    fold_results = []
+    performances = []
     for train_idx, test_idx in cv.split(X, y, groups=groups_cv):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
@@ -32,16 +33,20 @@ def cross_validate_twostage(
 
         estimator.fit(X_train, y_train, groups_stage2=groups_stage2_train)
 
-        metrics = _evaluate_fold(
+        fold_performance = _evaluate_fold(
             estimator, 
             X_test, 
             y_test,
             clf_funcs, 
             reg_funcs
             )
-        fold_results.append(metrics)
+        performances.append(fold_performance)
+
+    performances = pd.DataFrame(performances)
+    performances.columns = pd.MultiIndex.from_tuples(performances.columns)
+    performances.columns.names = ['stage', 'metric']
         
-    return fold_results
+    return performances
 #endregion
 
 #region: _evaluate_fold
@@ -78,11 +83,11 @@ def _evaluate_fold(
         estimator.target_transform
         )
     
-    fold_metrics = {}
-    fold_metrics.update(clf_metrics)
-    fold_metrics.update(reg_metrics)
+    fold_performance = {}
+    fold_performance.update(clf_metrics)
+    fold_performance.update(reg_metrics)
 
-    return fold_metrics
+    return fold_performance
 #endregion
 
 #region: _classification_metrics
@@ -90,14 +95,15 @@ def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
     '''
     '''
     metrics = {}
-    for key, func in metric_funcs.items():
+    for k, func in metric_funcs.items():
+        k = ('stage1', k)
         try:
-            if key == 'roc_auc_score' and y_proba is not None:
-                metrics[key] = func(y_true, y_proba)
+            if k == 'roc_auc_score' and y_proba is not None:
+                metrics[k] = func(y_true, y_proba)
             else:
-                metrics[key] = func(y_true, y_pred)
+                metrics[k] = func(y_true, y_pred)
         except Exception:
-            metrics[key] = np.nan
+            metrics[k] = np.nan
     return metrics
 #endregion
 
@@ -110,14 +116,16 @@ def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     if np.sum(mask) > 0:
         y_true_trans = target_transform(y_true[mask])
         y_pred_trans = target_transform(y_pred[mask])
-        for key, func in metric_funcs.items():
+        for k, func in metric_funcs.items():
+            k = ('stage2', k)
             try:
-                metrics[key] = func(y_true_trans, y_pred_trans)
+                metrics[k] = func(y_true_trans, y_pred_trans)
             except Exception:
-                metrics[key] = np.nan
+                metrics[k] = np.nan
     else:
-        for key in metric_funcs.keys():
-            metrics[key] = np.nan
+        for k in metric_funcs.keys():
+            k = ('stage2', k)
+            metrics[k] = np.nan
     return metrics
 #endregion
 
