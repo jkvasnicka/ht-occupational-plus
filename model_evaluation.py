@@ -4,6 +4,60 @@
 import pandas as pd 
 import numpy as np 
 
+from sklearn.model_selection import GroupKFold
+from metrics_management import metrics_from_config
+
+# TODO: Evaluate on holdout set 
+# pandas.Series concat to performances as 'holdout'
+# Fit estimator on full data and write the fitted estimator
+# Write the holdout predictions 'y_true' and 'y_pred'
+
+#region: evaluate_twostage
+def evaluate_twostage(
+        estimator,
+        X_full, 
+        y_full,
+        config
+        ):
+    '''
+    '''
+    chem_groups = y_full.index.get_level_values('DTXSID')
+    naics_groups = y_full.index.get_level_values('naics_id')
+
+    y_dev, y_val, dev_mask, val_mask = holdout_chemicals(
+        y_full, 
+        chem_groups,
+        holdout_fraction=config.data['holdout_fraction'],
+        random_state=config.data['holdout_random_state']
+        )
+    X_dev = X_full[dev_mask]
+    X_val = X_full[val_mask]
+    chem_groups_dev = chem_groups[dev_mask]
+
+    groups_stage2 = None  # by default
+    last_step = config.model['stage2'][-1]
+    if last_step['class'] == 'MixedLMRegressor':
+        # Use 'naics_id' as a grouping variable
+        groups_stage2 = naics_groups[dev_mask]
+
+    clf_funcs = metrics_from_config(config.metrics['classification'])
+    reg_funcs = metrics_from_config(config.metrics['regression'])
+
+    cv = GroupKFold(n_splits=config.data['n_splits_cv'])
+    performances = cross_validate_twostage(
+        estimator, 
+        X_dev, 
+        y_dev,
+        cv, 
+        chem_groups_dev, 
+        clf_funcs, 
+        reg_funcs,
+        groups_stage2=groups_stage2
+        )
+    
+    return performances
+#endregion
+
 # TODO: Clarify that groups_stage2 is for mixed LM
 #region: cross_validate_twostage
 def cross_validate_twostage(
