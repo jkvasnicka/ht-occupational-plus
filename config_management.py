@@ -52,54 +52,31 @@ class UnifiedConfiguration:
     #endregion
 #endregion
 
-#region: parse_args
-def parse_args():
+#region: base_cli_parser
+def base_cli_parser():
     '''
-    Parse command-line arguments for configuration loading
-
-    The function defines and parses two command-line arguments:
-    - `config_file`: An optional positional argument specifying the path to 
-        the main configuration file.
-    - `encoding`: An optional argument specifying the encoding of the 
-        configuration file.
+    Create a base parser with arguments needed for configuration loading.
 
     Returns
     -------
-    argparse.Namespace
-        Parsed command-line arguments.
+    argparse.ArgumentParser
+        A parser with base configuration arguments.
     '''
-    parser = argparse.ArgumentParser()
+    # Only the child parser supplies help to avoid conflict
+    parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         '-c',
         '--config_file',
-        type=str, 
+        type=str,
         help='Path to the main configuration file',
         default=None
-        )
+    )
     parser.add_argument(
-        '-e', 
+        '-e',
         '--encoding',
-        type=str, 
+        type=str,
         help='Encoding of the configuration files',
         default=None
     )
-    return parser.parse_args()
-#endregion
-
-#region: config_from_cli_args
-def config_from_cli_args():
-    '''
-    Load the configuration using command-line interface arguments.
-
-    Returns
-    -------
-    UnifiedConfiguration
-        An instance of UnifiedConfiguration initialized with the parsed 
-        command-line arguments.
-    '''
-    args = parse_args()
-    return UnifiedConfiguration(
-        config_file=args.config_file, 
-        encoding=args.encoding
-        )
+    return parser
 #endregion
