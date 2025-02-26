@@ -7,22 +7,22 @@ import numpy as np
 from sklearn.model_selection import GroupKFold
 from metrics_management import metrics_from_config
 
-# TODO: Evaluate on holdout set 
-# pandas.Series concat to performances as 'holdout'
-# Fit estimator on full data and write the fitted estimator
-# Write the holdout predictions 'y_true' and 'y_pred'
+import results_management
 
 #region: evaluate_twostage
 def evaluate_twostage(
         estimator,
         X_full, 
         y_full,
-        config
+        chem_groups, 
+        naics_groups,  # TODO: Make this optional parameter?
+        config,
+        evaluation_type
         ):
     '''
     '''
-    chem_groups = y_full.index.get_level_values('DTXSID')
-    naics_groups = y_full.index.get_level_values('naics_id')
+    X_full = np.asarray(X_full)
+    y_full = np.asarray(y_full)
 
     y_dev, y_val, dev_mask, val_mask = holdout_chemicals(
         y_full, 
@@ -42,20 +42,45 @@ def evaluate_twostage(
 
     clf_funcs = metrics_from_config(config.metrics['classification'])
     reg_funcs = metrics_from_config(config.metrics['regression'])
-
-    cv = GroupKFold(n_splits=config.data['n_splits_cv'])
-    performances = cross_validate_twostage(
-        estimator, 
-        X_dev, 
-        y_dev,
-        cv, 
-        chem_groups_dev, 
-        clf_funcs, 
-        reg_funcs,
-        groups_stage2=groups_stage2
-        )
     
-    return performances
+    if evaluation_type == 'cv':
+
+        cv = GroupKFold(n_splits=config.data['n_splits_cv'])
+
+        cv_performance = cross_validate_twostage(
+            estimator, 
+            X_dev, 
+            y_dev, 
+            cv, 
+            chem_groups_dev, 
+            clf_funcs, 
+            reg_funcs, 
+            groups_stage2=groups_stage2
+            )
+        
+        results_management.write_performances(
+            cv_performance, 
+            config.path['results_dir'], 
+            config.file
+            )
+
+    elif evaluation_type == 'holdout':
+
+        estimator.fit(X_dev, y_dev, groups_stage2=groups_stage2)
+
+        # TODO: Write these results
+        holdout_performance, y_pred = evaluate_performance(
+            estimator, 
+            X_val, 
+            y_val, 
+            clf_funcs, 
+            reg_funcs
+            )
+        
+        print(holdout_performance)
+
+        # Refit the estimator on the full dataset
+        estimator.fit(X_full, y_full, groups_stage2=naics_groups)
 #endregion
 
 # TODO: Clarify that groups_stage2 is for mixed LM
@@ -87,7 +112,7 @@ def cross_validate_twostage(
 
         estimator.fit(X_train, y_train, groups_stage2=groups_stage2_train)
 
-        fold_performance = _evaluate_fold(
+        fold_performance, *_ = evaluate_performance(
             estimator, 
             X_test, 
             y_test,
@@ -103,8 +128,8 @@ def cross_validate_twostage(
     return performances
 #endregion
 
-#region: _evaluate_fold
-def _evaluate_fold(
+#region: evaluate_performance
+def evaluate_performance(
         estimator, 
         X_test, 
         y_test, 
@@ -137,11 +162,11 @@ def _evaluate_fold(
         estimator.target_transform
         )
     
-    fold_performance = {}
-    fold_performance.update(clf_metrics)
-    fold_performance.update(reg_metrics)
+    performance = {}
+    performance.update(clf_metrics)
+    performance.update(reg_metrics)
 
-    return fold_performance
+    return performance, y_pred
 #endregion
 
 #region: _classification_metrics
@@ -194,6 +219,7 @@ def holdout_chemicals(
     '''
     Create hold-out sets by chemical.
     '''
+    y = np.asarray(y)
     unique_chems = np.unique(chem_groups)
     n_holdout = int(len(unique_chems) * holdout_fraction)
     rng = np.random.RandomState(random_state)
