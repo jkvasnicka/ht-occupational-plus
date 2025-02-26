@@ -1,6 +1,6 @@
 {
 
-    "holdout_fraction" : 0.1,
+    "holdout_fraction" : 0.15,
 
     "holdout_random_state" : 42,
     
