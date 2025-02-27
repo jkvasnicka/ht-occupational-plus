@@ -2,14 +2,13 @@
 '''
 
 import argparse
+import os
 
 from config_management import base_cli_parser, UnifiedConfiguration
 import data_management
 from pipeline_factory import twostage_estimator_from_config
 import model_evaluation
 import results_management
-
-# TODO: Option to pass a directory of config files and iterate?
 
 #region: parse_cli_args
 def parse_cli_args():
@@ -28,6 +27,11 @@ def parse_cli_args():
     )
     # TODO: Add a shorthand version?
     parser.add_argument(
+        '--config_dir',
+        type=str, 
+        help='Path to a directory of multiple main configuration files'
+    )
+    parser.add_argument(
         '--evaluation_type',
         type=str,
         choices=['cv', 'holdout'],
@@ -42,26 +46,37 @@ if __name__ == '__main__':
 
     args = parse_cli_args()
 
-    config = UnifiedConfiguration(
-        config_file=args.config_file, 
-        encoding=args.encoding
-        )
-    
-    estimator = twostage_estimator_from_config(config.model)
+    if args.config_file:
+        config_files = [args.config_file]
+    else:
+        config_files = [
+            os.path.join(args.config_dir, f)
+            for f in os.listdir(args.config_dir)
+            if f.endswith('.json')
+        ]
 
-    X_full, y_full = data_management.read_features_and_target(
-        config.path['features_file'],
-        config.path['target_file'],
-        config.data['feature_columns'],
-        config.data['log10_features']
-        )
+    for config_file in config_files:
 
-    model_evaluation.evaluate_twostage(
-        estimator,
-        X_full, 
-        y_full,
-        config,
-        args.evaluation_type
-    )
+        config = UnifiedConfiguration(
+            config_file=config_file, 
+            encoding=args.encoding
+            )
         
-    results_management.write_metadata(config)
+        estimator = twostage_estimator_from_config(config.model)
+
+        X_full, y_full = data_management.read_features_and_target(
+            config.path['features_file'],
+            config.path['target_file'],
+            config.data['feature_columns'],
+            config.data['log10_features']
+            )
+
+        model_evaluation.evaluate_twostage(
+            estimator,
+            X_full, 
+            y_full,
+            config,
+            args.evaluation_type
+        )
+            
+        results_management.write_metadata(config)

@@ -68,7 +68,7 @@ def base_cli_parser():
         '-c',
         '--config_file',
         type=str,
-        help='Path to the main configuration file',
+        help='Path to a single main configuration file',
         default=None
     )
     parser.add_argument(
