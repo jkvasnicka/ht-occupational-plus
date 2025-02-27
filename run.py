@@ -25,13 +25,14 @@ def parse_cli_args():
         parents=[parent],
         description='Run model fitting, evaluation, & results management.'
     )
-    # TODO: Add a shorthand version?
     parser.add_argument(
+        '-d',
         '--config_dir',
         type=str, 
         help='Path to a directory of multiple main configuration files'
     )
     parser.add_argument(
+        '-t',
         '--evaluation_type',
         type=str,
         choices=['cv', 'holdout'],
