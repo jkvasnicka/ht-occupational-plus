@@ -2,14 +2,14 @@
 '''
 
 import argparse
-from sklearn.model_selection import GroupKFold
 
 from config_management import base_cli_parser, UnifiedConfiguration
 import data_management
 from pipeline_factory import twostage_estimator_from_config
-from metrics_management import metrics_from_config
 import model_evaluation
 import results_management
+
+# TODO: Option to pass a directory of config files and iterate?
 
 #region: parse_cli_args
 def parse_cli_args():
@@ -55,16 +55,11 @@ if __name__ == '__main__':
         config.data['feature_columns'],
         config.data['log10_features']
         )
-    # TODO: Move this to 'evaluate_twostage'?
-    chem_groups = y_full.index.get_level_values('DTXSID')
-    naics_groups = y_full.index.get_level_values('naics_id')
 
     model_evaluation.evaluate_twostage(
         estimator,
         X_full, 
         y_full,
-        chem_groups, 
-        naics_groups,
         config,
         args.evaluation_type
     )

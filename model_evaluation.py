@@ -14,13 +14,14 @@ def evaluate_twostage(
         estimator,
         X_full, 
         y_full,
-        chem_groups, 
-        naics_groups,  # TODO: Make this optional parameter?
         config,
         evaluation_type
         ):
     '''
     '''
+    chem_groups = y_full.index.get_level_values('DTXSID')
+    naics_groups = y_full.index.get_level_values('naics_id')
+    
     X_full = np.asarray(X_full)
     y_full = np.asarray(y_full)
 
