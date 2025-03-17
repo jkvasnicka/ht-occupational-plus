@@ -3,10 +3,9 @@
 
 import pandas as pd 
 import numpy as np 
-
 from sklearn.model_selection import GroupKFold
-from metrics_management import metrics_from_config
 
+from metrics_management import metrics_from_config
 import results_management
 
 #region: evaluate_twostage
@@ -48,7 +47,7 @@ def evaluate_twostage(
 
         cv = GroupKFold(n_splits=config.data['n_splits_cv'])
 
-        cv_performance = cross_validate_twostage(
+        cv_performances = cross_validate_twostage(
             estimator, 
             X_dev, 
             y_dev, 
@@ -59,29 +58,73 @@ def evaluate_twostage(
             groups_stage2=groups_stage2
             )
         
-        results_management.write_performances(
-            cv_performance, 
+        results_management.write_performance(
+            cv_performances, 
             config.path['results_dir'], 
-            config.file
+            config.file,
+            'cv_performances.csv'
             )
 
     elif evaluation_type == 'holdout':
 
-        estimator.fit(X_dev, y_dev, groups_stage2=groups_stage2)
-
-        # TODO: Write these results
-        holdout_performance, y_pred = evaluate_performance(
-            estimator, 
-            X_val, 
-            y_val, 
-            clf_funcs, 
-            reg_funcs
+        holdout_performance, holdout_pred, estimator = (
+            evaluate_holdout_performance(
+                estimator, 
+                X_dev, 
+                y_dev,
+                groups_stage2,
+                X_val, 
+                y_val, 
+                clf_funcs, 
+                reg_funcs,
+                X_full,
+                y_full,
+                naics_groups
             )
-        
-        print(holdout_performance)
+        )
 
-        # Refit the estimator on the full dataset
-        estimator.fit(X_full, y_full, groups_stage2=naics_groups)
+        results_management.write_performance(
+            holdout_performance, 
+            config.path['results_dir'], 
+            config.file,
+            'holdout_performance.csv'
+        )
+#endregion
+
+#region: evaluate_holdout_performance
+def evaluate_holdout_performance(
+        estimator, 
+        X_dev, 
+        y_dev,
+        groups_stage2,
+        X_val, 
+        y_val, 
+        clf_funcs, 
+        reg_funcs,
+        X_full,
+        y_full,
+        naics_groups
+        ):
+    '''
+    '''
+    estimator.fit(X_dev, y_dev, groups_stage2=groups_stage2)
+
+    holdout_performance, holdout_pred = _evaluate_performance(
+        estimator, 
+        X_val, 
+        y_val, 
+        clf_funcs, 
+        reg_funcs
+        )
+    holdout_performance = pd.Series(holdout_performance)
+    holdout_performance.index.names = ['stage', 'metric']
+    # FIXME: Need to preserve the original index
+    holdout_pred = pd.Series(holdout_pred)
+            
+    # Refit the estimator on the full dataset
+    estimator.fit(X_full, y_full, groups_stage2=naics_groups)
+
+    return holdout_performance, holdout_pred, estimator
 #endregion
 
 # TODO: Clarify that groups_stage2 is for mixed LM
@@ -113,7 +156,7 @@ def cross_validate_twostage(
 
         estimator.fit(X_train, y_train, groups_stage2=groups_stage2_train)
 
-        fold_performance, *_ = evaluate_performance(
+        fold_performance, *_ = _evaluate_performance(
             estimator, 
             X_test, 
             y_test,
@@ -129,8 +172,8 @@ def cross_validate_twostage(
     return performances
 #endregion
 
-#region: evaluate_performance
-def evaluate_performance(
+#region: _evaluate_performance
+def _evaluate_performance(
         estimator, 
         X_test, 
         y_test, 

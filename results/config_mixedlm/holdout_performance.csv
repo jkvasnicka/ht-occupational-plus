@@ -1,0 +1,9 @@
+stage,metric,0
+stage1,accuracy_score,0.7317073170731707
+stage1,precision_score,0.7420494699646644
+stage1,recall_score,0.9813084112149533
+stage1,f1_score,0.8450704225352113
+stage1,roc_auc_score,0.49065420560747663
+stage2,r2_score,0.1781733862668351
+stage2,root_mean_squared_error,1.2747221139784983
+stage2,median_absolute_error,0.7274864501660416
