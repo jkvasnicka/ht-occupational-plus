@@ -3,6 +3,7 @@
 
 import os 
 import json 
+from joblib import dump
 
 #region: write_performance
 def write_performance(performance, results_dir, config_file, filename):
@@ -24,6 +25,15 @@ def write_metadata(config):
     metadata_file = os.path.join(results_subdir, 'metadata.json')
     with open(metadata_file, 'w') as file:
         json.dump(config.__dict__, file)
+#endregion
+
+#region: write_estimator
+def write_estimator(estimator, results_dir, config_file):
+    '''
+    '''
+    results_subdir = build_results_subdirectory(results_dir, config_file)
+    estimator_file = os.path.join(results_subdir, 'estimator.joblib')
+    dump(estimator, estimator_file)
 #endregion
 
 #region: build_results_subdirectory

@@ -6,6 +6,13 @@ from sklearn.base import BaseEstimator
 
 from mixedlm_estimation import MixedLMRegressor
 
+# Defining named functions allows joblib to serialize the TwoStageEstimator
+def transform_log10(x):
+    return np.log10(x)
+
+def inverse_log10(x):
+    return 10**x
+
 #region: TwoStageEstimator
 class TwoStageEstimator(BaseEstimator):
     '''
@@ -15,8 +22,8 @@ class TwoStageEstimator(BaseEstimator):
             self, 
             stage1_estimator,  # classifier
             stage2_estimator,  # regressor
-            target_transform=np.log10,
-            target_inverse_transform=lambda x: 10**x
+            target_transform=transform_log10,
+            target_inverse_transform=inverse_log10
             ):
         self.stage1_estimator = stage1_estimator
         self.stage2_estimator = stage2_estimator

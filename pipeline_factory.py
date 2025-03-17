@@ -2,16 +2,15 @@
 '''
 
 import importlib
-import numpy as np
 from sklearn.pipeline import Pipeline
 
-from twostage_estimation import TwoStageEstimator 
+import twostage_estimation
 
 #region: twostage_estimator_from_config
 def twostage_estimator_from_config(
         model_settings,
-        target_transform=np.log10,
-        target_inverse_transform=lambda x: 10**x
+        target_transform=twostage_estimation.transform_log10,
+        target_inverse_transform=twostage_estimation.inverse_log10
         ):
     '''
     Build a TwoStageEstimator from model configuration settings.
@@ -37,7 +36,7 @@ def twostage_estimator_from_config(
     stage1_pipeline = pipeline_from_config(stage1_config)
     stage2_pipeline = pipeline_from_config(stage2_config)
     
-    return TwoStageEstimator(
+    return twostage_estimation.TwoStageEstimator(
         stage1_estimator=stage1_pipeline,
         stage2_estimator=stage2_pipeline,
         target_transform=target_transform,

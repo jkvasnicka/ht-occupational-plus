@@ -89,6 +89,12 @@ def evaluate_twostage(
             config.file,
             'holdout_performance.csv'
         )
+
+        results_management.write_estimator(
+            estimator, 
+            config.path['results_dir'], 
+            config.file
+        )
 #endregion
 
 #region: evaluate_holdout_performance
