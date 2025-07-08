@@ -1,4 +1,14 @@
 '''
+This module provides functions to build scikit-learn Pipelines for both
+stage-1 (classification) and stage-2 (regression) steps, and to assemble
+a TwoStageEstimator instance from model configuration settings (dict).
+
+The configuration settings must contain two keys, 'stage1' and 'stage2', each
+mapping to a list of step settings with:
+  - 'name'   : str, name of the pipeline step
+  - 'module' : str, import path of the estimator module
+  - 'class'  : str, estimator class name within the module
+  - 'kwargs' : dict, optional parameters for the estimator
 '''
 
 import importlib
