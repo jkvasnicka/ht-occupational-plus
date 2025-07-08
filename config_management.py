@@ -1,13 +1,11 @@
 '''
 This module contains the `UnifiedConfiguration` class, which centralizes the 
 management and access of configuration settings related to different categories,
-such as paths, models, and plotting. By unifying the configuration into a 
-single object, it allows for a more streamlined access to settings throughout 
-the code.
+such as paths, models, and plotting.
 
 Example
 -------
-config_file = 'config.json'
+config_file = 'config.json'  # main config file
 config = UnifiedConfiguration(config_file)
 model_settings = config.model
 '''
@@ -31,8 +29,8 @@ class UnifiedConfiguration:
         Parameters
         ----------
         config_file : str
-            Path to the JSON file mapping categories to configuration file 
-            paths.
+            Path to the main config file that maps each category name to its
+            corresponding config file path.
         encoding : str, optional
             Default is 'utf-8'.
         '''
