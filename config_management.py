@@ -32,8 +32,7 @@ class UnifiedConfiguration:
         ----------
         config_file : str
             Path to the JSON file mapping categories to configuration file 
-            paths. By default, will look for 'config.json' in the working 
-            directory.
+            paths.
         encoding : str, optional
             Default is 'utf-8'.
         '''

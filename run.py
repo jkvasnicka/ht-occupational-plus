@@ -1,4 +1,42 @@
 '''
+Main entry point for the two-stage modeling workflow.
+
+Runs cross-validation or final holdout evaluation for one or more two-stage
+estimator instances defined via config files. Persists results, fitted 
+estimator, and config settings as metadata. 
+
+The user must specify either a path to a single 'main' config file 
+(--config_file) for a single estimator, or a path to a directory of multiple 
+'main' config files (--config_dir). The latter is used for sensitivity 
+analyses (e.g., OLS vs. MixedLM regressors).
+
+Parameters
+-----------
+-c, --config_file : str, optional
+    Path to a single config file.
+-d, --config_dir : str, optional
+    Path to a directory of config files for sensitivity analyses.
+-e, --encoding : str, optional
+    Encoding for the configuration files (default: 'utf-8').
+-t, --evaluation_type : {'cv', 'holdout'}, default: 'cv'
+    Evaluation mode: 
+      - 'cv' : perform k-fold cross-validation on the development set,
+               grouped by chemical 
+      - 'holdout' : fit on development set and evaluate on holdout set  
+
+Notes
+-----
+Cross validation should be used for model selection, whereas holdout evaluation
+is then used to assess the selected model's generalization to the "unseen"
+holdout set.
+
+Examples
+--------
+# 1. Cross-validate several two-stage estimators for model selection:
+$ python run.py -d config_main
+
+# 2. Evaluate holdout performance for a selected estimator:
+$ python run.py -c config_main/config_ols.json -t holdout
 '''
 
 import argparse
@@ -13,7 +51,8 @@ import results_management
 #region: parse_cli_args
 def parse_cli_args():
     '''
-    Parse command-line arguments.
+    Parse command-line arguments for configuring and executing model
+    evaluation.
 
     Returns
     -------
