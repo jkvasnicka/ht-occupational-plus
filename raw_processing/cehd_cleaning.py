@@ -56,6 +56,9 @@ class CehdCleaner(OshaDataCleaner):
     #region: clean_exposure_data
     def clean_exposure_data(self):
         '''
+        Main data cleaning function.
+
+        Wrapper around the parent class method, specifies the log file path.
         '''
         exposure_data = super().clean_exposure_data(
             log_file=self.path_settings['cehd_log_file']
@@ -66,6 +69,7 @@ class CehdCleaner(OshaDataCleaner):
     #region: load_raw_data
     def load_raw_data(self):
         '''
+        Loads the raw Chemical Exposure Health Data using the current config.
         '''
         raw_exposure_data = cehd_loading.raw_chem_exposure_health_data(
             self.data_settings, 
