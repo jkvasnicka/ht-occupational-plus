@@ -19,6 +19,14 @@ class UsisCleaner(OshaDataCleaner):
     #region: clean_exposure_data
     def clean_exposure_data(self):
         '''
+        Main data cleaning function.
+
+        Wrapper around the parent class method, specifies the log file path.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned dataset.
         '''
         exposure_data = super().clean_exposure_data(
             log_file=self.path_settings['usis_log_file']
@@ -29,6 +37,7 @@ class UsisCleaner(OshaDataCleaner):
     #region: load_raw_data
     def load_raw_data(self):
         '''
+        Loads the raw USIS dataset using the current config.
         '''
         raw_exposure_data = usis_loading.raw_usis_data(
             self.path_settings['raw_usis_file'],

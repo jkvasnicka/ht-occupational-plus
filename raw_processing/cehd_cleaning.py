@@ -59,6 +59,11 @@ class CehdCleaner(OshaDataCleaner):
         Main data cleaning function.
 
         Wrapper around the parent class method, specifies the log file path.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned dataset.
         '''
         exposure_data = super().clean_exposure_data(
             log_file=self.path_settings['cehd_log_file']
