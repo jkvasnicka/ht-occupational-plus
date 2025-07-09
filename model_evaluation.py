@@ -1,4 +1,7 @@
 '''
+This module provides functions to perform k-fold cross-validation and
+holdout evaluation for a TwoStageEstimator, compute classification and
+regression metrics, and handle data partitioning by chemical groups.
 '''
 
 import pandas as pd 
@@ -17,6 +20,29 @@ def evaluate_twostage(
         evaluation_type
         ):
     '''
+    Orchestrates cross-validation or holdout evaluation and persist results.
+
+    Parameters
+    ----------
+    estimator : TwoStageEstimator
+        The two-stage estimator to evaluate.
+    X_full : array-like, shape (n_samples, n_features)
+        Full feature matrix.
+    y_full : pandas.Series
+        Target values with MultiIndex including 'DTXSID' and 'naics_id'.
+    config : UnifiedConfiguration
+        Configuration object with data splitting and evaluation parameters.
+    evaluation_type : {'cv', 'holdout'}
+        'cv' to run k-fold cross-validation; 'holdout' to evaluate on a 
+        validation set.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Writes performance metrics CSV and (for holdout) the fitted estimator.
     '''
     chem_groups = y_full.index.get_level_values('DTXSID')
     naics_groups = y_full.index.get_level_values('naics_id')
@@ -112,6 +138,42 @@ def evaluate_holdout_performance(
         naics_groups
         ):
     '''
+    Fit on dev set, evaluate on holdout, refit on full data, and return 
+    results.
+
+    Parameters
+    ----------
+    estimator : TwoStageEstimator
+        Instantiated estimator.
+    X_dev : array-like
+        Features for development (training).
+    y_dev : array-like
+        Targets for development.
+    groups_stage2 : array-like or None
+        Group labels for mixed-effects stage or None.
+    X_val : array-like
+        Features for the holdout set.
+    y_val : array-like
+        Targets for the holdout set.
+    clf_funcs : dict
+        Classification metric functions.
+    reg_funcs : dict
+        Regression metric functions.
+    X_full : array-like
+        Full feature matrix for final refit.
+    y_full : array-like
+        Full target vector for final refit.
+    naics_groups : array-like
+        Group labels for full data refit if MixedLMRegressor is used.
+
+    Returns
+    -------
+    holdout_performance : pandas.Series
+        Metrics indexed by (stage, metric) for the holdout set.
+    holdout_pred : pandas.Series
+        Predicted values on the holdout set.
+    estimator : TwoStageEstimator
+        Estimator refitted on the full dataset.
     '''
     estimator.fit(X_dev, y_dev, groups_stage2=groups_stage2)
 
@@ -133,7 +195,6 @@ def evaluate_holdout_performance(
     return holdout_performance, holdout_pred, estimator
 #endregion
 
-# TODO: Clarify that groups_stage2 is for mixed LM
 #region: cross_validate_twostage
 def cross_validate_twostage(
         estimator, 
@@ -146,6 +207,31 @@ def cross_validate_twostage(
         groups_stage2=None
         ):
     '''
+    Perform grouped k-fold cross-validation for a TwoStageEstimator.
+
+    Parameters
+    ----------
+    estimator : TwoStageEstimator
+        The two-stage estimator to evaluate.
+    X : array-like, shape (n_samples, n_features)
+        Feature matrix.
+    y : array-like, shape (n_samples,)
+        Target vector.
+    cv : cross-validation splitter
+        e.g., GroupKFold instance.
+    groups_cv : array-like, shape (n_samples,)
+        Group labels for splitting (chemical IDs).
+    clf_funcs : dict
+        Classification metric functions.
+    reg_funcs : dict
+        Regression metric functions.
+    groups_stage2 : array-like or None
+        Group labels for mixed-effects stage or None if not used.
+
+    Returns
+    -------
+    performances : pandas.DataFrame
+        DataFrame of fold metrics with MultiIndex columns ('stage', 'metric').
     '''
     X = np.asarray(X)
     y = np.asarray(y)
@@ -187,6 +273,7 @@ def _evaluate_performance(
         reg_funcs
         ):
     '''
+    Compute classification and regression metrics for a single test set.
     '''
     y_pred = estimator.predict(X_test)
 
@@ -222,6 +309,23 @@ def _evaluate_performance(
 #region: _classification_metrics
 def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
     '''
+    Compute binary classification metrics, using probabilities for AUC.
+
+    Parameters
+    ----------
+    y_true : array-like
+        True binary labels (0 or 1).
+    y_pred : array-like
+        Predicted binary labels.
+    metric_funcs : dict
+        Mapping metric names to functions.
+    y_proba : array-like, optional
+        Predicted probabilities for the positive class.
+
+    Returns
+    -------
+    metrics : dict
+        Mapping (stage1, metric) to computed value.
     '''
     metrics = {}
     for k, func in metric_funcs.items():
@@ -239,6 +343,23 @@ def _classification_metrics(y_true, y_pred, metric_funcs, y_proba=None):
 #region: _regression_metrics
 def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     '''
+    Compute regression metrics on positive predictions only.
+
+    Parameters
+    ----------
+    y_true : array-like
+        True continuous values.
+    y_pred : array-like
+        Predicted continuous values.
+    metric_funcs : dict
+        Mapping metric names to functions.
+    target_transform : callable
+        Function used to transform y for metric computation (e.g., log10).
+
+    Returns
+    -------
+    metrics : dict
+        Mapping (stage2, metric) to computed value.
     '''
     mask = (y_true > 0) & (y_pred > 0)  # true positives
     metrics = {}
@@ -258,7 +379,6 @@ def _regression_metrics(y_true, y_pred, metric_funcs, target_transform):
     return metrics
 #endregion
 
-# TODO: Expand the docstring with more explanation
 #region: holdout_chemicals
 def holdout_chemicals(
         y, 
@@ -267,7 +387,29 @@ def holdout_chemicals(
         random_state=42
         ):
     '''
-    Create hold-out sets by chemical.
+    Split data into development and holdout sets by chemical group.
+
+    Parameters
+    ----------
+    y : array-like, shape (n_samples,)
+        Target vector.
+    chem_groups : array-like, shape (n_samples,)
+        Chemical identifiers for grouping.
+    holdout_fraction : float, optional
+        Fraction of unique chemicals to hold out.
+    random_state : int, optional
+        Seed for reproducibility.
+
+    Returns
+    -------
+    y_dev : ndarray
+        Targets for development set.
+    y_val : ndarray
+        Targets for holdout set.
+    dev_mask : ndarray of bool
+        Mask selecting development samples.
+    val_mask : ndarray of bool
+        Mask selecting holdout samples.
     '''
     y = np.asarray(y)
     unique_chems = np.unique(chem_groups)
