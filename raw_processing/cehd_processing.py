@@ -1,5 +1,13 @@
 '''
-This module prepares model variables specific to the CEHD dataset.
+This module prepares a full-shift time-weighted average (TWA) concentration
+per sampling number specific to the CEHD dataset. 
+
+These data are eventually used to prepare a target variable for modeling.
+
+See Also
+--------
+osha_processing.py
+    Target variable preparation combining CEHD and USIS.
 '''
 
 # TODO: Add data validation checks
