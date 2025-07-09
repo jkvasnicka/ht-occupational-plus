@@ -1,5 +1,5 @@
 '''
-Common functions for loading OSHA datasets.
+Common functions for loading OSHA exposure datasets (USIS and CEHD).
 '''
 
 import pandas as pd
