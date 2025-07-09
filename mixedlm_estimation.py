@@ -1,4 +1,7 @@
 '''
+Defines MixedLMRegressor, a scikit-learn compatible estimator for fitting
+mixed-effects linear models with random intercepts via statsmodels' formula 
+API.
 '''
 
 import numpy as np 
@@ -10,8 +13,12 @@ from sklearn.utils.validation import check_is_fitted
 #region: MixedLMRegressor
 class MixedLMRegressor(BaseEstimator, RegressorMixin):
     '''
+    MixedLMRegressor wrapper for statsmodels MixedLM.
     '''
     def __init__(self, method='bfgs', reml=False, maxiter=200):
+        '''
+        See statsmodels documentation for hyperparameter definitions.
+        '''
         self.method = method
         self.reml = reml
         self.maxiter = maxiter
@@ -19,6 +26,21 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
     #region: fit
     def fit(self, X, y, groups=None):
         '''
+        Fit the mixed-effects linear model.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Feature matrix.
+        y : array-like of shape (n_samples,)
+            Target vector.
+        groups : array-like of shape (n_samples,)
+            Group labels for random intercepts.
+
+        Returns
+        -------
+        self : MixedLMRegressor
+            Fitted estimator instance.
         '''
         X = np.asarray(X)
         y = np.asarray(y)
@@ -47,6 +69,17 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
     #region: predict
     def predict(self, X):
         '''
+        Predict target (y) using the fitted mixed-effects model.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Feature matrix.
+
+        Returns
+        -------
+        ndarray of shape (n_samples,)
+            Predicted target values.
         '''
         X_df = self._ensure_dataframe(np.asarray(X))
         return self.result_.predict(X_df)
@@ -55,6 +88,11 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
     #region: get_icc
     def get_icc(self):
         '''
+        Compute intraclass correlation coefficient (ICC) from fitted model.
+
+        Returns
+        -------
+        float
         '''
         check_is_fitted(self, 'result_')
 
@@ -79,6 +117,10 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
             Random intercept variance (mdf.cov_re.iloc[0,0]).
         var_resid : 
             Residual variance (mdf.scale).
+
+        Returns
+        -------
+        float
         '''
         return var_group / (var_group + var_resid)
     #endregion
@@ -112,6 +154,14 @@ class MixedLMRegressor(BaseEstimator, RegressorMixin):
     #region: _prepare_fit_data    
     def _prepare_fit_data(self, X, y):
         '''
+        Prepare DataFrame and formula for mixed-effects model fitting.
+
+        Returns
+        -------
+        Xy_df : DataFrame
+            Combined DataFrame with predictor columns and target 'y'.
+        formula : str
+            Patsy formula string for fixed effects (e.g., 'y ~ x0 + x1 + ...')
         '''
         X_df = self._ensure_dataframe(X)
         Xy_df = X_df.copy()
