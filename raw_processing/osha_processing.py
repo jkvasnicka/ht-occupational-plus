@@ -1,4 +1,6 @@
 '''
+This module provides functions to prepare a target variable combining exposure
+concentration data from both OSHA datasets (USIS and CEHD).
 '''
 
 import pandas as pd
@@ -22,6 +24,11 @@ def combined_targets_from_raw(
         ):
     '''
     Prepare combined target variables from raw CEHD and USIS datasets.
+
+    Returns
+    -------
+    dict of pandas.Series
+        One target array for each NAICS level specified.
     '''
     usis_cleaner = usis_cleaning.UsisCleaner(
         usis_settings, 
@@ -58,6 +65,11 @@ def combined_targets_from_data(
         ):
     '''
     Prepare combined target variables from pre-cleaned CEHD and USIS data.
+
+    Returns
+    -------
+    dict of pandas.Series
+        One target array for each NAICS level specified.
     '''
     twa_usis = usis_processing.full_shift_twa_per_sampling(
         usis_data, 
