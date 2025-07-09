@@ -1,4 +1,6 @@
 '''
+This module defines the OshaDataCleaner class, providing data cleaning logic
+applicable to both the CEHD and USIS datasets by OSHA.
 '''
 
 import pandas as pd
@@ -14,6 +16,13 @@ class OshaDataCleaner:
 
     This class defines common cleaning operations for OSHA datasets and 
     provides a framework for running a sequence of cleaning steps dynamically.
+
+    See Also
+    --------
+    usis_cleaning.UsisCleaner
+        Subclass for the USIS dataset.
+    cehd_cleaning.CehdCleaner
+        Subclass for the CEHD dataset.
     '''
     def __init__(self, data_settings, path_settings, comptox_settings=None):
         self.data_settings = data_settings
