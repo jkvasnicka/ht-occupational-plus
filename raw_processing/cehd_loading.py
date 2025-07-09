@@ -102,8 +102,6 @@ def _raw_cehd_from_multiple_files(
 
 #region: _raw_cehd_from_single_file
 def _raw_cehd_from_single_file(raw_cehd_file):
-    '''
-    '''
     return pd.read_feather(raw_cehd_file).set_index('index')
 #endregion
 
