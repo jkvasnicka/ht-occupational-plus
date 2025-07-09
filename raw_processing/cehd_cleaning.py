@@ -11,7 +11,7 @@ consistency with the initial implementation while integrating it into our
 broader Python-based workflow. This translation was performed nearly verbatim 
 to maintain fidelity to the original logic and thereby facilitate testing and
 debugging. Consequently, the Python code may not follow best practices in 
-software engineering.  
+code design.
 
 ### Remaining Discrepancies Between R and Python Outputs
 

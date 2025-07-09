@@ -1,4 +1,6 @@
 '''
+This module defines the UsisCleaner class, providing a data cleaning 
+methodology specific to the USIS dataset by OSHA.
 '''
 
 from . import usis_loading
