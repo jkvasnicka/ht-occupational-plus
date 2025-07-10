@@ -25,6 +25,19 @@ def combined_targets_from_raw(
     '''
     Prepare combined target variables from raw CEHD and USIS datasets.
 
+    Parameters
+    ----------
+    usis_settings : dict
+        Config settings for the USIS dataset.
+    cehd_settings : dict
+        Config settings for the CEHD dataset.
+    path_settings : dict
+        Config settings for file paths.
+    comptox_settings : dict, optional
+        Config settings for CompTox data.
+    write_dir : str, optional
+        Directory in which the results will be written.
+
     Returns
     -------
     dict of pandas.Series
@@ -65,6 +78,19 @@ def combined_targets_from_data(
         ):
     '''
     Prepare combined target variables from pre-cleaned CEHD and USIS data.
+
+    Parameters
+    ----------
+    usis_data : pandas.DataFrame
+        Pre-cleaned USIS dataset.
+    cehd_data : pandas.DataFrame
+        Pre-cleaned CEHD dataset.
+    usis_settings : dict
+        Config settings for the USIS dataset.
+    cehd_settings : dict
+        Config settings for the CEHD dataset.
+    write_dir : str, optional
+        Directory in which the results will be written.
 
     Returns
     -------
