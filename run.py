@@ -104,9 +104,11 @@ if __name__ == '__main__':
         
         estimator = twostage_estimator_from_config(config.model)
 
-        X_full, y_full = data_management.read_features_and_target(
-            config.path['features_file'],
-            config.path['target_file'],
+        X_full, y_full = data_management.prepare_features_and_target(
+            config.usis, 
+            config.cehd,
+            config.path, 
+            config.comptox,
             config.data['feature_columns'],
             config.data['log10_features']
             )

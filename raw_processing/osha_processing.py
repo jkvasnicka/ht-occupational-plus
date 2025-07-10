@@ -4,7 +4,7 @@ concentration data from both OSHA datasets (USIS and CEHD).
 '''
 
 import pandas as pd
-from os import path 
+import os 
 
 from . import usis_cleaning, cehd_cleaning
 from . import usis_processing, cehd_processing
@@ -13,6 +13,8 @@ from . import usis_processing, cehd_processing
 
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
+
+# TODO: Refactor to just a single target, not a dict
 
 #region: combined_targets_from_raw
 def combined_targets_from_raw(
@@ -372,11 +374,13 @@ def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     return (CA * ET * EF * ED) / AT
 #endregion
 
-# TODO: Incorporate utilities.ensure_directory_exists()
 #region: write_target
 def write_target(y, write_dir, naics_level):
     '''Write the target variable to a file.'''
+    if not os.path.exists(write_dir):
+        # Ensure directory exists
+        os.makedirs(write_dir)
     file_name = f'{naics_level}.csv'
-    target_file = path.join(write_dir, file_name)
+    target_file = os.path.join(write_dir, file_name)
     y.reset_index().to_csv(target_file, index=False)
 #endregion
