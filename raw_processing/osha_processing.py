@@ -14,10 +14,9 @@ from . import usis_processing, cehd_processing
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-# TODO: Refactor to just a single target, not a dict
-
-#region: combined_targets_from_raw
-def combined_targets_from_raw(
+# FIXME: Store naics_level in shared config
+#region: target_from_raw
+def target_from_raw(
         usis_settings, 
         cehd_settings, 
         path_settings, 
@@ -25,7 +24,7 @@ def combined_targets_from_raw(
         write_dir=None
         ):
     '''
-    Prepare combined target variables from raw CEHD and USIS datasets.
+    Prepare target variable from raw CEHD and USIS datasets.
 
     Parameters
     ----------
@@ -42,8 +41,8 @@ def combined_targets_from_raw(
 
     Returns
     -------
-    dict of pandas.Series
-        One target array for each NAICS level specified.
+    pandas.Series
+        Exposure target with MultiIndex (chem_id, naics_id).
     '''
     usis_cleaner = usis_cleaning.UsisCleaner(
         usis_settings, 
@@ -59,27 +58,29 @@ def combined_targets_from_raw(
         )
     cehd_data = cehd_cleaner.clean_exposure_data()
 
-    y_for_naics = combined_targets_from_data(
-        usis_data, 
-        cehd_data, 
-        usis_settings, 
-        cehd_settings, 
-        write_dir=write_dir
-        )
+    y = _target_from_data(
+            usis_data, 
+            cehd_data, 
+            usis_settings, 
+            cehd_settings
+            )
+    
+    if write_dir:
+        _write_target(y, write_dir, usis_settings['naics_level'])
 
-    return y_for_naics
+    return y
 #endregion
 
-#region: combined_targets_from_data
-def combined_targets_from_data(
+# FIXME: Move parameters like naics_level to shared data config
+#region: _target_from_data
+def _target_from_data(
         usis_data, 
         cehd_data, 
         usis_settings, 
-        cehd_settings, 
-        write_dir=None
+        cehd_settings
         ):
     '''
-    Prepare combined target variables from pre-cleaned CEHD and USIS data.
+    Prepare target variable from pre-cleaned CEHD and USIS data.
 
     Parameters
     ----------
@@ -91,13 +92,11 @@ def combined_targets_from_data(
         Config settings for the USIS dataset.
     cehd_settings : dict
         Config settings for the CEHD dataset.
-    write_dir : str, optional
-        Directory in which the results will be written.
 
     Returns
     -------
-    dict of pandas.Series
-        One target array for each NAICS level specified.
+    pandas.Series
+        Exposure target with MultiIndex (chem_id, naics_id).
     '''
     twa_usis = usis_processing.full_shift_twa_per_sampling(
         usis_data, 
@@ -108,22 +107,21 @@ def combined_targets_from_data(
         **cehd_settings
         )
 
-    twa_per_sampling_number = combine_exposure_datasets(twa_usis, twa_cehd)
+    twa_combined = _combine_datasets(twa_usis, twa_cehd)
 
-    y_for_naics = exposure_targets_by_naics(
-        twa_per_sampling_number, 
-        usis_settings['naics_levels'],
-        usis_settings['naics_code_col'],
-        usis_settings['chem_id_col'],
-        usis_settings['inspection_number_col'],
-        write_dir=write_dir
-    )
+    y = _exposure_conc_from_twa(
+            twa_combined, 
+            usis_settings['naics_level'],
+            usis_settings['chem_id_col'],
+            usis_settings['naics_code_col'],
+            usis_settings['inspection_number_col']
+        )
 
-    return y_for_naics
+    return y
 #endregion
 
-#region: combine_exposure_datasets
-def combine_exposure_datasets(twa_usis, twa_cehd):
+#region: _combine_datasets
+def _combine_datasets(twa_usis, twa_cehd):
     '''
     Combine CEHD and USIS datasets, using USIS data as the primary dataset and 
     adding CEHD data where no USIS data exists.
@@ -141,65 +139,17 @@ def combine_exposure_datasets(twa_usis, twa_cehd):
     return pd.concat([combined_series, twa_cehd_additional])
 #endregion
 
-#region: targets_from_raw
-def targets_from_raw(
-        data_cleaner,
-        twa_function, 
-        write_dir=None
-        ):
-    '''
-    Prepare target variables from raw dataset input (USIS or CEHD).
-    '''
-    exposure_data = data_cleaner.clean_exposure_data()
-    data_settings = data_cleaner.data_settings 
-
-    y_for_naics = targets_from_data(
-        exposure_data, 
-        twa_function,
-        data_settings,
-        write_dir=write_dir
-        )
-    
-    return y_for_naics
-#endregion
-
-#region: targets_from_data
-def targets_from_data(
-        exposure_data, 
-        twa_function,
-        data_settings,
-        write_dir=None
-        ):
-    '''
-    Prepare target variables from pre-cleaned dataset input (USIS or CEHD).
-    '''
-    twa_per_sampling_number = twa_function(
-        exposure_data, 
-        **data_settings
-        )
-    
-    y_for_naics = exposure_targets_by_naics(
-        twa_per_sampling_number, 
-        data_settings['naics_levels'],
-        data_settings['naics_code_col'],
-        data_settings['chem_id_col'],
-        data_settings['inspection_number_col'],
-        write_dir=write_dir
-    )
-
-    return y_for_naics
-#endregion
-
-#region: exposure_targets_by_naics
-def exposure_targets_by_naics(
-        twa_per_sampling_number, 
-        naics_levels,
-        naics_code_col,
+#region: _exposure_conc_from_twa
+def _exposure_conc_from_twa(
+        twa_per_sampling_number,
+        naics_level,
         chem_id_col,
-        inspection_number_col,
-        write_dir=None):
+        naics_code_col,
+        inspection_number_col
+        ):
     '''
-    Orchestrates target variable preparation for OSHA datasets.
+    Converts time-weighted averaged (TWA) per sampling number to an exposure
+    concentration, replacing the full NAICS code with the specified level.
 
     Calculates a representative exposure concentration for each unique 
     combination of chemical and NAICS code. First, a time-weighted average 
@@ -209,31 +159,32 @@ def exposure_targets_by_naics(
     equivalents, representative of chronic exposure and directly comparable to
     a human-equivalent point of departure (POD).
     '''
-    y_for_naics = {}  # initialize
-
-    for level in naics_levels:
-
-        new_twa_per_sampling_number = reindex_with_naics_level(
-            twa_per_sampling_number, 
-            naics_code_col, 
-            level
-            )
-
-        y_for_naics[level] = exposure_concentration_per_naics(
-            new_twa_per_sampling_number,
-            chem_id_col,
-            naics_code_col,
-            inspection_number_col
+    new_twa_per_sampling_number = _replace_naics_with_level(
+        twa_per_sampling_number, 
+        naics_code_col, 
+        naics_level
         )
+    
+    twa_per_inspection = _aggregate_twa_per_inspection(
+        new_twa_per_sampling_number,
+        chem_id_col,
+        naics_code_col,
+        inspection_number_col
+    )
 
-        if write_dir:
-            write_target(y_for_naics[level], write_dir, level)
+    twa_per_naics = _aggregate_twa_per_naics(
+        twa_per_inspection,
+        chem_id_col,
+        naics_code_col
+    )
 
-    return y_for_naics
+    ec_per_naics = continuous_exposure(twa_per_naics)
+
+    return ec_per_naics.rename('mg_per_m3')
 #endregion
 
-#region: reindex_with_naics_level
-def reindex_with_naics_level(twa_per_sampling_number, naics_code_col, level):
+#region: _replace_naics_with_level
+def _replace_naics_with_level(twa_per_sampling_number, naics_code_col, level):
     '''
     Replace the full NAICS codes with the specified NAICS level.
     '''
@@ -244,7 +195,7 @@ def reindex_with_naics_level(twa_per_sampling_number, naics_code_col, level):
     # NOTE: assign() returns a copy, and dict unpacking ensures that 
     # 'naics_code_col' is interpreted as a variable rather than a string 
     kwargs = {
-        naics_code_col: extract_naics_level(
+        naics_code_col: _extract_naics_level(
             twa_df[naics_code_col], 
             level=level)
             }
@@ -257,37 +208,8 @@ def reindex_with_naics_level(twa_per_sampling_number, naics_code_col, level):
     return new_twa_per_sampling_number
 #endregion
 
-#region: exposure_concentration_per_naics
-def exposure_concentration_per_naics(
-        twa_per_sampling_number,
-        chem_id_col,
-        naics_code_col,
-        inspection_number_col
-        ):
-    '''
-    Converts TWAs per sampling number into final exposure concentration (EC)
-    values.
-    '''
-    twa_per_inspection = aggregate_twa_per_inspection(
-        twa_per_sampling_number,
-        chem_id_col,
-        naics_code_col,
-        inspection_number_col
-    )
-
-    twa_per_naics = aggregate_twa_per_naics(
-        twa_per_inspection,
-        chem_id_col,
-        naics_code_col
-    )
-
-    ec_per_naics = continuous_exposure_concentration(twa_per_naics)
-
-    return ec_per_naics.rename('mg_per_m3')
-#endregion
-
-#region: aggregate_twa_per_naics
-def aggregate_twa_per_naics(
+#region: _aggregate_twa_per_naics
+def _aggregate_twa_per_naics(
         twa_per_inspection, 
         chem_id_col, 
         naics_code_col
@@ -306,8 +228,8 @@ def aggregate_twa_per_naics(
     return twa_per_naics
 #endregion
 
-#region: aggregate_twa_per_inspection
-def aggregate_twa_per_inspection(
+#region: _aggregate_twa_per_inspection
+def _aggregate_twa_per_inspection(
         twa_per_sampling_number,
         chem_id_col,
         naics_code_col,
@@ -334,8 +256,8 @@ def aggregate_twa_per_inspection(
 #endregion
 
 # TODO: Add data validation checks, e.g., no leading/trailing whitespace, etc.
-#region: extract_naics_level
-def extract_naics_level(naics_series, level):
+#region: _extract_naics_level
+def _extract_naics_level(naics_series, level):
     '''
     Extracts the first N digits of the NAICS code based on the specified 
     level.
@@ -351,8 +273,8 @@ def extract_naics_level(naics_series, level):
     return naics_series.str[:digits_for_level[level]]
 #endregion
 
-#region: continuous_exposure_concentration
-def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
+#region: continuous_exposure
+def continuous_exposure(CA, ET=8, EF=250, ED=25):
     '''
     Converts a chemical's concentration in air into a continuous exposure
     concentration. 
@@ -374,9 +296,9 @@ def continuous_exposure_concentration(CA, ET=8, EF=250, ED=25):
     return (CA * ET * EF * ED) / AT
 #endregion
 
-#region: write_target
-def write_target(y, write_dir, naics_level):
-    '''Write the target variable to a file.'''
+#region: _write_target
+def _write_target(y, write_dir, naics_level):
+    '''Write the target variable to disk.'''
     if not os.path.exists(write_dir):
         # Ensure directory exists
         os.makedirs(write_dir)

@@ -25,10 +25,5 @@
 
     "chem_id_col" : "DTXSID",
 
-    "naics_levels" : [
-        "sector",
-        "subsector",
-        "industry_group"
-      ]
-
+    "naics_level" : "sector"
 }

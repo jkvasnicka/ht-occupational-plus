@@ -51,18 +51,16 @@ def prepare_features_and_target(
             log10_features=log10_features
             )
     
-    # TODO: Refactor to handle a single target and return it (y)
     if not os.path.exists(path_settings['target_file']):
-        # Prepare the target data from raw
-        osha_processing.combined_targets_from_raw(
-            usis_settings, 
-            cehd_settings, 
-            path_settings, 
-            comptox_settings=comptox_settings,
-            write_dir=path_settings['target_dir']
-            )
-
-    y = read_target(path_settings['target_file'])
+        y = osha_processing.target_from_raw(
+                usis_settings, 
+                cehd_settings, 
+                path_settings, 
+                comptox_settings=comptox_settings,
+                write_dir=path_settings['target_dir']
+                )
+    else:
+        y = read_target(path_settings['target_file'])
 
     return X.align(y, join='inner', axis=0)
 #endregion

@@ -107,12 +107,6 @@
   
   "chem_id_col" : "DTXSID",
 
-  "naics_levels" : [
-    "sector",
-    "subsector",
-    "industry_group"
-  ],
-
   "non_f_substance_codes" : [
       "1073", 
       "2270", 
