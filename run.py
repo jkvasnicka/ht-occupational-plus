@@ -96,6 +96,7 @@ if __name__ == '__main__':
         ]
 
     for config_file in config_files:
+        print(f'Running workflow with config "{config_file}".')
 
         config = UnifiedConfiguration(
             config_file=config_file, 

@@ -70,6 +70,7 @@ def evaluate_twostage(
     reg_funcs = metrics_from_config(config.metrics['regression'])
     
     if evaluation_type == 'cv':
+        print('  Cross-validating two-stage estimator.')
 
         cv = GroupKFold(n_splits=config.data['n_splits_cv'])
 
@@ -92,6 +93,7 @@ def evaluate_twostage(
             )
 
     elif evaluation_type == 'holdout':
+        print('  Evaluating hold-out performance.')
 
         holdout_performance, holdout_pred, estimator = (
             evaluate_holdout_performance(

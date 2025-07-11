@@ -57,6 +57,7 @@ def prepare_features_and_target(
             )
     
     if not os.path.exists(path_settings['target_file']):
+        print('  Building target from raw data.')
         y = osha_processing.target_from_raw(
                 usis_settings, 
                 cehd_settings, 
