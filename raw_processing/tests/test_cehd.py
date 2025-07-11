@@ -1,11 +1,7 @@
 '''
 Unit tests for the chemical exposure health data cleaning process.
 
-Notes:
-------
-The expected data are stored in Feather format to preserve the exact structure
-and data types of the pandas DataFrame, including pandas-specific types such 
-as `Categorical`. 
+THIS MODULE IS "UNDER CONSTRUCTION" AND MAY NOT BE UP-TO-DATE.
 '''
 
 import pandas as pd 

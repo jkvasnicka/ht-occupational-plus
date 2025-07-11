@@ -1,5 +1,7 @@
 '''
-Unit tests for the United States Information System (USIS) data cleaning. 
+Unit tests for the United States Information System (USIS) data cleaning.
+
+THIS MODULE IS "UNDER CONSTRUCTION" AND MAY NOT BE UP-TO-DATE.
 '''
 
 import pandas as pd 
