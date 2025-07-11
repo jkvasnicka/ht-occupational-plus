@@ -16,7 +16,7 @@ def prepare_features_and_target(
         usis_settings, 
         cehd_settings, 
         path_settings, 
-        comptox_settings=None,
+        comptox_settings,
         feature_columns=None, 
         log10_features=None
         ):
@@ -31,7 +31,7 @@ def prepare_features_and_target(
         Config settings for the CEHD dataset.
     path_settings : dict
         Config settings for file paths.
-    comptox_settings : dict, optional
+    comptox_settings : dict
         Config settings for CompTox data.
     feature_columns : list of str, optional
         Subset of columns to select from the features DataFrame.
@@ -55,8 +55,8 @@ def prepare_features_and_target(
         y = osha_processing.target_from_raw(
                 usis_settings, 
                 cehd_settings, 
-                path_settings, 
-                comptox_settings=comptox_settings,
+                path_settings,
+                comptox_settings,
                 write_dir=path_settings['target_dir']
                 )
     else:

@@ -20,7 +20,7 @@ def target_from_raw(
         usis_settings, 
         cehd_settings, 
         path_settings, 
-        comptox_settings=None,
+        comptox_settings,
         write_dir=None
         ):
     '''
@@ -36,7 +36,7 @@ def target_from_raw(
         Config settings for the CEHD dataset.
     path_settings : dict
         Config settings for file paths.
-    comptox_settings : dict, optional
+    comptox_settings : dict
         Config settings for CompTox data.
     write_dir : str, optional
         Directory in which the results will be written.
