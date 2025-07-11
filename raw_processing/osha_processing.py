@@ -26,6 +26,8 @@ def target_from_raw(
     '''
     Prepare target variable from raw CEHD and USIS datasets.
 
+    Optionally writes the target to disk.
+
     Parameters
     ----------
     usis_settings : dict
@@ -149,7 +151,7 @@ def _exposure_conc_from_twa(
         ):
     '''
     Converts time-weighted averaged (TWA) per sampling number to an exposure
-    concentration, replacing the full NAICS code with the specified level.
+    concentration.
 
     Calculates a representative exposure concentration for each unique 
     combination of chemical and NAICS code. First, a time-weighted average 
@@ -186,7 +188,8 @@ def _exposure_conc_from_twa(
 #region: _replace_naics_with_level
 def _replace_naics_with_level(twa_per_sampling_number, naics_code_col, level):
     '''
-    Replace the full NAICS codes with the specified NAICS level.
+    Replaces the index to show the specified NAICS level (e.g., sector) rather 
+    than the full six-digit NAICS code.
     '''
     # Convert the Series to a DataFrame to modify the index values (NAICS)
     original_index = list(twa_per_sampling_number.index.names)
@@ -298,7 +301,7 @@ def continuous_exposure(CA, ET=8, EF=250, ED=25):
 
 #region: _write_target
 def _write_target(y, write_dir, naics_level):
-    '''Write the target variable to disk.'''
+    '''Write the target variable to disk as a CSV file.'''
     if not os.path.exists(write_dir):
         # Ensure directory exists
         os.makedirs(write_dir)
