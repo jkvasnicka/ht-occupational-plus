@@ -17,6 +17,7 @@ def prepare_features_and_target(
         cehd_settings, 
         path_settings, 
         comptox_settings,
+        naics_level,
         feature_columns=None, 
         log10_features=None
         ):
@@ -33,6 +34,10 @@ def prepare_features_and_target(
         Config settings for file paths.
     comptox_settings : dict
         Config settings for CompTox data.
+    naics_level : str
+        Level of the NAICS code at which to aggregate. Must be either 
+        'sector', 'subsector', 'industry_group', 'industry', or
+        'national_industry'.
     feature_columns : list of str, optional
         Subset of columns to select from the features DataFrame.
     log10_features : list of str, optional
@@ -57,6 +62,7 @@ def prepare_features_and_target(
                 cehd_settings, 
                 path_settings,
                 comptox_settings,
+                naics_level,
                 write_dir=path_settings['target_dir']
                 )
     else:

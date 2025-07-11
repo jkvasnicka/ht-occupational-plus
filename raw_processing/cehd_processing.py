@@ -14,10 +14,10 @@ osha_processing.py
 #region: full_shift_twa_per_sampling
 def full_shift_twa_per_sampling(
         exposure_data,
+        chem_id_col,
         *,
         sample_result_col,
         time_sampled_col,
-        chem_id_col, 
         naics_code_col, 
         inspection_number_col,
         sampling_number_col,

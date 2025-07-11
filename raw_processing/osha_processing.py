@@ -14,13 +14,13 @@ from . import usis_processing, cehd_processing
 DAYS_PER_YEAR = 365
 HOURS_PER_DAY = 24
 
-# FIXME: Store naics_level in shared config
 #region: target_from_raw
 def target_from_raw(
         usis_settings, 
         cehd_settings, 
         path_settings, 
         comptox_settings,
+        naics_level,
         write_dir=None
         ):
     '''
@@ -38,6 +38,10 @@ def target_from_raw(
         Config settings for file paths.
     comptox_settings : dict
         Config settings for CompTox data.
+    naics_level : str
+        Level of the NAICS code at which to aggregate. Must be either 
+        'sector', 'subsector', 'industry_group', 'industry', or
+        'national_industry'.
     write_dir : str, optional
         Directory in which the results will be written.
 
@@ -64,22 +68,25 @@ def target_from_raw(
             usis_data, 
             cehd_data, 
             usis_settings, 
-            cehd_settings
+            cehd_settings,
+            comptox_settings['chem_id_col'],
+            naics_level
             )
     
     if write_dir:
-        _write_target(y, write_dir, usis_settings['naics_level'])
+        _write_target(y, write_dir, naics_level)
 
     return y
 #endregion
 
-# FIXME: Move parameters like naics_level to shared data config
 #region: _target_from_data
 def _target_from_data(
         usis_data, 
         cehd_data, 
         usis_settings, 
-        cehd_settings
+        cehd_settings,
+        chem_id_col,
+        naics_level
         ):
     '''
     Prepare target variable from pre-cleaned CEHD and USIS data.
@@ -94,6 +101,12 @@ def _target_from_data(
         Config settings for the USIS dataset.
     cehd_settings : dict
         Config settings for the CEHD dataset.
+    chem_id_col : str
+        Name of the column corresponding to the chemical identifiers.
+    naics_level : str
+        Level of the NAICS code at which to aggregate. Must be either 
+        'sector', 'subsector', 'industry_group', 'industry', or
+        'national_industry'.
 
     Returns
     -------
@@ -101,21 +114,23 @@ def _target_from_data(
         Exposure target with MultiIndex (chem_id, naics_id).
     '''
     twa_usis = usis_processing.full_shift_twa_per_sampling(
-        usis_data, 
+        usis_data,
+        chem_id_col,
         **usis_settings
         )
     twa_cehd = cehd_processing.full_shift_twa_per_sampling(
-        cehd_data, 
+        cehd_data,
+        chem_id_col,
         **cehd_settings
         )
 
     twa_combined = _combine_datasets(twa_usis, twa_cehd)
 
     y = _exposure_conc_from_twa(
-            twa_combined, 
-            usis_settings['naics_level'],
-            usis_settings['chem_id_col'],
-            usis_settings['naics_code_col'],
+            twa_combined,
+            chem_id_col,
+            naics_level,
+            usis_settings['naics_code_col'],  # retains USIS name convention
             usis_settings['inspection_number_col']
         )
 
@@ -144,8 +159,8 @@ def _combine_datasets(twa_usis, twa_cehd):
 #region: _exposure_conc_from_twa
 def _exposure_conc_from_twa(
         twa_per_sampling_number,
-        naics_level,
         chem_id_col,
+        naics_level,
         naics_code_col,
         inspection_number_col
         ):

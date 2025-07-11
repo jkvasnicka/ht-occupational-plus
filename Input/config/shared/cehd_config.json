@@ -104,8 +104,6 @@
   "inspection_number_col" : "INSPECTION_NUMBER",
   "sampling_number_col" : "SAMPLING_NUMBER",
   "time_sampled_col" : "TIME_SAMPLED",
-  
-  "chem_id_col" : "DTXSID",
 
   "non_f_substance_codes" : [
       "1073", 

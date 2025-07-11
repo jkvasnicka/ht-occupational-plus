@@ -109,6 +109,7 @@ if __name__ == '__main__':
             config.cehd,
             config.path, 
             config.comptox,
+            config.data['naics_level'],
             config.data['feature_columns'],
             config.data['log10_features']
             )

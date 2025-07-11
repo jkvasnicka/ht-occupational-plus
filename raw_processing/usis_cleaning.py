@@ -81,11 +81,10 @@ class UsisCleaner(OshaDataCleaner):
         exposure_data = exposure_data.copy()
 
         # Define columns that should describe a unique sample for a worker
-        chem_id_col = self.data_settings.get(
-            'chem_id_col', 'substance_code_col'
-            )
-        if chem_id_col not in exposure_data:
-            chem_id_col = self.data_settings['substance_code_col']
+        if self.comptox_settings is not None:
+            chem_id_col = self.comptox_settings.get('chem_id_col')
+        else:
+            chem_id_col = self.data_settings.get('substance_code_col')
 
         unique_sample_cols = [
             chem_id_col,
