@@ -1,63 +1,100 @@
 '''
+Data I/O utilities for features and target variables.
+
+Provides functions to load and preprocess feature dataframes and target
+series from disk.
 '''
 
-import os
 import pandas as pd
+import numpy as np 
+import os
 
-#region: read_targets
-def read_targets(root_dir):
+from raw_processing import osha_processing
+
+#region: prepare_features_and_target
+def prepare_features_and_target(
+        usis_settings, 
+        cehd_settings, 
+        path_settings, 
+        comptox_settings,
+        naics_level,
+        feature_columns=None, 
+        log10_features=None
+        ):
     '''
-    Traverse a directory tree and read target data from CSV files.
+    Load feature matrix and target series, align on index.
+
+    Parameters
+    ----------
+    usis_settings : dict
+        Config settings for the USIS dataset.
+    cehd_settings : dict
+        Config settings for the CEHD dataset.
+    path_settings : dict
+        Config settings for file paths.
+    comptox_settings : dict
+        Config settings for CompTox data.
+    naics_level : str
+        Level of the NAICS code at which to aggregate. Must be either 
+        'sector', 'subsector', 'industry_group', 'industry', or
+        'national_industry'.
+    feature_columns : list of str, optional
+        Subset of columns to select from the features DataFrame.
+    log10_features : list of str, optional
+        Columns to log₁₀-transform after selection.
 
     Returns
     -------
-    dict
-        A dictionary where keys represent the relative path to each file:
-        - Simple strings for files in the root directory.
-        - Tuples of directory names and file name (without extension) for 
-          nested files.
-        Values are the processed target data from each CSV file.
+    X : pandas.DataFrame
+        Feature matrix aligned to y.
+    y : pandas.Series
+        Target series aligned to X.
     '''
-    data_for_name = {}  # initialize
-    for dirpath, _, filenames in os.walk(root_dir):
-        for name in filenames:
-            if name.endswith('.csv'):
-                relative_path = os.path.relpath(dirpath, root_dir)
-                if relative_path == '.':  # root
-                    path_parts = ()
-                else:
-                    path_parts = tuple(relative_path.split(os.sep))
-                k = os.path.splitext(name)[0]  # file name without extension
-                if path_parts:
-                    k = tuple(path_parts + (k,))
-                target_file = os.path.join(dirpath, name)
-                data_for_name[k] = read_target(target_file)
-    return data_for_name
+    X = read_features(
+            path_settings['features_file'], 
+            feature_columns=feature_columns,
+            log10_features=log10_features
+            )
+    
+    if not os.path.exists(path_settings['target_file']):
+        print('  Building target from raw data.')
+        y = osha_processing.target_from_raw(
+                usis_settings, 
+                cehd_settings, 
+                path_settings,
+                comptox_settings,
+                naics_level,
+                write_dir=path_settings['target_dir']
+                )
+    else:
+        y = read_target(path_settings['target_file'])
+
+    return X.align(y, join='inner', axis=0)
+#endregion
+
+#region: read_features
+def read_features(features_file, feature_columns=None, log10_features=None):
+    '''
+    Read and preprocess feature DataFrame.
+    '''
+    if log10_features is None:
+        log10_features = []
+
+    X = pd.read_parquet(features_file)
+
+    if feature_columns:
+        X = X[feature_columns]
+
+    for feature in log10_features:
+        X[feature] = np.log10(X[feature])
+        
+    return X
 #endregion
 
 #region: read_target
 def read_target(target_file):
-    ''''''
+    '''
+    Read target series from CSV with MultiIndex (DTXSID, naics_id).
+    '''
     return pd.read_csv(target_file, index_col=[0, 1]).squeeze()
-#endregion
-
-#region: read_features
-def read_features(opera_features_file, y=None):
-    '''
-    '''
-    X_opera = pd.read_parquet(opera_features_file)
-    X_naics = naics_features_from_target(y)
-    return X_naics.join(X_opera, on='DTXSID', how='inner')
-#endregion
-
-#region: naics_features_from_target
-def naics_features_from_target(y):
-    '''
-    Prepares one-hot-encoded NAICS codes as features.
-
-    The features are derived from the target variable's index.
-    '''
-    naics_code_col = y.index.names[-1]
-    X = pd.get_dummies(y.reset_index()[naics_code_col])
-    return X.set_index(y.index).rename(columns=lambda col : str(col))
 #endregion

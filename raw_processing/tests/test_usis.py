@@ -1,5 +1,7 @@
 '''
-Unit tests for the United States Information System (USIS) data cleaning. 
+Unit tests for the United States Information System (USIS) data cleaning.
+
+THIS MODULE IS "UNDER CONSTRUCTION" AND MAY NOT BE UP-TO-DATE.
 '''
 
 import pandas as pd 
@@ -21,7 +23,7 @@ def config():
 @pytest.fixture
 def cleaner(config):
     '''Fixture to instantiate the data cleaner'''
-    return usis_cleaning.UsisCleaner(config.usis, config.path)
+    return usis_cleaning.UsisCleaner(config.usis, config.path, config.comptox)
 #endregion
 
 #region: raw_exposure_data fixture

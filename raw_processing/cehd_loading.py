@@ -11,6 +11,8 @@ import chardet
 import pandas as pd
 import numpy as np
 
+from . import osha_loading
+
 #region: raw_chem_exposure_health_data
 def raw_chem_exposure_health_data(cehd_settings, path_settings):
     '''
@@ -34,6 +36,7 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
     if path_settings['raw_cehd_dir']:
         exposure_data = _raw_cehd_from_multiple_files(
             path_settings['raw_cehd_dir'], 
+            cehd_settings['file_name_prefix'],
             cehd_settings['rename_mapper'],
             cehd_settings['initial_dtypes']
             )
@@ -47,15 +50,17 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
 #region _raw_cehd_from_multiple_files
 def _raw_cehd_from_multiple_files(
         raw_cehd_dir, 
+        file_name_prefix,
         rename_mapper,
-        dtype_settings
+        initial_dtypes
         ):
     '''
     Load the Chemical Exposure Health Data (CEHD) into a single DataFrame.
 
     This function walks through the specified directory, identifies files
     following the naming convention 'sample_data_YEAR.extension', where
-    'YEAR' is a four-digit year and 'extension' is either 'csv' or 'xml'.
+    'YEAR' is a four-digit year and 'extension' is either 'csv', 'txt', or 
+    'xml'.
 
     Parameters
     ----------
@@ -72,33 +77,31 @@ def _raw_cehd_from_multiple_files(
     exposure_data = []  # initialize
     for root, _, files in os.walk(raw_cehd_dir):
         for file in files:
-
-            parts = file.split('.')
-            extension = parts[-1]
-            if extension in ['csv', 'xml']:
-                # The file contains OSHA data
-                year = parts[0].split('_')[-1]
-                print(f'Loading {year} data...')
-                if extension == 'csv':
-                    year_data = _cehd_from_csv(
-                        root, file, rename_mapper
-                        )
-                elif extension == 'xml':
-                    year_data = _cehd_from_xml(
-                        root, file, rename_mapper
-                        )
-                # Create a new column with the file year
-                year_data['YEAR'] = year
-                exposure_data.append(year_data)
+            if file.startswith(file_name_prefix):
+                parts = file.split('.')
+                extension = parts[-1]
+                if extension in ['csv', 'txt', 'xml']:
+                    # The file contains OSHA data
+                    year = parts[0].split('_')[-1]
+                    print(f'Loading {year} data...')
+                    if extension in ['csv', 'txt']:
+                        year_data = _cehd_from_csv(
+                            root, file, rename_mapper
+                            )
+                    elif extension == 'xml':
+                        year_data = _cehd_from_xml(
+                            root, file, rename_mapper
+                            )
+                    # Create a new column with the file year
+                    year_data['YEAR'] = year
+                    exposure_data.append(year_data)
     exposure_data = pd.concat(exposure_data, ignore_index=True)
-    exposure_data = pre_clean(exposure_data, dtype_settings)
+    exposure_data = pre_clean(exposure_data, initial_dtypes)
     return exposure_data
 #endregion
 
 #region: _raw_cehd_from_single_file
 def _raw_cehd_from_single_file(raw_cehd_file):
-    '''
-    '''
     return pd.read_feather(raw_cehd_file).set_index('index')
 #endregion
 
@@ -116,6 +119,11 @@ def _cehd_from_csv(root, file, rename_mapper):
     -------
     dict
         A dictionary of DataFrames for each year.
+
+    Notes
+    -----
+    on_bad_lines='skip' was introduced to handle a few bad lines in the 2024
+    release of the CEHD. These lines had extra '|' characters in the raw file.
     '''
     raw_cehd_file = os.path.join(root, file)
 
@@ -129,7 +137,8 @@ def _cehd_from_csv(root, file, rename_mapper):
         raw_cehd_file, 
         encoding=encoding, 
         delimiter=delimiter,
-        low_memory=False
+        low_memory=False,
+        on_bad_lines='skip'
     )
 
     csv_data = _standardize(csv_data, rename_mapper)
@@ -240,7 +249,7 @@ def _strip_trailing_commas(df):
 #endregion
 
 #region: pre_clean
-def pre_clean(exposure_data, dtype_settings):
+def pre_clean(exposure_data, initial_dtypes):
     '''
     Apply minimal data cleaning and type conversion to ensure that the data is 
     in a workable format.
@@ -251,7 +260,7 @@ def pre_clean(exposure_data, dtype_settings):
     '''
     exposure_data = exposure_data.copy()
 
-    exposure_data = set_initial_dtypes(exposure_data, dtype_settings)
+    exposure_data = osha_loading.pre_clean(exposure_data, initial_dtypes)
 
     exposure_data = exposure_data.sort_index(axis=1)
 
@@ -287,64 +296,6 @@ def pre_clean(exposure_data, dtype_settings):
     return exposure_data
 #endregion
 
-#region: set_initial_dtypes
-def set_initial_dtypes(exposure_data, dtype_settings):
-    '''
-    Set consistent data types for each column based on the configuration 
-    settings.
-    '''
-    exposure_data = exposure_data.copy()
-
-    for col, settings in dtype_settings.items():
-        dtype = settings.pop('dtype')
-
-        if dtype == 'string':
-            exposure_data[col] = to_string(exposure_data[col])
-        elif dtype == 'datetime':
-            exposure_data[col] = to_datetime(exposure_data[col])
-        elif dtype == 'numeric':
-            exposure_data[col] = pd.to_numeric(exposure_data[col], **settings)
-        elif dtype == 'integer_string':
-            exposure_data[col] = convert_to_integer_string(exposure_data[col])
-        else:
-            # Infer pandas dtype
-            exposure_data[col] = exposure_data[col].astype(dtype)
-
-    return exposure_data
-#endregion
-
-#region: to_string
-def to_string(series):
-    '''
-    Convert a pandas Series to strings, while leaving NaNs unchanged.
-
-    Note
-    ----
-    This function is used while pandas APIs for StringDtype and pd.NA are
-    labeled as "experimental"
-    '''
-    return series.apply(lambda x: x if pd.isna(x) else str(x))
-#endregion
-
-#region: to_datetime
-def to_datetime(series):
-    '''
-    Lowercase and date conversion handling multiple formats
-    '''
-    return pd.to_datetime(
-        series.str.lower(),
-        errors='coerce',
-        format='%Y-%b-%d'
-    ).combine_first(
-        pd.to_datetime(series.str.lower(), errors='coerce', format='%Y/%m/%d')
-    ).combine_first(
-        pd.to_datetime(series.str.lower(), errors='coerce', format='%Y-%m-%d')
-    .combine_first(
-        pd.to_datetime(series.str.lower(), errors='coerce', format='%d-%b-%Y')
-    )
-    )
-#endregion
-
 #region: _replace_file_year_with_sampled_year
 def _replace_file_year_with_sampled_year(file_year, date_sampled):
     '''
@@ -356,20 +307,4 @@ def _replace_file_year_with_sampled_year(file_year, date_sampled):
     '''
     year_sampled = date_sampled.dt.year
     return file_year.where(year_sampled.isna(), year_sampled).astype('int64')
-#endregion
-
-#region: convert_to_integer_string
-def convert_to_integer_string(series):
-    '''
-    Convert a pandas Series to integer strings where possible.
-    NaNs and non-convertible strings are left unchanged.
-    '''
-    # Attempt to convert to numeric, coercing errors to NaN
-    numeric_series = pd.to_numeric(series, errors='coerce')
-    integer_strings = numeric_series.dropna().astype('int').astype('str')
-    
-    # Where successfully converted, use the integer string
-    series = series.where(numeric_series.isna(), integer_strings)
-    
-    return series
 #endregion
