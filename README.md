@@ -2,14 +2,14 @@
 
 ## Overview
 
-This repository transforms raw industrial-hygiene air measurement data into a sector-level exposure target and fits two-stage machine-learning models:
+This repository transforms raw industrial-hygiene air measurement data into an exposure target variable and fits two-stage machine-learning models:
 
 - **Stage 1 – Classifier**: Predict detect / non-detect.
 - **Stage 2 – Regressor**: Predict the continuous exposure concentration for detected samples only.
 
-The final target variable (mg/m³) represents the “typical” exposure for each *(chemical, NAICS sector)* pair and can be compared directly with human-equivalent points of departure (PODs) for inhalation risk assessment.
+The final target variable (mg/m³) represents the “typical” exposure for each *(chemical, [NAICS](https://www.census.gov/naics/))* pair and can be compared directly with human-equivalent points of departure (PODs) for inhalation risk assessment.
 
-Models follow the [scikit-learn API](https://scikit-learn.org/stable/developers/develop.html) and support both built-in and custom estimators via configuration files.
+The repo supports the [scikit-learn API](https://scikit-learn.org/stable/developers/develop.html) including both built-in and custom estimators via configuration files.
 
 ## Data Sources for Citation & Acknowledgment
 
@@ -19,24 +19,24 @@ Please cite the relevant sources if using this repository in your research:
   https://www.osha.gov/opengov/health-samples
 
 - **OSHA USIS** (United States Information Systems):  
-  https://github.com/UofMontreal-Multiexpo/uom.usis
+  https://github.com/UofMontreal-Multiexpo/uom.usis, developed by Prof. Jérôme Lavoué et al. (University of Montreal)
 
-- **OPERA (v2.9)** – Physical-chemical descriptors (QSAR):  
-  https://github.com/kmansouri/OPERA
+- **OPERA (v2.9)** – Physical-chemical properties and descriptors (QSAR):  
+  https://github.com/kmansouri/OPERA, developed by Dr. Kamel Mansouri (NIEHS)
 
-The CEHD and USIS data were cleaned and combined based on a methodology developed by Prof. Jérôme Lavoué (University of Montreal), adapted here in Python. Prof. Lavoué also provided the USIS dataset. OPERA descriptors were used as predictors in the ML models.
+The CEHD and USIS data were cleaned and combined based on a methodology developed by Prof. Jérôme Lavoué, adapted here in Python. OPERA descriptors were used as predictors in the ML models.
 
 ## Repository Structure
 
-- `config_main/`: Main (top-level) configuration files (entry points to modeling workflows).
-- `input/`: Input directory (component-level config files, raw and processed data provided as downloadable assets).
+- `config_main/`: Main (top-level) configuration files, serving as entry points to modeling workflows.
+- `input/`: Input directory including component-level config files, and raw and processed data (provided as downloadable assets).
 - `raw_processing/`: Modules for cleaning and transforming CEHD and USIS data into exposure targets.
 - `run.py`: Main entry point for modeling. Supports cross-validation or holdout evaluation and persists results.
-- `results/`: Output directory for persisted evaluation scores, fitted estimators, and metadata.
+- `results/`: Output directory for persisted evaluation scores, fitted estimators, and metadata (config settings for each run).
 
 ### Example Main Config Files Included
 
-Both modeling workflows use the same component-level settings, except for the regression estimators:
+Both example workflows use the same component-level settings, except for the regression estimators:
 - `config_ols.json`: Leverages scikit-learn's `LinearRegression` for standard OLS.
 - `config_mixedlm.json`: Leverages `MixedLMRegressor`, a custom statsmodels-based mixed model (defined in `mixedlm_estimation.py`)
 
@@ -96,5 +96,4 @@ python run.py -c config_main/config_ols.json -t holdout
 
 ### Notes
 
-- Use cross-validation (`cv`) for model selection.
-- Use holdout evaluation (`holdout`) for assessing generalization to "unseen" data.
+To avoid overoptimistic performance scores, use cross-validation (`cv`) for model selection and then use holdout evaluation (`holdout`) for assessing generalization to "unseen" data.
