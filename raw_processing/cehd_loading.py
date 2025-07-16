@@ -48,7 +48,8 @@ def raw_chem_exposure_health_data(cehd_settings, path_settings):
             )
         if file_path:  # cache for next time
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            exposure_data.to_feather(file_path)
+            # Preserves non-default index
+            exposure_data.reset_index().to_feather(file_path)
         return exposure_data
 
     raise FileNotFoundError(

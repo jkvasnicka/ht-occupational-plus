@@ -45,25 +45,30 @@ Both example workflows use the same component-level settings, except for the reg
 - Tested on Windows 11 with Anaconda/Miniconda.
 - Other operating systems (macOS/Linux) may require adjustments.
 
-## Installation
+## Setup
 
-### 1. Clone the repository and extract assets
+### 1. Download Source Code & Input Files
 
+1. Download and extract the asset bundle from the GitHub "Releases" tab.
+2. Unzip the source code directory to a preferred location.
+3. Unzip the input files into the `input/` subdirectory. The resulting structure should look like this: 
 ```bash
-git clone https://github.com/jkvasnicka/ht-occupational-plus.git
+root/
+└── input/
+    ├── config/
+    ├── processed/
+    └── raw/
 ```
-Download and extract the asset bundle from the GitHub "Releases" tab.
-Place the extracted contents inside the `input/` subdirectory.
 
 ### 2. Set up a Conda environment
 
-From the root of the repository:
-
-1. Create a new environment using the provided `environment.yml`:
+1. If you don't have Anaconda or Miniconda installed, please download and install from [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+2. Open a conda terminal and navigate to the root directory. 
+3. Create a new environment using the provided `environment.yml`:
 ```bash
 conda env create -f environment.yml -n <your-env-name>
 ```
-2. Activate the environment:
+4. Activate the environment:
 ```bash
 conda activate <your-env-name>
 ```
@@ -91,7 +96,6 @@ python run.py -c config_main/config_ols.json -t holdout
 | ------------------------- | --------------------------------------------------------------------------- |
 | `-c`, `--config_file`     | Path to a single main config file                                           |
 | `-d`, `--config_dir`      | Path to a directory of main config files                                    |
-| `-e`, `--encoding`        | Encoding for the configuration files (default: `"utf-8"`)                   |
 | `-t`, `--evaluation_type` | Evaluation type: `"cv"` (cross-validation) or `"holdout"` (default: `"cv"`) |
 
 ### Notes
