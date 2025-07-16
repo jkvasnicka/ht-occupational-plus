@@ -11,10 +11,10 @@
     "comptox_file" : "input/raw/comptox/CCD-Batch-Search_2025-01-29_02_18_45.csv",
 
     "osha_dsstox_map_file" : "input/raw/osha/substances/osha_chemicals_with_dtxsid_1971_2024.csv",
-    
-    "raw_cehd_dir" : null,
 
-    "raw_cehd_file" : "input/raw/osha/cehd/raw_cehd.feather",
+    "raw_cehd_dir" : "input/raw/osha/cehd/healthsamples",
+
+    "raw_cehd_file" : "input/raw/osha/cehd/raw_cehd_all_years.feather",
 
     "test_cehd_file" : "raw_processing/tests/expected_cehd.feather",
 
